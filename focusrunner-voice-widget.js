@@ -467,3 +467,7 @@
   }
 
 })();
+
+// v2.0.0 — Self-contained voice widget
+
+// v2.0.0 — Self-contained voice widget | deploy trigger
