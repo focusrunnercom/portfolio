@@ -8,10 +8,20 @@
     :root { color-scheme: dark; }
     body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; max-width: 900px; margin: 0 auto; padding: 2rem; }
     h1 { font-size: 2.5rem; background: linear-gradient(90deg, #3b82f6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    h2 { color: #d4d4d4; margin-top: 2.5rem; }
     .services { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
-    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; }
+    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s; }
+    .card:hover { border-color: #3b82f6; }
     .card h3 { color: #3b82f6; margin: 0 0 0.5rem; }
     .card p { color: #a0a0a0; margin: 0; }
+    .cta { background: linear-gradient(135deg, #1e3a5f, #0f172a); border: 1px solid #3b82f6; border-radius: 16px; padding: 2.5rem; text-align: center; margin: 3rem 0; }
+    .cta h2 { color: #fff; margin: 0 0 0.75rem; font-size: 1.75rem; }
+    .cta p { color: #94a3b8; margin: 0 0 1.5rem; font-size: 1.1rem; }
+    .cta a { display: inline-block; background: #3b82f6; color: #fff; padding: 0.85rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 1.05rem; transition: background 0.2s; }
+    .cta a:hover { background: #2563eb; }
+    .case-study-link { display: block; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.25rem; margin: 1rem 0; text-decoration: none; color: #e5e5e5; transition: border-color 0.2s; }
+    .case-study-link:hover { border-color: #3b82f6; }
+    .case-study-link .metric { color: #3b82f6; font-weight: 700; }
     footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid #2a2a2a; color: #666; font-size: 0.85rem; }
     a { color: #3b82f6; }
   </style>
@@ -21,21 +31,36 @@
   <p style="font-size:1.2rem;color:#a0a0a0;max-width:600px;">
     We build and operate AI-powered marketing systems. AI-native agency deploying intelligent agents for voice sales, workflow automation, and email marketing.
   </p>
+
   <div class="services">
     <div class="card">
       <h3>🎙 AI Voice Agents</h3>
-      <p>Intelligent voice bots that handle sales calls, qualify leads, and provide 24/7 support.</p>
+      <p>Intelligent voice bots that handle sales calls, qualify leads, and provide 24/7 support — <a href="services/voice-agents.md">learn more →</a></p>
     </div>
     <div class="card">
       <h3>⚙ Workflow Automation</h3>
-      <p>End-to-end marketing pipeline automation — lead capture, nurturing, and follow-ups.</p>
+      <p>End-to-end marketing pipeline automation — lead capture, nurturing, and follow-ups — <a href="services/workflow-automation.md">learn more →</a></p>
     </div>
     <div class="card">
       <h3>📧 Email Marketing</h3>
-      <p>Hyper-personalized AI-driven email campaigns based on customer behavior analysis.</p>
+      <p>Hyper-personalized AI-driven email campaigns based on customer behavior — <a href="services/email-marketing.md">learn more →</a></p>
     </div>
   </div>
-  <p>
+
+  <h2>📊 Case Study</h2>
+  <a href="case-studies/voice-agent-pilot.md" class="case-study-link">
+    <strong>TechStyle Inc.</strong> — AI Voice Agent pilot reduced response time by <span class="metric">99.5%</span>, handled <span class="metric">680 calls/month</span> autonomously, and saved <span class="metric">180 support hours/month</span>. <span style="color:#3b82f6">Read the full case study →</span>
+  </a>
+
+  <div class="cta">
+    <h2>Ready to automate your marketing?</h2>
+    <p>Stop managing tools. Start scaling results. Let our AI agents handle the heavy lifting while your team focuses on strategy.</p>
+    <a href="https://focusrunner.com">Book a Free Consultation →</a>
+  </div>
+
+  <p style="text-align:center;color:#a0a0a0;">
+    <a href="about/team.md">Our Team</a> &nbsp;|&nbsp;
+    <a href="about/pricing.md">Pricing</a> &nbsp;|&nbsp;
     <a href="https://focusrunner.com">🌐 focusrunner.com</a> &nbsp;|&nbsp;
     <a href="https://github.com/focusrunnercom/portfolio">💻 GitHub</a>
   </p>
