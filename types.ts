@@ -6,3 +6,10 @@ export interface Service {
   title: string;
   description: string;
 }
+
+export interface CaseStudy {
+  industry: string;
+  title: string;
+  description: string;
+  metrics: { value: string; label: string }[];
+}

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { Service } from './types';
+import type { Service, CaseStudy } from './types';
 
 const VoiceAgentIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -47,4 +47,34 @@ export const SERVICES: Service[] = [
     title: 'Email Marketing Automation',
     description: 'Launch hyper-personalized email campaigns that convert. Our AI analyzes customer behavior to deliver the right message at the right time, boosting engagement and ROI.'
   }
+];
+
+export const CASE_STUDIES: CaseStudy[] = [
+  {
+    industry: 'SaaS',
+    title: 'AI Voice Agent Replaces After-Hours Support',
+    description: 'We deployed a 24/7 AI voice agent that handles customer inquiries overnight, qualifying leads and routing emergencies — zero engineering effort from the client.',
+    metrics: [
+      { value: '93%', label: 'Call Resolution Rate' },
+      { value: '60%', label: 'Cost Reduction' },
+    ],
+  },
+  {
+    industry: 'E-Commerce',
+    title: 'Automated Email Flows Boost Repeat Purchases',
+    description: 'Built and managed hyper-personalized email campaigns triggered by browsing behavior and purchase history. The client saw immediate uplift without hiring a marketing team.',
+    metrics: [
+      { value: '3.2×', label: 'Email Revenue' },
+      { value: '+28%', label: 'Repeat Purchase Rate' },
+    ],
+  },
+  {
+    industry: 'Real Estate',
+    title: 'Lead Nurturing Pipeline Increases Close Rate',
+    description: 'Automated the entire lead follow-up workflow: instant SMS/email after inquiry, scheduled call reminders, and re-engagement sequences. The brokerage closed more deals with the same agents.',
+    metrics: [
+      { value: '+45%', label: 'Lead-to-Showing' },
+      { value: '72h', label: 'Avg Response Time (was 4 days)' },
+    ],
+  },
 ];

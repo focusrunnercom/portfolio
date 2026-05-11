@@ -25,7 +25,7 @@ export const Footer: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
                     <div>
                         <h3 className="text-xl font-bold text-text-primary">FocusRunner</h3>
-                        <p className="mt-2 text-text-secondary">AI-Powered Marketing Automation.</p>
+                        <p className="mt-2 text-text-secondary">Done-for-You AI Marketing Services.</p>
                     </div>
                     <div>
                         <h4 className="font-semibold text-text-primary">Contact Us</h4>

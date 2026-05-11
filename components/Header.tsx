@@ -9,6 +9,7 @@ const Logo: React.FC = () => (
 const NavLinks: React.FC<{ className?: string }> = ({ className }) => (
   <nav className={`flex items-center gap-6 ${className}`}>
     <a href="#services" className="text-text-secondary hover:text-text-primary transition-colors duration-300">Services</a>
+    <a href="#results" className="text-text-secondary hover:text-text-primary transition-colors duration-300">Results</a>
     <a href="#about" className="text-text-secondary hover:text-text-primary transition-colors duration-300">Why Us</a>
     <a href="#contact" className="text-text-secondary hover:text-text-primary transition-colors duration-300">Contact</a>
   </nav>

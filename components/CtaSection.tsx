@@ -22,7 +22,7 @@ export const CtaSection: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                     <div>
                         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary">
-                            Partner with AI Experts, Not Just an Agency
+                            AI Agency That Does the Work, Not Just the Strategy
                         </h2>
                         <p className="mt-4 text-lg text-text-secondary">
                             At FocusRunner, we integrate deeply with your business to build AI systems that don't just perform tasks—they achieve goals. We're your dedicated partner in navigating the future of marketing.

@@ -23,9 +23,9 @@ export const Services: React.FC = () => {
     <section id="services" className="py-20 sm:py-32">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary">The Future of Marketing is Here</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary">AI Marketing Services, Fully Managed</h2>
           <p className="mt-4 text-lg text-text-secondary">
-            We provide specialized AI solutions designed to automate your most critical marketing functions.
+            We don't sell software — we deliver outcomes. Each service is built, deployed, and run by our team so you get results without lifting a finger.
           </p>
         </div>
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

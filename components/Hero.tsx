@@ -10,10 +10,10 @@ export const Hero: React.FC = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 animate-fade-in-up">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white to-gray-400">
-            Supercharge Your Marketing with AI
+            Done-for-You AI Marketing
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto">
-            FocusRunner leverages cutting-edge AI to automate your marketing, engage customers 24/7, and drive unprecedented growth. Stop managing, start scaling.
+            We build, deploy, and manage AI-powered marketing systems so you don't have to. Voice agents that handle calls, automated email campaigns that convert, and workflows that run your pipeline — all managed for you. You get the results, we handle the rest.
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
             <a
@@ -26,7 +26,7 @@ export const Hero: React.FC = () => {
               href="#services"
               className="text-lg font-semibold leading-6 text-text-primary hover:text-brand-blue transition-colors"
             >
-              Learn more <span aria-hidden="true">→</span>
+              See what we do <span aria-hidden="true">→</span>
             </a>
           </div>
         </div>
