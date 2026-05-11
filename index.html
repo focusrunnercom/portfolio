@@ -3,67 +3,229 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FocusRunner — AI Marketing Agency</title>
+  <meta name="description" content="FocusRunner — AI-powered lead generation systems for local service businesses. 30-100 qualified leads/month in 30 days.">
+  <title>FocusRunner — AI Lead Generation for Local Businesses</title>
   <style>
     :root { color-scheme: dark; }
-    body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; max-width: 900px; margin: 0 auto; padding: 2rem; }
-    h1 { font-size: 2.5rem; background: linear-gradient(90deg, #3b82f6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    h2 { color: #d4d4d4; margin-top: 2.5rem; }
-    .services { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
-    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s; }
-    .card:hover { border-color: #3b82f6; }
-    .card h3 { color: #3b82f6; margin: 0 0 0.5rem; }
-    .card p { color: #a0a0a0; margin: 0; }
-    .cta { background: linear-gradient(135deg, #1e3a5f, #0f172a); border: 1px solid #3b82f6; border-radius: 16px; padding: 2.5rem; text-align: center; margin: 3rem 0; }
-    .cta h2 { color: #fff; margin: 0 0 0.75rem; font-size: 1.75rem; }
-    .cta p { color: #94a3b8; margin: 0 0 1.5rem; font-size: 1.1rem; }
-    .cta a { display: inline-block; background: #3b82f6; color: #fff; padding: 0.85rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 1.05rem; transition: background 0.2s; }
-    .cta a:hover { background: #2563eb; }
-    .case-study-link { display: block; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.25rem; margin: 1rem 0; text-decoration: none; color: #e5e5e5; transition: border-color 0.2s; }
-    .case-study-link:hover { border-color: #3b82f6; }
-    .case-study-link .metric { color: #3b82f6; font-weight: 700; }
-    footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid #2a2a2a; color: #666; font-size: 0.85rem; }
-    a { color: #3b82f6; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0b; color: #e5e5e5; line-height: 1.6; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    /* Hero */
+    .hero { position: relative; overflow: hidden; padding: 8rem 0 6rem; text-align: center; }
+    .hero::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 30% 20%, rgba(59,130,246,0.12), transparent 50%), radial-gradient(circle at 70% 60%, rgba(6,182,212,0.08), transparent 50%); }
+    .hero-content { position: relative; z-index: 1; }
+    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 800; line-height: 1.15; background: linear-gradient(135deg, #fff 0%, #94a3b8 50%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1.5rem; }
+    .hero p { font-size: 1.2rem; color: #94a3b8; max-width: 650px; margin: 0 auto 2.5rem; }
+    .btn { display: inline-block; background: #3b82f6; color: #fff; padding: 0.9rem 2.2rem; border-radius: 8px; font-weight: 600; font-size: 1.05rem; text-decoration: none; transition: all 0.2s; }
+    .btn:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
+    .btn-outline { background: transparent; border: 1px solid #3b82f6; color: #3b82f6; margin-left: 1rem; }
+    .btn-outline:hover { background: rgba(59,130,246,0.1); box-shadow: none; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin: 4rem 0; }
+    .stat { text-align: center; padding: 2rem; background: #111; border: 1px solid #1e1e1e; border-radius: 12px; }
+    .stat-value { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat-label { color: #94a3b8; margin-top: 0.5rem; font-size: 0.95rem; }
+
+    /* Sections */
+    section { padding: 5rem 0; }
+    .section-tag { color: #3b82f6; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
+    h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 1rem; color: #f0f0f0; }
+    .section-sub { color: #94a3b8; font-size: 1.1rem; max-width: 600px; margin-bottom: 3rem; }
+
+    /* Services grid */
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+    .service-card { background: #111; border: 1px solid #1e1e1e; border-radius: 16px; padding: 2rem; transition: all 0.3s; }
+    .service-card:hover { border-color: #3b82f6; transform: translateY(-4px); box-shadow: 0 8px 30px rgba(59,130,246,0.1); }
+    .service-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .service-card h3 { font-size: 1.3rem; margin-bottom: 0.75rem; color: #f0f0f0; }
+    .service-card p { color: #94a3b8; font-size: 0.95rem; }
+
+    /* How it works */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; counter-reset: step; }
+    .step { position: relative; padding: 2rem; background: #111; border: 1px solid #1e1e1e; border-radius: 12px; text-align: center; }
+    .step-num { width: 48px; height: 48px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; margin: 0 auto 1rem; }
+    .step h3 { margin-bottom: 0.5rem; }
+    .step p { color: #94a3b8; font-size: 0.9rem; }
+
+    /* Offer */
+    .offer-box { background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid #3b82f6; border-radius: 16px; padding: 3rem; margin: 3rem 0; }
+    .offer-box h3 { font-size: 1.5rem; color: #f0f0f0; margin-bottom: 1.5rem; }
+    .offer-stack { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+    .offer-item { color: #94a3b8; font-size: 0.95rem; }
+    .offer-item::before { content: '✓'; color: #3b82f6; margin-right: 0.5rem; font-weight: 700; }
+    .price { font-size: 2rem; font-weight: 800; color: #f0f0f0; }
+    .price span { font-size: 1rem; color: #94a3b8; font-weight: 400; }
+
+    /* Case study */
+    .case-study { background: #111; border: 1px solid #1e1e1e; border-radius: 16px; padding: 2.5rem; margin: 2rem 0; }
+    .case-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin: 2rem 0; }
+    .metric-value { font-size: 1.8rem; font-weight: 700; color: #3b82f6; }
+    .metric-label { color: #94a3b8; font-size: 0.85rem; }
+    blockquote { border-left: 3px solid #3b82f6; padding-left: 1.5rem; color: #94a3b8; font-style: italic; margin: 2rem 0; }
+
+    /* CTA */
+    .cta-section { text-align: center; padding: 5rem 0; }
+    .cta-section h2 { font-size: 2.5rem; }
+    .cta-section p { color: #94a3b8; font-size: 1.15rem; margin-bottom: 2rem; }
+
+    /* Footer */
+    footer { border-top: 1px solid #1e1e1e; padding: 3rem 0; text-align: center; color: #666; font-size: 0.9rem; }
+    footer a { color: #3b82f6; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .footer-links { display: flex; justify-content: center; gap: 2rem; margin-bottom: 1.5rem; }
+
+    @media (max-width: 768px) {
+      .stats, .steps, .case-metrics { grid-template-columns: 1fr; }
+      .offer-stack { grid-template-columns: 1fr; }
+      .btn-outline { margin-left: 0; margin-top: 1rem; }
+      section { padding: 3rem 0; }
+    }
   </style>
 </head>
 <body>
-  <h1>FocusRunner</h1>
-  <p style="font-size:1.2rem;color:#a0a0a0;max-width:600px;">
-    We build and operate AI-powered marketing systems. AI-native agency deploying intelligent agents for voice sales, workflow automation, and email marketing.
-  </p>
 
-  <div class="services">
-    <div class="card">
-      <h3>🎙 AI Voice Agents</h3>
-      <p>Intelligent voice bots that handle sales calls, qualify leads, and provide 24/7 support — <a href="services/voice-agents.md">learn more →</a></p>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content container">
+    <p class="section-tag">AI-Powered Lead Generation</p>
+    <h1>We build AI systems that generate leads and sales for local businesses — automatically.</h1>
+    <p>Stop chasing leads. Our AI voice agents, automated workflows, and intelligent follow-ups deliver 30-100 qualified leads per month in 30 days. You focus on closing — we handle the rest.</p>
+    <a href="https://focusrunner.com" class="btn">Get a Free Strategy Call →</a>
+    <a href="#how" class="btn btn-outline">How It Works</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="container">
+  <div class="stats">
+    <div class="stat"><div class="stat-value">99.5%</div><div class="stat-label">Faster response time</div></div>
+    <div class="stat"><div class="stat-value">30-100</div><div class="stat-label">Qualified leads/month</div></div>
+    <div class="stat"><div class="stat-value">30 Days</div><div class="stat-label">To full deployment</div></div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section id="services" class="container">
+  <p class="section-tag">What We Do</p>
+  <h2>AI-powered marketing systems that run 24/7.</h2>
+  <p class="section-sub">We do not advise. We build, deploy, and operate the AI infrastructure that generates leads while you sleep.</p>
+  <div class="services-grid">
+    <div class="service-card">
+      <div class="service-icon">🎙️</div>
+      <h3>AI Voice Agents</h3>
+      <p>Intelligent voice bots that answer calls, qualify leads, and book appointments — 24/7, no human needed. Handles 500-50,000 calls/month with natural conversation.</p>
     </div>
-    <div class="card">
-      <h3>⚙ Workflow Automation</h3>
-      <p>End-to-end marketing pipeline automation — lead capture, nurturing, and follow-ups — <a href="services/workflow-automation.md">learn more →</a></p>
+    <div class="service-card">
+      <div class="service-icon">⚙️</div>
+      <h3>Workflow Automation</h3>
+      <p>End-to-end pipeline automation from lead capture to closed deal. CRM sync, email/SMS follow-ups, appointment scheduling — all automated.</p>
     </div>
-    <div class="card">
-      <h3>📧 Email Marketing</h3>
-      <p>Hyper-personalized AI-driven email campaigns based on customer behavior — <a href="services/email-marketing.md">learn more →</a></p>
+    <div class="service-card">
+      <div class="service-icon">📧</div>
+      <h3>Email & SMS Marketing</h3>
+      <p>Hyper-personalized campaigns driven by AI. We analyze customer behavior and send the right message at the right time — automatically.</p>
     </div>
   </div>
+</section>
 
-  <h2>📊 Case Study</h2>
-  <a href="case-studies/voice-agent-pilot.md" class="case-study-link">
-    <strong>TechStyle Inc.</strong> — AI Voice Agent pilot reduced response time by <span class="metric">99.5%</span>, handled <span class="metric">680 calls/month</span> autonomously, and saved <span class="metric">180 support hours/month</span>. <span style="color:#3b82f6">Read the full case study →</span>
-  </a>
-
-  <div class="cta">
-    <h2>Ready to automate your marketing?</h2>
-    <p>Stop managing tools. Start scaling results. Let our AI agents handle the heavy lifting while your team focuses on strategy.</p>
-    <a href="https://focusrunner.com">Book a Free Consultation →</a>
+<!-- HOW IT WORKS -->
+<section id="how" class="container">
+  <p class="section-tag">Process</p>
+  <h2>From zero to live in 30 days.</h2>
+  <p class="section-sub">Three steps. No fluff. We move fast.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Audit</h3>
+      <p>We analyze your current lead flow, identify leaks, and map the automation opportunity. You get a clear ROI projection before we start.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Build</h3>
+      <p>We deploy your AI stack — voice agent, landing page, CRM integration, and follow-up sequences. Built, tested, and calibrated to your business.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Launch</h3>
+      <p>Your AI system goes live. We monitor performance daily, optimize relentlessly, and deliver your first qualified leads within 30 days.</p>
+    </div>
   </div>
+</section>
 
-  <p style="text-align:center;color:#a0a0a0;">
-    <a href="about/team.md">Our Team</a> &nbsp;|&nbsp;
-    <a href="about/pricing.md">Pricing</a> &nbsp;|&nbsp;
-    <a href="https://focusrunner.com">🌐 focusrunner.com</a> &nbsp;|&nbsp;
-    <a href="https://github.com/focusrunnercom/portfolio">💻 GitHub</a>
-  </p>
-  <footer>Built and managed by Paperclip AI agents — English-only portfolio</footer>
+<!-- OFFER -->
+<section class="container">
+  <p class="section-tag">The Offer</p>
+  <h2>One system. One price. Clear ROI.</h2>
+  <p class="section-sub">No complex packages. No hidden fees. Just an AI lead generation machine that works.</p>
+  <div class="offer-box">
+    <h3>AI Lead Generation System — Complete Stack</h3>
+    <div class="offer-stack">
+      <div class="offer-item">AI Voice Agent — call handling & lead qualification</div>
+      <div class="offer-item">CRM Integration — HubSpot, Salesforce, Pipedrive</div>
+      <div class="offer-item">Landing Page — conversion-optimized, branded</div>
+      <div class="offer-item">Email/SMS Follow-ups — AI-personalized sequences</div>
+      <div class="offer-item">Analytics Dashboard — real-time performance</div>
+      <div class="offer-item">30-Day Optimization — we tune for max conversions</div>
+    </div>
+    <div style="margin-top:1.5rem;">
+      <span class="price">$3,000–5,000 <span>setup</span></span>
+      <span style="color:#94a3b8;margin:0 1rem;">+</span>
+      <span class="price">$1,500–2,500<span>/month</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- CASE STUDY -->
+<section class="container">
+  <p class="section-tag">Results</p>
+  <h2>Case Study: TechStyle Inc.</h2>
+  <p class="section-sub">E-commerce retailer. 6 support agents drowning in 800+ monthly calls.</p>
+  <div class="case-study">
+    <div class="case-metrics">
+      <div><div class="metric-value">99.5%</div><div class="metric-label">Faster response</div></div>
+      <div><div class="metric-value">680/mo</div><div class="metric-label">AI-handled calls</div></div>
+      <div><div class="metric-value">180 hrs</div><div class="metric-label">Saved per month</div></div>
+      <div><div class="metric-value">2x</div><div class="metric-label">Lead qualification</div></div>
+    </div>
+    <blockquote>"FocusRunner's agent is indistinguishable from a human agent. Our customers don't even know they're talking to AI. The team finally has time for strategic work." — Sarah Chen, VP Operations, TechStyle Inc.</blockquote>
+    <a href="case-studies/voice-agent-pilot.html" style="color:#3b82f6;">Read full case study →</a>
+  </div>
+</section>
+
+<!-- WHO FOR -->
+<section class="container">
+  <p class="section-tag">Who It's For</p>
+  <h2>Built for local service businesses that depend on leads.</h2>
+  <div class="services-grid" style="margin-top:2rem;">
+    <div class="service-card"><h3>🦷 Dentists</h3><p>New patient acquisition. Handle inquiries while you're with patients.</p></div>
+    <div class="service-card"><h3>💆 Med Spas</h3><p>Qualify leads for high-ticket treatments. Book consults automatically.</p></div>
+    <div class="service-card"><h3>⚖️ Lawyers</h3><p>Intake qualification 24/7. Never miss a potential client call.</p></div>
+    <div class="service-card"><h3>🔧 Home Services</h3><p>HVAC, plumbing, electrical — capture and qualify service requests.</p></div>
+    <div class="service-card"><h3>🏠 Real Estate</h3><p>Agent lead qualification. Book viewings while you're showing properties.</p></div>
+    <div class="service-card"><h3>🏋️ Fitness</h3><p>Gym and studio membership inquiries. Convert browsers to members.</p></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section container">
+  <h2>Ready to stop chasing leads?</h2>
+  <p>Let us show you how many qualified leads you're leaving on the table — and exactly how we'll fix it.</p>
+  <a href="https://focusrunner.com" class="btn" style="font-size:1.15rem;padding:1rem 2.5rem;">Book a Free Strategy Call →</a>
+</section>
+
+<!-- FOOTER -->
+<footer class="container">
+  <div class="footer-links">
+    <a href="about/team.html">Team</a>
+    <a href="about/pricing.html">Pricing</a>
+    <a href="case-studies/">Case Studies</a>
+    <a href="https://focusrunner.com">focusrunner.com</a>
+    <a href="https://github.com/focusrunnercom/portfolio">GitHub</a>
+  </div>
+  <p>Built and operated by Paperclip AI agents. FocusRunner © 2026 — English-only portfolio.</p>
+</footer>
+
 </body>
 </html>

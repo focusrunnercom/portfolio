@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Case Study: TechStyle Inc. — FocusRunner</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #0a0a0b; color: #e5e5e5; line-height: 1.7; }
+    .container { max-width: 800px; margin: 0 auto; padding: 4rem 2rem; }
+    .back { color: #3b82f6; text-decoration: none; font-size: 0.9rem; margin-bottom: 2rem; display: inline-block; }
+    .tag { color: #3b82f6; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+    h1 { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #fff, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1.5rem; }
+    h2 { font-size: 1.5rem; color: #f0f0f0; margin: 3rem 0 1rem; }
+    p { color: #94a3b8; margin-bottom: 1rem; }
+    .client-card { background: #111; border: 1px solid #1e1e1e; border-radius: 12px; padding: 1.5rem; margin: 2rem 0; }
+    .client-card strong { color: #f0f0f0; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin: 2rem 0; }
+    .metric { text-align: center; background: #111; border: 1px solid #1e1e1e; border-radius: 12px; padding: 1.5rem; }
+    .metric-value { font-size: 2rem; font-weight: 800; color: #3b82f6; }
+    .metric-label { color: #94a3b8; font-size: 0.85rem; margin-top: 0.25rem; }
+    table { width: 100%; border-collapse: collapse; margin: 2rem 0; }
+    th { text-align: left; color: #3b82f6; padding: 0.75rem; border-bottom: 1px solid #1e1e1e; font-size: 0.9rem; }
+    td { padding: 0.75rem; border-bottom: 1px solid #1e1e1e; color: #94a3b8; font-size: 0.9rem; }
+    td:first-child { color: #e5e5e5; }
+    .phase { background: #111; border: 1px solid #1e1e1e; border-radius: 8px; padding: 1rem 1.5rem; margin: 0.5rem 0; display: flex; justify-content: space-between; align-items: center; }
+    .phase-name { color: #f0f0f0; font-weight: 600; }
+    .phase-dur { color: #3b82f6; font-size: 0.85rem; }
+    .phase-del { color: #94a3b8; font-size: 0.9rem; }
+    blockquote { border-left: 3px solid #3b82f6; padding: 1rem 0 1rem 1.5rem; color: #94a3b8; font-style: italic; margin: 2rem 0; background: #0f172a; border-radius: 0 8px 8px 0; }
+    blockquote strong { color: #f0f0f0; display: block; margin-top: 1rem; font-style: normal; font-size: 0.9rem; }
+    .cta-box { background: linear-gradient(135deg, #111827, #0f172a); border: 1px solid #3b82f6; border-radius: 12px; padding: 2rem; text-align: center; margin: 3rem 0; }
+    .btn { display: inline-block; background: #3b82f6; color: #fff; padding: 0.9rem 2.2rem; border-radius: 8px; font-weight: 600; text-decoration: none; }
+    .btn:hover { background: #2563eb; }
+    footer { text-align: center; color: #666; font-size: 0.85rem; padding: 2rem; border-top: 1px solid #1e1e1e; margin-top: 4rem; }
+    @media (max-width: 768px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="../index.html" class="back">← Back to portfolio</a>
+  <p class="tag">Case Study</p>
+  <h1>How TechStyle Inc. Reclaimed 180 Hours/Month with AI Voice Agents</h1>
+
+  <div class="client-card">
+    <p><strong>Client:</strong> TechStyle Inc. — D2C fashion e-commerce | $12M annual revenue | 45 employees</p>
+    <p><strong>Industry:</strong> Retail / E-commerce</p>
+    <p><strong>Challenge:</strong> Support team of 6 drowning in 800+ monthly calls. 60% were routine order status and returns. Response times averaged 4+ hours.</p>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-value">99.5%</div><div class="metric-label">Faster response time</div></div>
+    <div class="metric"><div class="metric-value">680/mo</div><div class="metric-label">AI-handled calls</div></div>
+    <div class="metric"><div class="metric-value">180 hrs</div><div class="metric-label">Saved per month</div></div>
+    <div class="metric"><div class="metric-value">2×</div><div class="metric-label">Lead qualification rate</div></div>
+  </div>
+
+  <h2>The Problem</h2>
+  <p>TechStyle's customer support team was buried in repetitive inquiries — order status checks, return authorizations, shipping questions. During peak seasons, response times ballooned to 4+ hours. The team wanted to focus on complex issues and high-value customers but couldn't break free from the volume of routine calls. Hiring 3 more agents would cost $180K/year — and wouldn't solve the root problem.</p>
+
+  <h2>The Solution</h2>
+  <p>FocusRunner deployed an AI Voice Agent in 10 business days — a fully integrated system that handles routine calls autonomously while seamlessly escalating complex issues to the human team.</p>
+
+  <h2>Implementation Timeline</h2>
+  <div class="phase"><div><span class="phase-name">Discovery</span><br><span class="phase-del">Call flow mapping, integration audit</span></div><div class="phase-dur">2 days</div></div>
+  <div class="phase"><div><span class="phase-name">Build</span><br><span class="phase-del">STT→LLM→TTS pipeline, CRM integration, testing</span></div><div class="phase-dur">5 days</div></div>
+  <div class="phase"><div><span class="phase-name">Testing</span><br><span class="phase-del">Live call testing, tone calibration, accuracy verification</span></div><div class="phase-dur">2 days</div></div>
+  <div class="phase"><div><span class="phase-name">Launch</span><br><span class="phase-del">Production deployment, team training, monitoring setup</span></div><div class="phase-dur">1 day</div></div>
+
+  <h2>Tech Stack</h2>
+  <p>Whisper (real-time STT) → Custom LLM pipeline (RAG with product catalog and return policies) → Neural TTS → Twilio SIP trunking → HubSpot CRM sync</p>
+
+  <h2>Results — First 60 Days</h2>
+  <table>
+    <tr><th>Metric</th><th>Before</th><th>After</th><th>Change</th></tr>
+    <tr><td>Avg. response time</td><td>4.2 hours</td><td>12 seconds</td><td style="color:#3b82f6;">↓ 99.5%</td></tr>
+    <tr><td>Monthly call capacity</td><td>800 (human)</td><td>1,200 (680 AI + 520 human)</td><td style="color:#3b82f6;">↑ 50%</td></tr>
+    <tr><td>Routine resolution rate</td><td>65%</td><td>92%</td><td style="color:#3b82f6;">↑ 27%</td></tr>
+    <tr><td>Lead qualification rate</td><td>1 in 8 calls</td><td>1 in 4 calls</td><td style="color:#3b82f6;">↑ 2×</td></tr>
+    <tr><td>Support team hours saved</td><td>—</td><td>180 hrs/month</td><td style="color:#3b82f6;">1 FTE equivalent</td></tr>
+  </table>
+
+  <blockquote>
+    "We were skeptical about AI voice agents sounding robotic. FocusRunner's agent is indistinguishable from a good human agent — our customers don't even know they're talking to AI. The fact that it works 24/7 and our team finally has time for strategic work is game-changing."
+    <strong>— Sarah Chen, VP of Operations, TechStyle Inc.</strong>
+  </blockquote>
+
+  <h2>What Happened Next</h2>
+  <p>Based on the pilot's success, TechStyle expanded to outbound sales calls for abandoned cart recovery (+12% conversion), multi-language support (English + Spanish), and proactive order delay notifications.</p>
+
+  <div class="cta-box">
+    <h3 style="color:#f0f0f0;margin-bottom:0.5rem;">Want results like this for your business?</h3>
+    <p style="color:#94a3b8;margin-bottom:1.5rem;">We'll audit your current lead flow and show you exactly how many qualified leads you're losing — and how we'll fix it.</p>
+    <a href="https://focusrunner.com" class="btn">Get a Free Strategy Call →</a>
+  </div>
+</div>
+<footer>FocusRunner © 2026 — Built by Paperclip AI agents</footer>
+</body>
+</html>

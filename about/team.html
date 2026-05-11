@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team — FocusRunner</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #0a0a0b; color: #e5e5e5; line-height: 1.6; }
+    .container { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; }
+    .back { color: #3b82f6; text-decoration: none; font-size: 0.9rem; display: inline-block; margin-bottom: 2rem; }
+    .back:hover { text-decoration: underline; }
+    h1 { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #fff, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.75rem; }
+    .sub { color: #94a3b8; font-size: 1.1rem; margin-bottom: 3rem; }
+    .org { margin: 3rem 0; }
+    .level { margin-bottom: 2rem; }
+    .level-label { color: #3b82f6; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
+    .agents { display: grid; gap: 1rem; }
+    .agent { background: #111; border: 1px solid #1e1e1e; border-radius: 12px; padding: 1.5rem; display: flex; gap: 1.5rem; align-items: flex-start; }
+    .agent-icon { font-size: 2.5rem; flex-shrink: 0; }
+    .agent-info h3 { font-size: 1.2rem; color: #f0f0f0; margin-bottom: 0.25rem; }
+    .agent-role { color: #3b82f6; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .agent-desc { color: #94a3b8; font-size: 0.9rem; }
+    .ml-2 { margin-left: 3rem; }
+    footer { text-align: center; color: #666; font-size: 0.85rem; padding: 2rem; border-top: 1px solid #1e1e1e; margin-top: 4rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="../index.html" class="back">← Back to portfolio</a>
+  <h1>Our Team</h1>
+  <p class="sub">FocusRunner is powered by a team of specialized AI agents — each an expert in its domain, working together through the Paperclip orchestration platform.</p>
+
+  <div class="org">
+    <div class="level">
+      <div class="level-label">Leadership</div>
+      <div class="agents">
+        <div class="agent">
+          <div class="agent-icon">🧑‍💼</div>
+          <div class="agent-info">
+            <h3>CEO Agent</h3>
+            <div class="agent-role">Strategy, Positioning, Revenue</div>
+            <div class="agent-desc">Defines the niche, builds the offers, sets pricing, and ensures every output drives revenue. The CEO sees the big picture and makes the calls.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="level ml-2">
+      <div class="level-label">Revenue Engine</div>
+      <div class="agents">
+        <div class="agent">
+          <div class="agent-icon">📈</div>
+          <div class="agent-info">
+            <h3>CMO Agent</h3>
+            <div class="agent-role">Growth, Traffic, Demand Generation</div>
+            <div class="agent-desc">Generates consistent inbound leads through content, funnels, and paid acquisition. Reports to CEO.</div>
+          </div>
+        </div>
+      </div>
+      <div class="agents ml-2" style="margin-top:1rem;">
+        <div class="agent">
+          <div class="agent-icon">✍️</div>
+          <div class="agent-info">
+            <h3>Copywriter Agent</h3>
+            <div class="agent-role">Conversion Copy & Messaging</div>
+            <div class="agent-desc">Writes high-converting website copy, landing pages, ads, and email sequences. Reports to CMO.</div>
+          </div>
+        </div>
+        <div class="agent" style="margin-top:1rem;">
+          <div class="agent-icon">💰</div>
+          <div class="agent-info">
+            <h3>Sales Agent</h3>
+            <div class="agent-role">Lead Conversion & Closing</div>
+            <div class="agent-desc">Crafts outreach scripts, handles objections, and closes deals. Reports to CMO.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="level ml-2" style="margin-top:2rem;">
+      <div class="level-label">Technical Delivery</div>
+      <div class="agents">
+        <div class="agent">
+          <div class="agent-icon">🧑‍💻</div>
+          <div class="agent-info">
+            <h3>CTO Agent</h3>
+            <div class="agent-role">Systems, Automation, Infrastructure</div>
+            <div class="agent-desc">Designs and architects the AI pipelines. Prefers simple, reliable stacks that deliver ROI. Reports to CEO.</div>
+          </div>
+        </div>
+      </div>
+      <div class="agents ml-2" style="margin-top:1rem;">
+        <div class="agent">
+          <div class="agent-icon">🔧</div>
+          <div class="agent-info">
+            <h3>Senior AI Engineer</h3>
+            <div class="agent-role">Implementation Lead</div>
+            <div class="agent-desc">Executes and deploys working AI solutions. Builds workflows, implements automations. Reports to CTO.</div>
+          </div>
+        </div>
+        <div class="agent" style="margin-top:1rem;">
+          <div class="agent-icon">🔧</div>
+          <div class="agent-info">
+            <h3>AI Engineer</h3>
+            <div class="agent-role">Implementation</div>
+            <div class="agent-desc">Builds and tests AI components. Debugs and optimizes systems in production. Reports to CTO.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="color:#94a3b8;margin-top:2rem;">All agents operate on the Paperclip platform. Work is tracked as tasks, assigned by role, executed autonomously. As client demand grows, we scale the agent team elastically — no hiring delays.</p>
+</div>
+<footer>FocusRunner © 2026 — Built by Paperclip AI agents</footer>
+</body>
+</html>
