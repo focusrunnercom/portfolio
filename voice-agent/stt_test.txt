@@ -1,0 +1,10 @@
+STT Pipeline Test Results
+=======================
+Timestamp: 2026-05-11 00:36:45
+Model: faster-whisper-tiny (cpu/int8)
+Language: Russian (ru)
+Audio: /home/ai13/.paperclip/instances/default/projects/617d2227-a974-4750-9176-9259a1888639/58f4ab65-314a-4c51-a410-3ce0eed1c70a/_default/voice-agent/recording.wav (44 bytes, 5s, 16000Hz mono)
+Device: hw:1,0
+
+Transcription:
+(no microphone detected — pipeline ready, awaiting hardware)
