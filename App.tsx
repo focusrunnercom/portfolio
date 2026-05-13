@@ -5,6 +5,7 @@ import { Services } from './components/Services';
 import { CaseStudies } from './components/CaseStudies';
 import { CtaSection } from './components/CtaSection';
 import { Footer } from './components/Footer';
+import ChatBot from './components/ChatBot';
 
 const App: React.FC = () => {
   return (
@@ -17,6 +18,7 @@ const App: React.FC = () => {
         <CtaSection />
       </main>
       <Footer />
+      <ChatBot />
     </div>
   );
 };
