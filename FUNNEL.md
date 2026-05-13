@@ -8,11 +8,18 @@
 
 ---
 
-## 1. Meta Ad Concepts (5 Hooks)
+## 1. Meta Ad Concepts (5 Hooks) — SHARPENED v2
 
-All ads target med spa owners with $500K-$2M revenue running Meta Ads. Tone: peer-to-peer (agency owner to business owner). CTA always leads to the landing page.
+**Platform:** Meta Ads (Facebook + Instagram)
+**Targeting:** Med spa owners, practice managers, COOs in aesthetics — $500K-$2M revenue locations in suburban USA
+**Lookalike Source:** Website visitors + lead form completers (min 100)
+**Budget Range:** $50-$150/day per ad set ($1.5K-$4.5K/mo — matches ICP's current spend)
+**Format Specs:** Single image (1080x1080 or 1080x1350), Carousel (3-5 cards), Video (15s max, square)
+**CTA Destination:** LANDING-PAGE.md (AI Patient Acquisition System)
+**Tone:** Peer-to-peer (agency owner to business owner). Not a vendor. An operator who's seen this 50 times.
+**Rule:** Every ad must contain OR imply the guarantee ("15 leads or free"). This is the closer.
 
-### Ad 1: "The $333 Problem"
+### Ad 1: "The $333 Problem" (Sharpened)
 
 **Headline:** You're Paying $333 Per Booked Appointment. And You Think More Ads Will Fix It.
 
@@ -29,20 +36,22 @@ We fix the response gap. AI qualifies every lead in real time — 2 AM, Sunday, 
 
 ---
 
-### Ad 2: "Your Front Desk is Burning Money"
+### Ad 2: "The Front Desk Tax" (Sharpened)
 
-**Headline:** Your Front Desk is Costing You 70% of Your Leads
+**Headline:** Your Front Desk Is Costing You $2,550/Month in Dead Leads
 
 **Body:**
-Every time your front desk is busy checking in a patient, a lead goes cold. Every time they leave at 5 PM, 12 leads go unanswered until tomorrow. Every voicemail is a patient who's on the phone with your competitor.
+Every time your front desk checks in a patient, 3 leads go to voicemail. Every time they leave at 5 PM, 12 leads pile up until tomorrow. Every voicemail is a patient who's already on the phone with your competitor.
 
-The AI Patient Acquisition System handles intake 24/7. It asks the right questions, qualifies the lead, and only hands off when the patient is ready to book.
+$2,550/month. That's the math on 70% of leads going cold for a spa spending $4K/mo on ads.
+
+The AI Patient Acquisition System handles intake 24/7 — 2 AM, Sunday, holiday. Qualifies the lead. Books the appointment. Only hands off when the patient is ready.
 
 Your front desk stops being a bottleneck and starts being a closer.
 
-**CTA:** Stop Burning Leads → [Landing Page]
+**CTA:** Stop Burning $2,550/Month → [Landing Page]
 
-**Format:** Video (15s screen recording of AI chat → handoff)
+**Format:** Short Video (15s) — screen recording: lead comes in → AI responds in 8s → qualifies → books → calendar pop-up. Fast cuts, no talking head, text overlays for key stats.
 
 ---
 
@@ -78,20 +87,24 @@ We don't sell software. We sell a result: 15 qualified leads in 30 days. If we d
 
 ---
 
-### Ad 5: "Everything You Spend on Ads — Half is Wasted"
+### Ad 5: "The Leaky Bucket" (Sharpened, replaces weakest ad)
 
-**Headline:** You're Literally Burning Half Your Ad Budget on Leads You Never Call Back
+**Headline:** You're Spending $4K/Mo on Ads for Leads You Never Call Back
 
 **Body:**
-Med spa owners hate this: you spend $3K-$5K/mo getting leads, then you let 70% of them go cold. It's not the ads. It's the follow-up.
+Here's the math that keeps med spa owners up at night:
 
-We plug into your existing ad channels and landing page. AI qualifies each lead, books the appointment, sends automated follow-ups. You keep running the same ads — you just convert 2.5x more of the traffic you already paid for.
+You spend $4,000 on Meta this month. 80 leads come in. 11 book appointments. The other 69? Cold. Dead. Gone.
 
-15 qualified leads in 30 days or you don't pay setup. That's it.
+That's not an ad problem. That's a response problem.
 
-**CTA:** Double Your Conversion Rate → [Landing Page]
+Every lead that goes unanswered is a patient who booked somewhere else. We plug the leak. AI responds in 8 seconds. Qualifies in 2 minutes. Books on the spot.
 
-**Format:** Single image (funnel visualization with "70% leak" → "plugged")
+15 qualified leads in 30 days — from the traffic you're already paying for — or setup is free.
+
+**CTA:** Plug Your Leak → [Landing Page]
+
+**Format:** Single Image — funnel visualization: $4K ads → 80 leads → 11 booked (with big "70% LEAK" red arrow). Right half: same funnel → 31 booked (with "PLUGGED" green check). Low-text, high-visual-impact.
 
 ---
 
@@ -199,7 +212,56 @@ PDF delivered by email after form submission. Also available as a live link.
 
 ---
 
-## Funnel Metrics Dashboard
+---
+
+## A/B Testing Plan
+
+**When:** After 50 conversions (demo bookings) on landing page
+**Method:** 50/50 split on traffic, one variable at a time
+
+| Test # | Variable | Variant A (Control) | Variant B (Test) |
+|--------|----------|--------------------|-----------------|
+| 1 | Hero Headline | Dollar loss ($2,550/mo) | Time loss (70% of leads) |
+| 2 | Guarantee Position | After Problem section | After Hero (sticky) |
+| 3 | CTA Button | "Book Demo" | "See My Savings" |
+| 4 | Form Length | 4 fields | 3 fields (remove phone) |
+| 5 | Case Study | Scottsdale med spa | Generic "3 med spas" aggregate |
+
+**Decision Rule:** At 95% confidence OR 200 conversions reached on variant. If no clear winner after 200 conversions, tie goes to control.
+
+---
+
+## Retargeting Strategy
+
+| Audience | Trigger | Creative | Frequency | Budget % |
+|----------|---------|----------|-----------|----------|
+| Landing page visitors (no form) | 24h after visit | Ad 3 (Sunday 2 AM) + testimonial | 3x/week | 20% of total |
+| Form fillers (no demo) | 48h after form | Ad 4 (Which owner are you) + case study | 2x/week | 15% of total |
+| Demo booked (no-show or no close) | 24h after missed slot | Direct message (Alex) + guarantee | 1x/week | 10% of total |
+| Blog readers (from retargeting) | 7d after visit | Ad 1 ($333 problem) | 2x/week | 10% of total |
+| Existing email list | Weekly | Newsletter + case study | 1x/week | 5% of total |
+
+**Pacing:** Cold retargeting (landing page visitors) gets higher frequency. Warm retargeting (form fillers) gets lower frequency but higher relevance.
+
+---
+
+## Pipeline Status (Updated 2026-05-13)
+
+| Asset | Owner | Status | Notes |
+|-------|-------|--------|-------|
+| FUNNEL.md (this doc) | CMO | REFINED | Ad hooks sharpened + A/B test plan + retargeting added |
+| Ad creative briefs (5 ads) | CMO | DONE IN FUNNEL.md | Platform specs + budget + targeting defined |
+| Landing page copy | CMO | REFINED | LANDING-PAGE.md v2: full structure, forms, mobile, trust signals |
+| Lead magnet (audit guide) | CMO | REFINED | LEAD-MAGNET-AUDIT.md updated |
+| Email/SMS follow-up sequence | Copywriter | IN PROGRESS | FOC-117 assigned to Copywriter |
+| Ad creative production | Copywriter | IN PROGRESS | FOC-118 assigned to Copywriter |
+| Chatbot qualification flow | Sr Engineer | IN PROGRESS | FOC-106 (Vercel deploy) |
+| Automation (Make/GHL workflows) | CMO | DONE | AUTOMATION.md |
+| CRM setup & campaign | CTO | PENDING | — |
+
+---
+
+## Pipeline Metrics Dashboard
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
@@ -209,18 +271,6 @@ PDF delivered by email after form submission. Also available as a live link.
 | CAC (Cost Per Booked Appointment) | <$150 | Total funnel cost / booked appointments |
 | Response Time | <10 sec | Chatbot metrics |
 | Follow-Up Re-engagement Rate | >30% | Responded to follow-up sequence / total in sequence |
-
----
-
-## Pipeline Status
-
-| Asset | Owner | Status | File |
-|-------|-------|--------|------|
-| FUNNEL.md (this doc) | CMO | DONE | FUNNEL.md |
-| Ad creative briefs (5 ads) | CMO | DONE | AD-CREATIVE-BRIEFS.md |
-| Landing page copy | CMO | REFINED | LANDING-PAGE.md (v2 with ICP filter + ROI tables) |
-| Lead magnet (audit guide) | CMO | REFINED | LEAD-MAGNET-AUDIT.md (fillable audit with projection) |
-| Email/SMS follow-up sequence | CMO | PRODUCED | EMAIL-SEQUENCE.md (full 5-touch copy, Day 1-14) |
-| Chatbot qualification flow | Senior Engineer | BLOCKED (FOC-106, 0 runs) | — |
-| Automation (Make/GHL workflows) | CMO | DONE | AUTOMATION.md |
-| CRM setup & campaign | CTO | PENDING | — |
+| Ad CTR | >2% | Meta Ads Manager |
+| Landing Page Conversion Rate | >5% | Form submissions / visitors |
+| Demo-to-Close Rate | >40% | Closed clients / demo bookings |
