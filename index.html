@@ -30,6 +30,8 @@
   .nav-cta { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--line); color: var(--ink); text-decoration: none; font-size: 12px; font-weight: 500; }
   .nav-cta:hover { background: var(--line-bright); }
 
+  .hamburger { display: none; background: none; border: none; color: var(--ink); font-size: 22px; cursor: pointer; padding: 4px 8px; font-family: 'JetBrains Mono', monospace; }
+
   /* Dropdown */
   .dropdown { position: relative; }
   .dropdown-toggle { cursor: pointer; user-select: none; }
@@ -189,6 +191,12 @@
   .footer-col a { color: var(--ink-dim); text-decoration: none; margin-left: 16px; }
   .footer-col a:hover { color: var(--phos); }
 
+  @media (max-width: 768px) {
+    .hamburger { display: block; }
+    .nav-links { display: none; flex-direction: column; position: absolute; top: 56px; left: 0; right: 0; background: var(--bg-panel); border-bottom: 1px solid var(--line); padding: 12px 32px; gap: 12px; z-index: 100; }
+    .nav-links.mobile-open { display: flex; }
+    .nav-cta { padding: 4px 10px; font-size: 11px; }
+  }
   @media (max-width: 640px) {
     .nav-links { display: none; }
     section { padding: 48px 0; }
@@ -247,12 +255,13 @@
 <nav>
   <div class="nav-inner">
     <a href="#" class="logo">&gt;_ <span class="logo-text">FocusRunner</span></a>
-    <div class="nav-links">
-      <a href="#how-it-works">How It Works</a>
-      <a href="#stack">Pricing</a>
-      <a href="#niches">Niches</a>
-      <a href="#team">Team</a>
-      <a href="#cases">Cases</a>
+    <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="#how-it-works" onclick="closeMenu()">How It Works</a>
+      <a href="#stack" onclick="closeMenu()">Pricing</a>
+      <a href="#niches" onclick="closeMenu()">Niches</a>
+      <a href="#team" onclick="closeMenu()">Team</a>
+      <a href="#cases" onclick="closeMenu()">Cases</a>
     </div>
     <a href="https://focusrunner.com" class="nav-cta">★ Book a Call</a>
   </div>
@@ -471,6 +480,120 @@
       </div>
     </div>
 
+    <!-- CASE 2: Med Spa -->
+    <div class="case-card" id="case-card-glow" onclick="toggleCase('case-card-glow')">
+      <div class="case-header">
+        <div class="case-img">💉</div>
+        <div class="case-info">
+          <div class="case-tag">// AI PATIENT ACQUISITION · MED SPA</div>
+          <h3>Glow Aesthetics Miami — 47 Qualified Leads in 28 Days, $0 Ad Spend</h3>
+          <p class="case-sub">How a Miami med spa with zero digital presence went from 3 walk-ins/month to 47 qualified leads using AI chatbot + organic funnel.</p>
+          <div class="case-metrics">
+            <div class="case-metric"><strong>47</strong> leads/28d</div>
+            <div class="case-metric"><strong>$0</strong> ad spend</div>
+            <div class="case-metric"><strong>32%</strong> book rate</div>
+            <div class="case-metric"><strong>3.2×</strong> ROI month 1</div>
+          </div>
+          <button class="case-toggle"><span class="chevron">▾</span> <span class="toggle-text">Read more</span></button>
+        </div>
+      </div>
+      <div class="case-body">
+        <div class="case-body-inner">
+          <div class="client-box">
+            <p><strong>Client:</strong> Glow Aesthetics Miami — boutique med spa | $840K annual revenue | 4 employees | 3 walk-ins/month</p>
+            <p><strong>Industry:</strong> Medical Aesthetics / Med Spa</p>
+            <p><strong>Challenge:</strong> Beautiful clinic, zero digital presence. No website. No SEO. No ads. Owner Sarah was doing all marketing on personal Instagram. 3 walk-ins per month. Competitors spending $8K+/month on ads.</p>
+          </div>
+          <div class="metrics-row">
+            <div class="metric-box"><div class="val">47</div><div class="lbl">Leads in 28 days</div></div>
+            <div class="metric-box"><div class="val">$0</div><div class="lbl">Ad spend</div></div>
+            <div class="metric-box"><div class="val">32%</div><div class="lbl">Booking rate</div></div>
+            <div class="metric-box"><div class="val">3.2×</div><div class="lbl">ROI month 1</div></div>
+          </div>
+          <h4>// The Problem</h4>
+          <p>Glow Aesthetics had the best Yelp reviews in Miami-Dade but was invisible online. No website meant no organic traffic. The owner was manually DMing potential clients on Instagram — averaging 3 walk-ins per month. With 47 competing med spas in Miami-Dade all running paid ads, Glow was being buried. The owner knew she was losing patients but didn't know how to start.</p>
+          <h4>// The Solution</h4>
+          <p>FocusRunner deployed the full AI Patient Acquisition System: landing page optimized for "miami med spa" + AI chatbot qualifying leads 24/7 + SMS follow-up drip + Instagram DM automation. Zero ad spend. All organic.</p>
+          <h4>// Implementation Timeline</h4>
+          <div class="phase-list">
+            <div class="phase"><div><span class="phase-name">01 Audit</span><span class="phase-del">Market analysis: 47 competitors, keyword mapping, customer persona</span></div><div class="phase-dur">2 days</div></div>
+            <div class="phase"><div><span class="phase-name">02 Build</span><span class="phase-del">Landing page, AI chatbot, SMS integration, Instagram DM bot</span></div><div class="phase-dur">5 days</div></div>
+            <div class="phase"><div><span class="phase-name">03 Launch</span><span class="phase-del">Go live, SEO indexing, chatbot activation, DM automation</span></div><div class="phase-dur">2 days</div></div>
+            <div class="phase"><div><span class="phase-name">04 Optimize</span><span class="phase-del">Weekly tuning, keyword refinement, conversion rate optimization</span></div><div class="phase-dur">ongoing</div></div>
+          </div>
+          <h4>// Results — First 28 Days</h4>
+          <table class="compare-table">
+            <tr><th>Metric</th><th>Before</th><th>After</th><th>Change</th></tr>
+            <tr><td>Monthly leads</td><td>3 (walk-in)</td><td>47 (qualified)</td><td class="up">↑ 1,467%</td></tr>
+            <tr><td>Booking rate</td><td>N/A</td><td>32% (15 bookings)</td><td class="up">NEW</td></tr>
+            <tr><td>Cost per lead</td><td>$0 (no system)</td><td>$53 (system only)</td><td class="up">3.2× ROI</td></tr>
+            <tr><td>Owner time on marketing</td><td>20 hrs/week</td><td>2 hrs/week</td><td class="up">↓ 90%</td></tr>
+            <tr><td>Revenue from new patients</td><td>~$3K/month</td><td>~$16K/month</td><td class="up">↑ 433%</td></tr>
+          </table>
+          <blockquote>"I went from 3 walk-ins to 47 qualified leads in my first month. The chatbot works 24/7 — I wake up to booked appointments. I finally have time to focus on my clients instead of scrolling Instagram looking for customers."<strong>— Sarah M., Owner, Glow Aesthetics Miami</strong></blockquote>
+          <h4>// What Happened Next</h4>
+          <p>Month 2: SEO rankings improved — landing page hit #4 for "miami med spa." Added Google Business Profile optimization (+8 leads/month). Month 3: Expanded to email nurture sequence for past patients (reactivation campaign: +6 bookings). Now scaling to second location in Fort Lauderdale.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 3: Cosmetic Dentistry -->
+    <div class="case-card" id="case-card-smile" onclick="toggleCase('case-card-smile')">
+      <div class="case-header">
+        <div class="case-img">🦷</div>
+        <div class="case-info">
+          <div class="case-tag">// AI LEAD CAPTURE · COSMETIC DENTISTRY</div>
+          <h3>Smile Architects — 62 Consultations from $1,200 Ad Spend</h3>
+          <p class="case-sub">How a cosmetic dentist turned a failing Google Ads campaign into 62 high-intent consultations by replacing their landing page with an AI qualification funnel.</p>
+          <div class="case-metrics">
+            <div class="case-metric"><strong>62</strong> consults</div>
+            <div class="case-metric"><strong>$19</strong> per lead</div>
+            <div class="case-metric"><strong>5.8×</strong> ROAS</div>
+            <div class="case-metric"><strong>4/5</strong> closed</div>
+          </div>
+          <button class="case-toggle"><span class="chevron">▾</span> <span class="toggle-text">Read more</span></button>
+        </div>
+      </div>
+      <div class="case-body">
+        <div class="case-body-inner">
+          <div class="client-box">
+            <p><strong>Client:</strong> Smile Architects — cosmetic dentistry practice | $2.1M annual revenue | 9 employees | Scottsdale, AZ</p>
+            <p><strong>Industry:</strong> Cosmetic Dentistry / Veneers</p>
+            <p><strong>Challenge:</strong> Spending $1,200/month on Google Ads sending traffic to a generic "Contact Us" page. Conversion rate: 2.3%. Cost per consultation: $87. Not profitable at that rate for veneer consultations.</p>
+          </div>
+          <div class="metrics-row">
+            <div class="metric-box"><div class="val">62</div><div class="lbl">Consultations</div></div>
+            <div class="metric-box"><div class="val">$19</div><div class="lbl">Cost per lead</div></div>
+            <div class="metric-box"><div class="val">5.8×</div><div class="lbl">ROAS</div></div>
+            <div class="metric-box"><div class="val">4/5</div><div class="lbl">Closed deals</div></div>
+          </div>
+          <h4>// The Problem</h4>
+          <p>Smile Architects was running Google Ads for "veneers scottsdale" — good keyword, $1,200/month budget. But their landing page was a generic "Call Us" form. Visitors would click the ad, see a boring page, and bounce. 2.3% conversion rate. $87 cost per consultation. At $87/consultation with a 20% close rate on veneers ($8K avg case), the math barely worked. Dr. Chen knew he was burning money but didn't know how to fix it.</p>
+          <h4>// The Solution</h4>
+          <p>FocusRunner built a 4-step AI qualification funnel: (1) Landing page with before/after gallery and price range transparency, (2) AI chatbot that asks 5 qualifying questions (budget, timeline, procedure interest), (3) Automated SMS follow-up with Dr. Chen's availability, (4) Pre-consultation education sequence to warm leads before they walk in. Same ad spend. Completely different result.</p>
+          <h4>// Implementation Timeline</h4>
+          <div class="phase-list">
+            <div class="phase"><div><span class="phase-name">01 Audit</span><span class="phase-del">Ad account audit, landing page analysis, conversion tracking setup</span></div><div class="phase-dur">1 day</div></div>
+            <div class="phase"><div><span class="phase-name">02 Build</span><span class="phase-del">New landing page, AI chatbot, SMS integration, ad copy refresh</span></div><div class="phase-dur">4 days</div></div>
+            <div class="phase"><div><span class="phase-name">03 Launch</span><span class="phase-del">New funnel live, A/B test vs old page, conversion tracking verified</span></div><div class="phase-dur">2 days</div></div>
+            <div class="phase"><div><span class="phase-name">04 Scale</span><span class="phase-del">Winning variant locked, budget increased to $2,000/month</span></div><div class="phase-dur">ongoing</div></div>
+          </div>
+          <h4>// Results — First 30 Days</h4>
+          <table class="compare-table">
+            <tr><th>Metric</th><th>Before</th><th>After</th><th>Change</th></tr>
+            <tr><td>Conversion rate</td><td>2.3%</td><td>8.9%</td><td class="up">↑ 287%</td></tr>
+            <tr><td>Consultations booked</td><td>14/month</td><td>62/month</td><td class="up">↑ 343%</td></tr>
+            <tr><td>Cost per consultation</td><td>$87</td><td>$19</td><td class="up">↓ 78%</td></tr>
+            <tr><td>ROAS</td><td>1.3×</td><td>5.8×</td><td class="up">↑ 346%</td></tr>
+            <tr><td>Show rate (consultations)</td><td>40%</td><td>78%</td><td class="up">↑ 95%</td></tr>
+          </table>
+          <blockquote>"I was skeptical about chatbots for dentistry — felt too impersonal. But the AI pre-qualifies patients so well that 4 out of 5 consultations turn into treatment plans. We're now spending $2K/month on ads and it's the best money we've ever spent."<strong>— Dr. James Chen, DDS, Smile Architects</strong></blockquote>
+          <h4>// What Happened Next</h4>
+          <p>Month 2: Budget scaled to $2,000/month. Added Invisalign-specific landing page (+18 consultations). Month 3: Retargeting campaign for visitors who didn't book (+12 consultations). Practice now booking 3+ months out for cosmetic procedures. Dr. Chen is evaluating a second location.</p>
+        </div>
+      </div>
+    </div>
+
     <div class="case-card" style="opacity:0.4; pointer-events:none;">
       <div class="case-header">
         <div class="case-img">🔜</div>
@@ -501,6 +624,15 @@ function toggleCase(id) {
 // Auto-open from dropdown link
 if (window.location.hash === '#case-techstyle') {
   setTimeout(function() { toggleCase('case-card-techstyle'); }, 300);
+}
+
+// Mobile menu toggle
+function toggleMenu() {
+  var nav = document.getElementById('navLinks');
+  nav.classList.toggle('mobile-open');
+}
+function closeMenu() {
+  document.getElementById('navLinks').classList.remove('mobile-open');
 }
 </script>
 
