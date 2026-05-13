@@ -34,12 +34,14 @@
   .dropdown { position: relative; }
   .dropdown-toggle { cursor: pointer; user-select: none; }
   .dropdown-toggle::after { content: ' ▾'; font-size: 10px; }
-  .dropdown-menu { display: none; position: absolute; top: 100%; left: 0; background: var(--bg-panel); border: 1px solid var(--line-bright); min-width: 260px; z-index: 101; }
+  .dropdown-menu { display: none; position: absolute; top: 100%; left: -12px; background: var(--bg-panel); border: 1px solid var(--line-bright); min-width: 300px; z-index: 101; padding: 4px 0; }
   .dropdown:hover .dropdown-menu { display: block; }
-  .dropdown-menu a { display: block; padding: 10px 16px; font-size: 12px; color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  .dropdown-menu a:last-child { border-bottom: none; }
-  .dropdown-menu a:hover { background: var(--bg-2); color: var(--phos); }
-  .dropdown-menu .case-tag { font-size: 10px; color: var(--phos); display: block; }
+  .dropdown-menu .dd-header { padding: 8px 16px 4px; font-size: 10px; color: var(--ink-faint); letter-spacing: .5px; }
+  .dropdown-menu .dd-item { display: block; padding: 8px 16px; font-size: 12px; color: var(--ink-dim); text-decoration: none; transition: background .1s; }
+  .dropdown-menu .dd-item:hover { background: var(--bg-2); color: var(--phos); }
+  .dropdown-menu .dd-item .case-tag { font-size: 10px; color: var(--phos); display: block; margin-bottom: 1px; }
+  .dropdown-menu .dd-divider { height: 1px; background: var(--line); margin: 4px 0; }
+  .dropdown-menu .dd-faint { font-size: 10px; color: var(--ink-faint); padding: 6px 16px; font-style: italic; }
 
   /* ===== SECTIONS ===== */
   section { padding: 80px 0; }
@@ -207,8 +209,11 @@
       <div class="dropdown">
         <span class="dropdown-toggle" style="color:var(--ink-dim);font-size:13px;">Cases</span>
         <div class="dropdown-menu">
-          <a href="#case-techstyle"><span class="case-tag">AI Voice Agents</span>TechStyle Inc.</a>
-          <a href="#cases" style="color:var(--ink-faint);font-size:11px;">→ All case studies</a>
+          <div class="dd-header">// CASE STUDIES</div>
+          <a href="#case-techstyle" class="dd-item"><span class="case-tag">AI Voice Agents · E-commerce</span>TechStyle Inc. — 180 hrs saved/mo</a>
+          <div class="dd-divider"></div>
+          <div class="dd-faint">// More case studies coming soon</div>
+          <a href="#cases" class="dd-item" style="font-size:11px;">→ View all case studies</a>
         </div>
       </div>
     </div>
