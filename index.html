@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FocusRunner — AI Patient Acquisition System</title>
+<meta name="description" content="AI-powered patient acquisition for med spas, cosmetic dentistry, and elective healthcare. 15+ qualified leads in 30 days or it's free. $2,500 setup + $2,500/mo.">
+<meta property="og:title" content="FocusRunner — AI Patient Acquisition System">
+<meta property="og:description" content="AI-powered patient acquisition for med spas, cosmetic dentistry, and elective healthcare. 15+ qualified leads in 30 days or it's free.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://focusrunner.io">
+<meta property="og:site_name" content="FocusRunner">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FocusRunner — AI Patient Acquisition System">
+<meta name="twitter:description" content="AI-powered patient acquisition. 15+ qualified leads in 30 days or it's free.">
+<link rel="canonical" href="https://focusrunner.io">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='8' fill='%230d120f'/><text x='32' y='46' font-family='monospace' font-size='40' font-weight='bold' fill='%236eff8a' text-anchor='middle'>&gt;_</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -680,14 +691,17 @@ function closeMenu() {
 </div>
 
 <script>
-var chatStep = 0;
+// AI-Powered Chat Widget — calls /api/chat for GPT-4o qualification
+var chatMessages = [];
 var leadData = {};
+var chatActive = false;
+var chatQualified = false;
 
 function toggleChat() {
   var w = document.getElementById('chatWindow');
   var isOpen = w.classList.contains('open');
   if (isOpen) { w.classList.remove('open'); }
-  else { w.classList.add('open'); if (chatStep === 0) startChat(); }
+  else { w.classList.add('open'); if (!chatActive) startChat(); }
 }
 
 function addMsg(text, cls) {
@@ -705,8 +719,11 @@ function addOptions(opts) {
     var btn = document.createElement('button');
     btn.className = 'chat-option';
     btn.textContent = o.label;
-    btn.onclick = function() { 
-      addMsg(o.label, 'user'); 
+    btn.onclick = function() {
+      // Remove all option buttons after selection
+      var allOpts = msgs.querySelectorAll('.chat-option');
+      allOpts.forEach(function(el) { el.remove(); });
+      addMsg(o.label, 'user');
       leadData[o.field] = o.value || o.label;
       if (o.next) o.next();
     };
@@ -716,58 +733,104 @@ function addOptions(opts) {
 }
 
 function startChat() {
+  chatActive = true;
   addMsg("Hi! I'm FocusRunner's AI. Let's see how many patients you could be booking. Ready?", 'bot');
   addOptions([
-    {label: "Yes — let's do this", field: 'started', value: true, next: step1},
-    {label: "Just browsing", field: 'started', value: false, next: function(){ addMsg("No worries! Check out our case studies above, or click ★ Book a Call when ready.", 'bot'); }}
+    {label: "Yes — let's do this", field: 'started', value: true, next: askNiche},
+    {label: "Just browsing", field: 'started', value: false, next: function(){
+      addMsg("No worries! Check out our case studies above, or click ★ Book a Call when ready.", 'bot');
+    }}
   ]);
 }
 
-function step1() {
+function askNiche() {
   addMsg("What type of practice do you run?", 'bot');
   addOptions([
-    {label: "💉 Med Spa", field: 'niche', next: step2},
-    {label: "🦷 Cosmetic Dentistry", field: 'niche', next: step2},
-    {label: "🔪 Plastic Surgery", field: 'niche', next: step2},
-    {label: "💇 Hair Transplant", field: 'niche', next: step2},
-    {label: "Other", field: 'niche', next: step2}
+    {label: "💉 Med Spa", field: 'niche', value: 'med_spa', next: askVolume},
+    {label: "🦷 Cosmetic Dentistry", field: 'niche', value: 'cosmetic_dentistry', next: askVolume},
+    {label: "🔪 Plastic Surgery", field: 'niche', value: 'plastic_surgery', next: askVolume},
+    {label: "💇 Hair Transplant", field: 'niche', value: 'hair_transplant', next: askVolume},
+    {label: "Other", field: 'niche', value: 'other', next: askVolume}
   ]);
 }
 
-function step2() {
+function askVolume() {
   addMsg("Roughly how many new patients do you see per month?", 'bot');
   addOptions([
-    {label: "Under 10", field: 'volume', next: step3},
-    {label: "10–30", field: 'volume', next: step3},
-    {label: "30–60", field: 'volume', next: step3},
-    {label: "60+", field: 'volume', next: step3}
+    {label: "Under 10", field: 'volume', value: 'under_10', next: askName},
+    {label: "10–30", field: 'volume', value: '10_30', next: askName},
+    {label: "30–60", field: 'volume', value: '30_60', next: askName},
+    {label: "60+", field: 'volume', value: '60_plus', next: askName}
   ]);
 }
 
-function step3() {
+function askName() {
   document.getElementById('chatInputArea').style.display = 'flex';
-  var opts = document.querySelectorAll('.chat-option');
-  opts.forEach(function(o) { o.remove(); });
-  addMsg("What's your name?", 'bot');
-  chatStep = 3;
+  addMsg("Great — what's your name?", 'bot');
+  chatMessages = [{role: 'assistant', content: "What's your name and what's your biggest challenge with patient acquisition right now?"}];
 }
 
-function step4() {
+function handleName(text) {
+  leadData.name = text;
   addMsg("And your best phone number? We'll text you the audit results.", 'bot');
-  chatStep = 4;
 }
 
-function step5() {
-  addMsg("Last question — what's your practice called?", 'bot');
-  chatStep = 5;
+function handlePhone(text) {
+  leadData.phone = text;
+  addMsg("Last one — what's your practice called?", 'bot');
 }
 
-function done() {
+function handlePractice(text) {
+  leadData.practice = text;
   document.getElementById('chatInputArea').style.display = 'none';
-  addMsg("✓ Got it! Here's what happens next:", 'bot');
-  addMsg("1. Our AI analyzes your market within 24 hours.\n2. We'll text you a personalized Patient Acquisition Audit.\n3. You'll see exactly how many patients you're missing — and what it would cost to capture them.\n\nNo commitment. No pressure. Just data.", 'bot');
-  addMsg("In the meantime, check out our case studies above ↑", 'bot');
-  console.log('Lead captured:', leadData);
+  addMsg("Perfect. Give me a moment — I'm analyzing your market position...", 'bot');
+  sendToAI();
+}
+
+function sendToAI() {
+  // Build the conversation history for the AI
+  var convo = [
+    {role: 'user', content: 'My name is ' + leadData.name + '. I run ' + leadData.practice + ', a ' + leadData.niche.replace(/_/g,' ') + ' practice seeing ' + leadData.volume.replace(/_/g,' ') + ' patients/month.'}
+  ];
+
+  fetch('/api/chat', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({messages: convo, userData: leadData})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) { addMsg("Hmm, I hit a snag. Try refreshing or email us at hello@focusrunner.com.", 'bot'); return; }
+    addMsg(data.reply, 'bot');
+
+    var q = data.qualification;
+    if (q && q.classification === 'qualified') {
+      chatQualified = true;
+      addMsg("🎯 Based on your responses, you're a strong fit for our AI Patient Acquisition System!", 'bot');
+      addMsg("→ Book your free audit call: https://focusrunner.com", 'bot');
+    }
+
+    // Submit lead to webhook
+    fetch('/api/webhook', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(Object.assign({}, leadData, {
+        qualification: q,
+        source: 'chat_widget'
+      }))
+    }).catch(function(){});
+
+    if (q) {
+      addMsg("1. Our AI analyzes your market within 24 hours.\n2. We'll text you a personalized Patient Acquisition Audit.\n3. You'll see exactly how many patients you're missing — and what it would cost to capture them.\n\nNo commitment. No pressure. Just data.", 'bot');
+      addMsg("In the meantime, check out our case studies above ↑", 'bot');
+    }
+
+    console.log('Lead captured:', leadData, q);
+  })
+  .catch(function(err) {
+    addMsg("I'm having trouble connecting. Don't worry — your info is saved. We'll reach out within 24 hours.", 'bot');
+    console.error('Chat API error:', err);
+  });
 }
 
 function sendMessage() {
@@ -776,13 +839,15 @@ function sendMessage() {
   if (!text) return;
   addMsg(text, 'user');
   input.value = '';
-  
-  if (chatStep === 3) { leadData.name = text; step4(); }
-  else if (chatStep === 4) { leadData.phone = text; step5(); }
-  else if (chatStep === 5) { leadData.practice = text; done(); }
-}
 
-chatStep = 0;
+  if (!leadData.name) {
+    handleName(text);
+  } else if (!leadData.phone) {
+    handlePhone(text);
+  } else if (!leadData.practice) {
+    handlePractice(text);
+  }
+}
 </script>
 
 </body>
