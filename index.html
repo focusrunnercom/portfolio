@@ -196,7 +196,49 @@
     .hero-ctas { flex-direction: column; align-items: center; }
     .btn { width: 100%; justify-content: center; }
     .metrics-row { grid-template-columns: repeat(2, 1fr); }
+    .chat-window { right: 8px; bottom: 80px; width: calc(100vw - 16px); max-width: 360px; }
   }
+
+  /* ===== LEAD CAPTURE CHAT WIDGET ===== */
+  .chat-fab {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    width: 56px; height: 56px; border-radius: 0; border: 1px solid var(--phos);
+    background: var(--bg-panel); color: var(--phos);
+    font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: transform .15s, box-shadow .15s; font-family: 'JetBrains Mono', monospace;
+  }
+  .chat-fab:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(110,255,138,0.15); }
+  .chat-fab .dot { 
+    position: absolute; top: -4px; right: -4px; width: 12px; height: 12px;
+    background: var(--phos); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  
+  .chat-window {
+    position: fixed; bottom: 92px; right: 24px; z-index: 998;
+    width: 340px; max-height: 480px; background: var(--bg-panel);
+    border: 1px solid var(--line-bright); display: none; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .chat-window.open { display: flex; }
+  .chat-window-header {
+    padding: 14px 16px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; font-weight: 700; color: var(--phos);
+  }
+  .chat-window-close { background: none; border: none; color: var(--ink-faint); cursor: pointer; font-size: 18px; font-family: 'JetBrains Mono', monospace; }
+  .chat-window-close:hover { color: var(--danger); }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; max-height: 300px; }
+  .chat-msg { font-size: 12px; line-height: 1.5; max-width: 85%; padding: 10px 14px; }
+  .chat-msg.bot { background: var(--bg-2); color: var(--ink); align-self: flex-start; border: 1px solid var(--line); }
+  .chat-msg.user { background: var(--phos-dim); color: var(--ink); align-self: flex-end; }
+  .chat-input-area { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; }
+  .chat-input { flex: 1; background: var(--bg-2); border: 1px solid var(--line); color: var(--ink); padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; outline: none; }
+  .chat-input:focus { border-color: var(--phos); }
+  .chat-send { background: var(--phos); color: #000; border: none; padding: 10px 16px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+  .chat-send:hover { background: #8affa0; }
+  .chat-option { display: block; width: 100%; text-align: left; background: var(--bg-2); border: 1px solid var(--line); color: var(--ink); padding: 10px 14px; margin: 4px 0; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: border-color .15s; }
+  .chat-option:hover { border-color: var(--phos); color: var(--phos); }
 </style>
 </head>
 <body>
@@ -489,6 +531,127 @@ if (window.location.hash === '#case-techstyle') {
     </div>
   </div>
 </footer>
+
+<!-- ===== LEAD CAPTURE CHAT WIDGET ===== -->
+<button class="chat-fab" id="chatFab" onclick="toggleChat()" title="Free Patient Acquisition Audit">💬<span class="dot"></span></button>
+
+<div class="chat-window" id="chatWindow">
+  <div class="chat-window-header">
+    &gt;_ Free Patient Audit
+    <button class="chat-window-close" onclick="toggleChat()">×</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-area" id="chatInputArea">
+    <input type="text" class="chat-input" id="chatInput" placeholder="Type your answer..." onkeydown="if(event.key==='Enter')sendMessage()">
+    <button class="chat-send" onclick="sendMessage()">→</button>
+  </div>
+</div>
+
+<script>
+var chatStep = 0;
+var leadData = {};
+
+function toggleChat() {
+  var w = document.getElementById('chatWindow');
+  var isOpen = w.classList.contains('open');
+  if (isOpen) { w.classList.remove('open'); }
+  else { w.classList.add('open'); if (chatStep === 0) startChat(); }
+}
+
+function addMsg(text, cls) {
+  var msgs = document.getElementById('chatMessages');
+  var div = document.createElement('div');
+  div.className = 'chat-msg ' + cls;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addOptions(opts) {
+  var msgs = document.getElementById('chatMessages');
+  opts.forEach(function(o) {
+    var btn = document.createElement('button');
+    btn.className = 'chat-option';
+    btn.textContent = o.label;
+    btn.onclick = function() { 
+      addMsg(o.label, 'user'); 
+      leadData[o.field] = o.value || o.label;
+      if (o.next) o.next();
+    };
+    msgs.appendChild(btn);
+  });
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function startChat() {
+  addMsg("Hi! I'm FocusRunner's AI. Let's see how many patients you could be booking. Ready?", 'bot');
+  addOptions([
+    {label: "Yes — let's do this", field: 'started', value: true, next: step1},
+    {label: "Just browsing", field: 'started', value: false, next: function(){ addMsg("No worries! Check out our case studies above, or click ★ Book a Call when ready.", 'bot'); }}
+  ]);
+}
+
+function step1() {
+  addMsg("What type of practice do you run?", 'bot');
+  addOptions([
+    {label: "💉 Med Spa", field: 'niche', next: step2},
+    {label: "🦷 Cosmetic Dentistry", field: 'niche', next: step2},
+    {label: "🔪 Plastic Surgery", field: 'niche', next: step2},
+    {label: "💇 Hair Transplant", field: 'niche', next: step2},
+    {label: "Other", field: 'niche', next: step2}
+  ]);
+}
+
+function step2() {
+  addMsg("Roughly how many new patients do you see per month?", 'bot');
+  addOptions([
+    {label: "Under 10", field: 'volume', next: step3},
+    {label: "10–30", field: 'volume', next: step3},
+    {label: "30–60", field: 'volume', next: step3},
+    {label: "60+", field: 'volume', next: step3}
+  ]);
+}
+
+function step3() {
+  document.getElementById('chatInputArea').style.display = 'flex';
+  var opts = document.querySelectorAll('.chat-option');
+  opts.forEach(function(o) { o.remove(); });
+  addMsg("What's your name?", 'bot');
+  chatStep = 3;
+}
+
+function step4() {
+  addMsg("And your best phone number? We'll text you the audit results.", 'bot');
+  chatStep = 4;
+}
+
+function step5() {
+  addMsg("Last question — what's your practice called?", 'bot');
+  chatStep = 5;
+}
+
+function done() {
+  document.getElementById('chatInputArea').style.display = 'none';
+  addMsg("✓ Got it! Here's what happens next:", 'bot');
+  addMsg("1. Our AI analyzes your market within 24 hours.\n2. We'll text you a personalized Patient Acquisition Audit.\n3. You'll see exactly how many patients you're missing — and what it would cost to capture them.\n\nNo commitment. No pressure. Just data.", 'bot');
+  addMsg("In the meantime, check out our case studies above ↑", 'bot');
+  console.log('Lead captured:', leadData);
+}
+
+function sendMessage() {
+  var input = document.getElementById('chatInput');
+  var text = input.value.trim();
+  if (!text) return;
+  addMsg(text, 'user');
+  input.value = '';
+  
+  if (chatStep === 3) { leadData.name = text; step4(); }
+  else if (chatStep === 4) { leadData.phone = text; step5(); }
+  else if (chatStep === 5) { leadData.practice = text; done(); }
+}
+
+chatStep = 0;
+</script>
 
 </body>
 </html>
