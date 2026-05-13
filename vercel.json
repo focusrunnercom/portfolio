@@ -1,0 +1,24 @@
+{
+  "functions": {
+    "api/chat.py": {
+      "runtime": "python3.11",
+      "maxDuration": 30,
+      "memory": 512
+    },
+    "api/webhook.py": {
+      "runtime": "python3.11",
+      "maxDuration": 15,
+      "memory": 256
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "POST, OPTIONS, GET" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
+}

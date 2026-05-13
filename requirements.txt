@@ -1,0 +1,3 @@
+# Vercel Python serverless function dependencies
+# api/chat.py and api/webhook.py
+# No external deps needed — stdlib only (urllib, json, http.server)
