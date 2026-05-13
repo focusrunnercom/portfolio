@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{Client Name} — AI Patient Acquisition | FocusRunner</title>
+  <meta name="description" content="Book your free consultation at {Client Name}. AI-powered patient acquisition for med spas." />
+
+  <!-- Meta Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '{META_PIXEL_ID}');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id={META_PIXEL_ID}&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1a1a2e;
+      line-height: 1.6;
+      background: #fff;
+    }
+
+    /* ── Utilities ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .btn {
+      display: inline-block;
+      padding: 16px 40px;
+      background: #e94560;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 18px;
+      transition: background 0.2s, transform 0.1s;
+      border: none;
+      cursor: pointer;
+      pointer-events: none; /* 2-second bot delay guard */
+    }
+    .btn:hover { background: #d63851; transform: translateY(-1px); }
+    .btn.ready { pointer-events: auto; }
+    .section { padding: 80px 0; }
+    .section-dark { background: #f8f9fc; }
+    .section h2 { font-size: 36px; margin-bottom: 24px; }
+    .section p { font-size: 18px; color: #555; max-width: 700px; }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 100px 0 80px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      text-align: center;
+    }
+    .hero h1 { font-size: 48px; line-height: 1.2; margin-bottom: 20px; }
+    .hero p { font-size: 20px; color: #a0a0b8; max-width: 600px; margin: 0 auto 32px; }
+
+    /* ── Stats Bar ── */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      padding: 40px 0;
+      border-top: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+    }
+    .stat { text-align: center; }
+    .stat-value { font-size: 32px; font-weight: 800; color: #e94560; }
+    .stat-label { font-size: 14px; color: #888; margin-top: 4px; }
+
+    /* ── Form ── */
+    .form-section { max-width: 600px; margin: 0 auto; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+    .form-group .honeypot {
+      position: absolute;
+      left: -9999px;
+      opacity: 0;
+      height: 0;
+      width: 0;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 40px;
+      font-size: 14px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== HERO ========== -->
+  <section class="hero">
+    <div class="container">
+      <h1>Book Your Free Consultation at {Client Name}</h1>
+      <p>Fill out the form below and we'll match you with the right provider. Most patients are booked within 60 seconds.</p>
+      <p style="font-size: 14px; color: #666; margin-top: 8px;">
+        15 qualified leads in 30 days guaranteed — or your setup is free.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========== STATS ========== -->
+  <div class="stats container">
+    <div class="stat">
+      <div class="stat-value">47+</div>
+      <div class="stat-label">New Patients in 90 Days</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">92%</div>
+      <div class="stat-label">Lead Response Rate</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">$2,500</div>
+      <div class="stat-label">Setup / $2,500/mo</div>
+    </div>
+  </div>
+
+  <!-- ========== FORM ========== -->
+  <section class="section" id="book">
+    <div class="container">
+      <h2 style="text-align: center;">Book Your Consultation</h2>
+      <p style="text-align: center; margin-bottom: 40px;">
+        Fill this out and we'll match you with the right provider within 60 seconds.
+      </p>
+
+      <form class="form-section" id="leadForm" action="https://hook.make.com/{WEBHOOK_ID}" method="POST">
+        <!-- Honeypot (anti-bot) -->
+        <div class="honeypot">
+          <label for="website">Website</label>
+          <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+          <label for="name">Full Name *</label>
+          <input type="text" id="name" name="name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email *</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone *</label>
+          <input type="tel" id="phone" name="phone" required placeholder="+1 (555) 123-4567" />
+        </div>
+
+        <div class="form-group">
+          <label for="service_interest">Service Interest *</label>
+          <select id="service_interest" name="service_interest" required>
+            <option value="">Select a service...</option>
+            <option value="Botox">Botox</option>
+            <option value="Filler">Filler</option>
+            <option value="Laser">Laser</option>
+            <option value="Facial">Facial</option>
+            <option value="Body">Body Treatment</option>
+            <option value="Consult">General Consultation</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="budget_range">Budget Range</label>
+          <select id="budget_range" name="budget_range">
+            <option value="">Not sure yet</option>
+            <option value="200-500">$200 - $500</option>
+            <option value="500-1000">$500 - $1,000</option>
+            <option value="1000+">$1,000+</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="timeline">Preferred Timeline</label>
+          <select id="timeline" name="timeline">
+            <option value="">Just exploring</option>
+            <option value="this-week">This week</option>
+            <option value="this-month">This month</option>
+            <option value="1-3-months">1-3 months</option>
+          </select>
+        </div>
+
+        <!-- Hidden UTM fields -->
+        <input type="hidden" id="utm_source" name="utm_source" value="" />
+        <input type="hidden" id="utm_campaign" name="utm_campaign" value="" />
+        <input type="hidden" id="utm_medium" name="utm_medium" value="" />
+        <input type="hidden" id="gclid" name="gclid" value="" />
+
+        <button type="submit" class="btn" id="submitBtn">Book Your Free Consultation</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <footer>
+    <div class="container">
+      <p>&copy; {year} {Client Name}. Powered by FocusRunner AI.</p>
+    </div>
+  </footer>
+
+  <!-- ========== SCRIPTS ========== -->
+  <script>
+    // Bot protection — enable submit button after 2 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        document.getElementById('submitBtn').classList.add('ready');
+      }, 2000);
+    });
+
+    // UTM parameter capture
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const map = {
+        utm_source: 'utm_source',
+        utm_campaign: 'utm_campaign',
+        utm_medium: 'utm_medium',
+        gclid: 'gclid'
+      };
+      for (const [param, fieldId] of Object.entries(map)) {
+        const val = params.get(param);
+        if (val) {
+          document.getElementById(fieldId).value = val;
+        }
+      }
+    })();
+
+    // Form submit → Meta Pixel Lead event + webhook
+    document.getElementById('leadForm').addEventListener('submit', function(e) {
+      const btn = document.getElementById('submitBtn');
+      btn.textContent = 'Submitting...';
+      btn.disabled = true;
+
+      // Track Meta Pixel lead event
+      if (typeof fbq === 'function') {
+        fbq('track', 'Lead', { value: 2500, currency: 'USD' });
+      }
+
+      // Form submits natively to Make.com webhook
+      // (no preventDefault — let it POST naturally)
+    });
+  </script>
+
+  <!-- Chatbot Widget Stub (load after 3s) -->
+  <script>
+    setTimeout(function() {
+      // Load chatbot widget here
+      // Example: <script src="https://cdn.{chatbot-provider}.com/widget.js" data-key="{WIDGET_KEY}"></script>
+      // The actual chatbot endpoint is POST https://{vercel-url}.vercel.app/api/chat
+      console.log('Chatbot widget loaded');
+    }, 3000);
+  </script>
+</body>
+</html>

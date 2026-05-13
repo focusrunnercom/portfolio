@@ -1,119 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Team — FocusRunner</title>
-  <style>
-    :root { color-scheme: dark; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #0a0a0b; color: #e5e5e5; line-height: 1.6; }
-    .container { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; }
-    .back { color: #3b82f6; text-decoration: none; font-size: 0.9rem; display: inline-block; margin-bottom: 2rem; }
-    .back:hover { text-decoration: underline; }
-    h1 { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #fff, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.75rem; }
-    .sub { color: #94a3b8; font-size: 1.1rem; margin-bottom: 3rem; }
-    .org { margin: 3rem 0; }
-    .level { margin-bottom: 2rem; }
-    .level-label { color: #3b82f6; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
-    .agents { display: grid; gap: 1rem; }
-    .agent { background: #111; border: 1px solid #1e1e1e; border-radius: 12px; padding: 1.5rem; display: flex; gap: 1.5rem; align-items: flex-start; }
-    .agent-icon { font-size: 2.5rem; flex-shrink: 0; }
-    .agent-info h3 { font-size: 1.2rem; color: #f0f0f0; margin-bottom: 0.25rem; }
-    .agent-role { color: #3b82f6; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; }
-    .agent-desc { color: #94a3b8; font-size: 0.9rem; }
-    .ml-2 { margin-left: 3rem; }
-    footer { text-align: center; color: #666; font-size: 0.85rem; padding: 2rem; border-top: 1px solid #1e1e1e; margin-top: 4rem; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team — FocusRunner</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e;
+    --ink-faint: #3f4a43; --bg-panel: #0d120f; --bg-2: #0f1412;
+    --line: #1a2620; --line-bright: #2a3f33; --amber: #ffb547; --danger: #ff5c4d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.6; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 32px; }
+
+  nav { position: sticky; top: 0; background: var(--bg-panel); border-bottom: 1px solid var(--line); }
+  .nav-inner { max-width: 900px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { color: var(--phos); font-weight: 700; font-size: 15px; text-decoration: none; }
+  .logo-text { color: var(--ink); }
+
+  section { padding: 80px 0; }
+  .section-intro { text-align: center; margin-bottom: 48px; }
+  .section-intro h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 700; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.5px; }
+  .section-intro p { color: var(--ink-faint); font-size: 14px; max-width: 600px; margin: 0 auto; }
+
+  .org-tree { font-size: 13px; line-height: 2; padding: 32px; background: var(--bg-2); border: 1px solid var(--line); }
+  .org-tree .branch { margin-left: 32px; border-left: 1px solid var(--line); padding-left: 16px; }
+  .org-tree .node { padding: 2px 0; }
+  .org-tree .commander { color: var(--phos); font-weight: 700; }
+  .org-tree .ceo { color: var(--amber); font-weight: 700; }
+  .org-tree .pi { color: var(--phos); }
+  .org-tree .label { color: var(--ink-faint); font-size: 11px; margin-left: 8px; }
+
+  .agent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 48px; }
+  .agent-card { background: var(--bg-panel); padding: 28px 20px; }
+  .agent-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .agent-card h3 { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .agent-card .role { font-size: 12px; color: var(--phos); font-weight: 500; margin-bottom: 8px; }
+  .agent-card .desc { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+
+  .section-label { font-size: 11px; color: var(--ink-faint); letter-spacing: 1px; margin: 48px 0 16px; }
+
+  footer { border-top: 1px solid var(--line); padding: 40px 0; text-align: center; font-size: 12px; color: var(--ink-faint); }
+  footer a { color: var(--ink-dim); text-decoration: none; }
+  footer a:hover { color: var(--phos); }
+</style>
 </head>
 <body>
-<div class="container">
-  <a href="../index.html" class="back">← Back to portfolio</a>
-  <h1>Our Team</h1>
-  <p class="sub">FocusRunner is powered by a team of specialized AI agents — each an expert in its domain, working together through the Paperclip orchestration platform.</p>
 
-  <div class="org">
-    <div class="level">
-      <div class="level-label">Leadership</div>
-      <div class="agents">
-        <div class="agent">
-          <div class="agent-icon">🧑‍💼</div>
-          <div class="agent-info">
-            <h3>CEO Agent</h3>
-            <div class="agent-role">Strategy, Positioning, Revenue</div>
-            <div class="agent-desc">Defines the niche, builds the offers, sets pricing, and ensures every output drives revenue. The CEO sees the big picture and makes the calls.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="level ml-2">
-      <div class="level-label">Revenue Engine</div>
-      <div class="agents">
-        <div class="agent">
-          <div class="agent-icon">📈</div>
-          <div class="agent-info">
-            <h3>CMO Agent</h3>
-            <div class="agent-role">Growth, Traffic, Demand Generation</div>
-            <div class="agent-desc">Generates consistent inbound leads through content, funnels, and paid acquisition. Reports to CEO.</div>
-          </div>
-        </div>
-      </div>
-      <div class="agents ml-2" style="margin-top:1rem;">
-        <div class="agent">
-          <div class="agent-icon">✍️</div>
-          <div class="agent-info">
-            <h3>Copywriter Agent</h3>
-            <div class="agent-role">Conversion Copy & Messaging</div>
-            <div class="agent-desc">Writes high-converting website copy, landing pages, ads, and email sequences. Reports to CMO.</div>
-          </div>
-        </div>
-        <div class="agent" style="margin-top:1rem;">
-          <div class="agent-icon">💰</div>
-          <div class="agent-info">
-            <h3>Sales Agent</h3>
-            <div class="agent-role">Lead Conversion & Closing</div>
-            <div class="agent-desc">Crafts outreach scripts, handles objections, and closes deals. Reports to CMO.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="level ml-2" style="margin-top:2rem;">
-      <div class="level-label">Technical Delivery</div>
-      <div class="agents">
-        <div class="agent">
-          <div class="agent-icon">🧑‍💻</div>
-          <div class="agent-info">
-            <h3>CTO Agent</h3>
-            <div class="agent-role">Systems, Automation, Infrastructure</div>
-            <div class="agent-desc">Designs and architects the AI pipelines. Prefers simple, reliable stacks that deliver ROI. Reports to CEO.</div>
-          </div>
-        </div>
-      </div>
-      <div class="agents ml-2" style="margin-top:1rem;">
-        <div class="agent">
-          <div class="agent-icon">🔧</div>
-          <div class="agent-info">
-            <h3>Senior AI Engineer</h3>
-            <div class="agent-role">Implementation Lead</div>
-            <div class="agent-desc">Executes and deploys working AI solutions. Builds workflows, implements automations. Reports to CTO.</div>
-          </div>
-        </div>
-        <div class="agent" style="margin-top:1rem;">
-          <div class="agent-icon">🔧</div>
-          <div class="agent-info">
-            <h3>AI Engineer</h3>
-            <div class="agent-role">Implementation</div>
-            <div class="agent-desc">Builds and tests AI components. Debugs and optimizes systems in production. Reports to CTO.</div>
-          </div>
-        </div>
-      </div>
-    </div>
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="logo">&gt;_ <span class="logo-text">FocusRunner</span></a>
   </div>
+</nav>
 
-  <p style="color:#94a3b8;margin-top:2rem;">All agents operate on the Paperclip platform. Work is tracked as tasks, assigned by role, executed autonomously. As client demand grows, we scale the agent team elastically — no hiring delays.</p>
-</div>
-<footer>FocusRunner © 2026 — Built by Paperclip AI agents</footer>
+<section>
+  <div class="wrap">
+    <div class="section-intro">
+      <h1>Team</h1>
+      <p>FocusRunner is powered by specialized AI agents — each an expert in its domain, orchestrated through Paperclip.</p>
+    </div>
+
+    <div class="org-tree">
+      <div class="node"><span class="commander">&gt; Hermes Agent</span> <span class="label">// commander-in-chief</span></div>
+      <div class="branch">
+        <div class="node"><span class="ceo">CEO Agent</span> <span class="label">// strategy & revenue — Rumelt framework</span></div>
+        <div class="branch">
+          <div class="node"><span style="color:var(--phos);">CTO Agent</span> <span class="label">// Pi Coding Agent — team lead</span></div>
+          <div class="branch">
+            <div class="node"><span class="pi">Pi Agent</span> <span class="label">// lead coding agent</span></div>
+            <div class="node"><span class="pi">Senior Engineer</span> <span class="label">// implementation lead</span></div>
+            <div class="node"><span class="pi">Engineer</span> <span class="label">// implementation</span></div>
+          </div>
+        </div>
+        <div class="branch">
+          <div class="node"><span style="color:var(--ink);">CMO Agent</span> <span class="label">// growth & demand gen — Godin framework</span></div>
+          <div class="branch">
+            <div class="node"><span style="color:var(--ink-dim);">Copywriter</span> <span class="label">// conversion copy — Schwartz framework</span></div>
+            <div class="node"><span style="color:var(--ink-dim);">Sales</span> <span class="label">// lead conversion — SPIN + Challenger</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">// ALL AGENTS</div>
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="icon">│</div>
+        <h3>Hermes Agent</h3>
+        <div class="role">Commander-in-Chief</div>
+        <div class="desc">Controls all Paperclip operations. Issues strategic directives to CEO. Runs Pi Coding Agent directly via terminal.</div>
+      </div>
+      <div class="agent-card">
+        <div class="icon">🧑‍💼</div>
+        <h3>CEO Agent</h3>
+        <div class="role">Strategy & Revenue</div>
+        <div class="desc">Defines niche, builds offers, sets pricing. Takes direction from Hermes. Controls CTO and CMO. Framework: Rumelt.</div>
+      </div>
+      <div class="agent-card">
+        <div class="icon">🧑‍💻</div>
+        <h3>CTO Agent</h3>
+        <div class="role">Pi Coding Agent — Lead</div>
+        <div class="desc">Designs AI pipelines. Leads Pi Coding Agent engineering team. Reports to CEO. Framework: Blank + Ford.</div>
+      </div>
+      <div class="agent-card">
+        <div class="icon">│</div>
+        <h3>Pi Agent</h3>
+        <div class="role">Pi Coding Agent — Coding Lead</div>
+        <div class="desc">Primary coding agent. Executes implementation, debugging, architecture tasks. Reports to CTO. Model: deepseek-v4-pro.</div>
+      </div>
+      <div class="agent-card">
+        <div class="icon">🔧</div>
+        <h3>Senior Engineer</h3>
+        <div class="role">Pi Coding Agent — Sr Engineer</div>
+        <div class="desc">Implementation lead. Builds workflows, deploys solutions. Reports to CTO. Model: deepseek-v4-pro.</div>
+      </div>
+      <div class="agent-card">
+        <div class="icon">🔧</div>
+        <h3>Engineer</h3>
+        <div class="role">Pi Coding Agent — Engineer</div>
+        <div class="desc">Builds and tests AI components. Debugs production systems. Reports to CTO. Model: deepseek-v4-pro.</div>
+      </div>
+      <div class="agent-card">
+        <div class="icon">📈</div>
+        <h3>CMO Agent</h3>
+        <div class="role">Growth & Demand Gen</div>
+        <div class="desc">Generates leads through content, funnels, paid acquisition. Reports to CEO. Framework: Godin.</div>
+      </div>
+      <div class="agent-card">
+        <div class="icon">✍️</div>
+        <h3>Copywriter Agent</h3>
+        <div class="role">Conversion Copy</div>
+        <div class="desc">Writes landing pages, ads, email sequences. Reports to CMO. Framework: Schwartz.</div>
+      </div>
+      <div class="agent-card">
+        <div class="icon">💰</div>
+        <h3>Sales Agent</h3>
+        <div class="role">Lead Conversion</div>
+        <div class="desc">Crafts outreach scripts, handles objections, closes deals. Reports to CMO. Framework: SPIN + Challenger.</div>
+      </div>
+    </div>
+
+    <p style="color:var(--ink-faint);margin-top:48px;font-size:12px;text-align:center;">
+      // All agents run on Paperclip orchestration platform. Pi Coding Agents on deepseek-v4-pro. Elastically scalable.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <a href="../index.html">← Back to Home</a>
+</footer>
+
 </body>
 </html>

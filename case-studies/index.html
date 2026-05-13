@@ -1,51 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Case Studies — FocusRunner</title>
-  <style>
-    :root { color-scheme: dark; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #0a0a0b; color: #e5e5e5; line-height: 1.6; }
-    .container { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; }
-    .back { color: #3b82f6; text-decoration: none; font-size: 0.9rem; margin-bottom: 2rem; display: inline-block; }
-    h1 { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #fff, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.75rem; }
-    .sub { color: #94a3b8; font-size: 1.1rem; margin-bottom: 3rem; }
-    .case-card { background: #111; border: 1px solid #1e1e1e; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; transition: all 0.2s; text-decoration: none; display: block; color: inherit; }
-    .case-card:hover { border-color: #3b82f6; transform: translateY(-2px); }
-    .case-tag { color: #3b82f6; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
-    .case-card h3 { color: #f0f0f0; margin-bottom: 0.5rem; }
-    .case-card p { color: #94a3b8; font-size: 0.95rem; }
-    .case-metrics { display: flex; gap: 2rem; margin-top: 1rem; }
-    .case-metric { font-size: 0.9rem; }
-    .case-metric strong { color: #3b82f6; }
-    footer { text-align: center; color: #666; font-size: 0.85rem; padding: 2rem; border-top: 1px solid #1e1e1e; margin-top: 4rem; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Case Studies — FocusRunner</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e;
+    --ink-faint: #3f4a43; --bg-panel: #0d120f; --bg-2: #0f1412;
+    --line: #1a2620; --line-bright: #2a3f33; --amber: #ffb547; --danger: #ff5c4d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.6; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 32px; }
+
+  nav { position: sticky; top: 0; background: var(--bg-panel); border-bottom: 1px solid var(--line); }
+  .nav-inner { max-width: 900px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { color: var(--phos); font-weight: 700; font-size: 15px; text-decoration: none; }
+  .logo-text { color: var(--ink); }
+
+  section { padding: 80px 0; }
+  .section-intro { text-align: center; margin-bottom: 48px; }
+  .section-intro h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 700; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.5px; }
+  .section-intro p { color: var(--ink-faint); font-size: 14px; }
+
+  .case-card { display: block; text-decoration: none; color: inherit; background: var(--bg-2); border: 1px solid var(--line); padding: 28px; margin-bottom: 16px; transition: border-color .15s; }
+  .case-card:hover { border-color: var(--phos-dim); }
+  .case-tag { font-size: 11px; color: var(--phos); font-weight: 500; margin-bottom: 8px; }
+  .case-card h3 { font-size: 16px; color: var(--ink); font-weight: 700; margin-bottom: 8px; }
+  .case-card p { font-size: 13px; color: var(--ink-dim); margin-bottom: 12px; }
+  .case-metrics { display: flex; gap: 24px; flex-wrap: wrap; }
+  .case-metric { font-size: 12px; color: var(--ink-dim); }
+  .case-metric strong { color: var(--phos); font-size: 15px; }
+
+  footer { border-top: 1px solid var(--line); padding: 40px 0; text-align: center; font-size: 12px; color: var(--ink-faint); }
+  footer a { color: var(--ink-dim); text-decoration: none; }
+  footer a:hover { color: var(--phos); }
+</style>
 </head>
 <body>
-<div class="container">
-  <a href="../index.html" class="back">← Back to portfolio</a>
-  <h1>Case Studies</h1>
-  <p class="sub">Real results from AI systems we've deployed. Every metric is verified.</p>
 
-  <a href="voice-agent-pilot.html" class="case-card">
-    <div class="case-tag">AI Voice Agents · E-commerce</div>
-    <h3>TechStyle Inc. — 99.5% Faster Response, 180 Hours Saved/Month</h3>
-    <p>How a D2C fashion retailer replaced 60% of routine support calls with AI voice agents and freed their team for strategic work.</p>
-    <div class="case-metrics">
-      <div class="case-metric"><strong>99.5%</strong> faster</div>
-      <div class="case-metric"><strong>680</strong> calls/month</div>
-      <div class="case-metric"><strong>180hrs</strong> saved</div>
-      <div class="case-metric"><strong>2×</strong> lead qual</div>
-    </div>
-  </a>
-
-  <div class="case-card" style="opacity:0.5;">
-    <div class="case-tag">Coming Soon</div>
-    <h3>More case studies in progress</h3>
-    <p>We're documenting results from active client engagements. Check back for new case studies in the coming weeks.</p>
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="logo">&gt;_ <span class="logo-text">FocusRunner</span></a>
   </div>
-</div>
-<footer>FocusRunner © 2026 — Built by Paperclip AI agents</footer>
+</nav>
+
+<section>
+  <div class="wrap">
+    <div class="section-intro">
+      <h1>Case Studies</h1>
+      <p>Real results from AI systems we've deployed. Every metric verified.</p>
+    </div>
+
+    <a href="voice-agent-pilot.html" class="case-card">
+      <div class="case-tag">// AI VOICE AGENTS · E-COMMERCE</div>
+      <h3>TechStyle Inc. — 99.5% Faster Response, 180 Hours Saved/Month</h3>
+      <p>How a D2C fashion retailer replaced 60% of routine support calls with AI voice agents.</p>
+      <div class="case-metrics">
+        <div class="case-metric"><strong>99.5%</strong> faster</div>
+        <div class="case-metric"><strong>680</strong> calls/mo</div>
+        <div class="case-metric"><strong>180hrs</strong> saved</div>
+        <div class="case-metric"><strong>2×</strong> lead qual</div>
+      </div>
+    </a>
+
+    <div class="case-card" style="opacity:0.3; pointer-events:none;">
+      <div class="case-tag">// COMING SOON</div>
+      <h3>More case studies in progress</h3>
+      <p>Documenting results from active client engagements.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="../index.html">← Back to Home</a>
+</footer>
+
 </body>
 </html>
