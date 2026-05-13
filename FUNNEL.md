@@ -214,13 +214,13 @@ PDF delivered by email after form submission. Also available as a live link.
 
 ## Pipeline Status
 
-| Asset | Owner | Status |
-|-------|-------|--------|
-| FUNNEL.md (this doc) | CMO | DONE |
-| Ad concepts (5 hooks) | CMO | DONE (above) |
-| Landing page copy | Copywriter | DONE (LANDING-PAGE.md) |
-| Lead magnet (audit PDF) | CMO | DONE (spec above) |
-| Follow-up sequence | CMO | DONE (5-touch above) |
-| Chatbot qualification flow | Engineer | IN PROGRESS (FOC-93) |
-| Automation (Make/GHL workflows) | CMO | DONE (AUTOMATION.md) |
-| CRM setup & campaign | CTO | PENDING |
+| Asset | Owner | Status | File |
+|-------|-------|--------|------|
+| FUNNEL.md (this doc) | CMO | DONE | FUNNEL.md |
+| Ad creative briefs (5 ads) | CMO | DONE | AD-CREATIVE-BRIEFS.md |
+| Landing page copy | CMO | REFINED | LANDING-PAGE.md (v2 with ICP filter + ROI tables) |
+| Lead magnet (audit guide) | CMO | REFINED | LEAD-MAGNET-AUDIT.md (fillable audit with projection) |
+| Email/SMS follow-up sequence | CMO | PRODUCED | EMAIL-SEQUENCE.md (full 5-touch copy, Day 1-14) |
+| Chatbot qualification flow | Senior Engineer | BLOCKED (FOC-106, 0 runs) | — |
+| Automation (Make/GHL workflows) | CMO | DONE | AUTOMATION.md |
+| CRM setup & campaign | CTO | PENDING | — |
