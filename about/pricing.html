@@ -1,75 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pricing — FocusRunner</title>
-  <style>
-    :root { color-scheme: dark; }
-    * { margin:0;padding:0;box-sizing:border-box; }
-    body { font-family:system-ui,sans-serif; background:#0a0a0b; color:#e5e5e5; line-height:1.6; }
-    .container { max-width:800px; margin:0 auto; padding:4rem 2rem; }
-    .back { color:#3b82f6; text-decoration:none; font-size:0.9rem; display:inline-block; margin-bottom:2rem; }
-    h1 { font-size:2.5rem; font-weight:800; background:linear-gradient(135deg,#fff,#3b82f6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:0.5rem; }
-    .sub { color:#94a3b8; font-size:1.1rem; margin-bottom:3rem; }
-    .plan { background:#111; border:1px solid #1e1e1e; border-radius:16px; padding:2.5rem; margin-bottom:1.5rem; }
-    .plan.featured { border-color:#3b82f6; background:linear-gradient(135deg,#111827,#0f172a); }
-    .plan h3 { font-size:1.3rem; color:#f0f0f0; margin-bottom:0.5rem; }
-    .plan .price { font-size:2.2rem; font-weight:800; color:#f0f0f0; margin:1rem 0; }
-    .plan .price span { font-size:0.95rem; color:#94a3b8; font-weight:400; }
-    .plan .desc { color:#94a3b8; margin-bottom:1.5rem; }
-    .features { list-style:none; }
-    .features li { color:#94a3b8; padding:0.4rem 0; font-size:0.9rem; }
-    .features li::before { content:'✓'; color:#3b82f6; margin-right:0.75rem; font-weight:700; }
-    .guarantee { background:#0f172a; border:1px solid #22c55e; border-radius:12px; padding:1.5rem; text-align:center; margin:2rem 0; }
-    .guarantee p { color:#22c55e; font-weight:600; }
-    .cta { text-align:center; margin-top:2rem; }
-    .btn { display:inline-block; background:#3b82f6; color:#fff; padding:1rem 2.5rem; border-radius:8px; font-weight:600; text-decoration:none; }
-    .btn:hover { background:#2563eb; }
-    footer { text-align:center; color:#666; font-size:0.85rem; padding:2rem; border-top:1px solid #1e1e1e; margin-top:4rem; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing — FocusRunner</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e;
+    --ink-faint: #3f4a43; --bg-panel: #0d120f; --bg-2: #0f1412;
+    --line: #1a2620; --line-bright: #2a3f33; --amber: #ffb547; --danger: #ff5c4d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.6; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 32px; }
+
+  nav { position: sticky; top: 0; background: var(--bg-panel); border-bottom: 1px solid var(--line); }
+  .nav-inner { max-width: 900px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { color: var(--phos); font-weight: 700; font-size: 15px; text-decoration: none; }
+  .logo-text { color: var(--ink); }
+  .nav-cta { padding: 6px 14px; background: var(--line); color: var(--ink); text-decoration: none; font-size: 12px; font-weight: 500; }
+  .nav-cta:hover { background: var(--line-bright); }
+
+  section { padding: 80px 0; }
+
+  .section-intro { text-align: center; margin-bottom: 48px; }
+  .section-intro h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 700; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.5px; }
+  .section-intro p { color: var(--ink-faint); font-size: 14px; }
+
+  .stack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .stack-card { background: var(--bg-panel); padding: 32px 24px; }
+  .stack-card.featured { background: #0a140d; border: 1px solid var(--phos-dim); margin: -1px; }
+  .stack-card .tag { display: inline-block; padding: 2px 8px; background: var(--phos); color: #000; font-size: 10px; font-weight: 700; margin-bottom: 12px; }
+  .stack-card h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .stack-card .price { font-size: 32px; font-weight: 700; color: var(--phos); margin: 8px 0; }
+  .stack-card .price span { font-size: 14px; color: var(--ink-dim); font-weight: 400; }
+  .stack-card .desc { font-size: 13px; color: var(--ink-dim); margin-bottom: 16px; line-height: 1.5; }
+  .stack-card .features { list-style: none; }
+  .stack-card .features li { font-size: 12px; color: var(--ink-dim); padding: 4px 0; }
+  .stack-card .features li::before { content: '✓ '; color: var(--phos); }
+
+  .guarantee-box { border: 1px solid var(--phos); background: var(--bg-2); padding: 24px; text-align: center; margin-top: 32px; }
+  .guarantee-box p { font-size: 14px; color: var(--phos); font-weight: 500; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none; transition: all .15s; }
+  .btn-primary { background: var(--phos); color: #000; font-weight: 700; }
+  .btn-primary:hover { background: #8affa0; }
+
+  footer { border-top: 1px solid var(--line); padding: 40px 0; text-align: center; font-size: 12px; color: var(--ink-faint); }
+  footer a { color: var(--ink-dim); text-decoration: none; }
+  footer a:hover { color: var(--phos); }
+</style>
 </head>
 <body>
-<div class="container">
-  <a href="../index.html" class="back">← Back</a>
-  <h1>Pricing</h1>
-  <p class="sub">One system. Clear pricing. Guaranteed results.</p>
 
-  <div class="plan featured">
-    <h3>🚀 AI Patient Acquisition System</h3>
-    <div class="desc">Complete patient acquisition stack for med spas and cosmetic clinics.</div>
-    <div class="price">$2,500 <span>one-time setup</span></div>
-    <div class="price" style="font-size:1.4rem;">+ $1,500 <span>/month</span></div>
-    <ul class="features">
-      <li>High-converting landing page</li>
-      <li>AI Chatbot — instant lead qualification 24/7</li>
-      <li>SMS + Email automated follow-up sequences</li>
-      <li>CRM pipeline with booking tracking</li>
-      <li>Monthly performance optimization</li>
-      <li>30-day guarantee: 15 qualified leads or we work free</li>
-    </ul>
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="logo">&gt;_ <span class="logo-text">FocusRunner</span></a>
+    <a href="https://focusrunner.com" class="nav-cta">★ Book a Call</a>
   </div>
+</nav>
 
-  <div class="plan">
-    <h3>📊 Ads Management — Optional</h3>
-    <div class="desc">Meta (Facebook/Instagram) ads management on top of the core system.</div>
-    <div class="price">+$1,000 <span>/month</span></div>
-    <ul class="features">
-      <li>Ad creative & copy</li>
-      <li>Audience targeting</li>
-      <li>Weekly optimization</li>
-      <li>Performance reporting</li>
-    </ul>
-  </div>
+<section>
+  <div class="wrap">
+    <div class="section-intro">
+      <h1>Pricing</h1>
+      <p>One system. Clear pricing. Guaranteed results.</p>
+    </div>
 
-  <div class="guarantee">
-    <p>🔒 If you don't get at least 15 qualified patient leads in 30 days, we work for free until you do.</p>
-  </div>
+    <div class="stack-grid">
+      <div class="stack-card">
+        <h3>Free Audit</h3>
+        <div class="price">$0</div>
+        <div class="desc">See how many patients you're leaving on the table.</div>
+        <ul class="features">
+          <li>Market analysis</li>
+          <li>Competitor breakdown</li>
+          <li>Lead gap report</li>
+          <li>30-min strategy call</li>
+        </ul>
+      </div>
+      <div class="stack-card featured">
+        <div class="tag">RECOMMENDED</div>
+        <h3>AI Patient Acquisition System</h3>
+        <div class="price">$2,500 <span>setup</span></div>
+        <div class="price" style="font-size:24px;">+ $1,500 <span>/mo</span></div>
+        <div class="desc">Complete patient acquisition stack.</div>
+        <ul class="features">
+          <li>High-converting landing page</li>
+          <li>AI Chatbot — lead qualification 24/7</li>
+          <li>SMS + Email follow-up sequences</li>
+          <li>CRM pipeline with booking tracking</li>
+          <li>Monthly optimization</li>
+          <li>30-day guarantee</li>
+        </ul>
+      </div>
+      <div class="stack-card">
+        <h3>Ads Management</h3>
+        <div class="price">+$1,000 <span>/mo</span></div>
+        <div class="desc">Google + Meta ads on top of core system.</div>
+        <ul class="features">
+          <li>Ad creative & copy</li>
+          <li>Audience targeting</li>
+          <li>Weekly optimization</li>
+          <li>ROAS reporting</li>
+        </ul>
+      </div>
+    </div>
 
-  <div class="cta">
-    <p style="color:#94a3b8;margin-bottom:1.5rem;">Every engagement starts with a free strategy call. No commitment.</p>
-    <a href="https://focusrunner.com" class="btn">Book a Free Strategy Call →</a>
+    <div class="guarantee-box">
+      <p>// GUARANTEE: If you don't get at least 15 qualified patient leads in 30 days, we work for free until you do.</p>
+    </div>
+
+    <div style="text-align:center;margin-top:48px;">
+      <p style="color:var(--ink-faint);margin-bottom:20px;font-size:13px;">Every engagement starts with a free strategy call. No commitment.</p>
+      <a href="https://focusrunner.com" class="btn btn-primary">→ Book a Free Strategy Call</a>
+    </div>
   </div>
-</div>
-<footer>FocusRunner © 2026 — Built by Paperclip AI agents</footer>
+</section>
+
+<footer>
+  <a href="../index.html">← Back to Home</a>
+</footer>
+
 </body>
 </html>
