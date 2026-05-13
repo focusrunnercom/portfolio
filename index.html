@@ -9,119 +9,64 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --phos: #6eff8a;
-    --phos-dim: #2a6b38;
-    --ink: #d4e5d8;
-    --ink-dim: #7a8c7e;
-    --ink-faint: #3f4a43;
-    --bg-panel: #0d120f;
-    --bg-2: #0f1412;
-    --line: #1a2620;
-    --line-bright: #2a3f33;
-    --grid: #6eff8a0a;
-    --amber: #ffb547;
-    --danger: #ff5c4d;
+    --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e;
+    --ink-faint: #3f4a43; --bg-panel: #0d120f; --bg-2: #0f1412;
+    --line: #1a2620; --line-bright: #2a3f33; --amber: #ffb547; --danger: #ff5c4d;
   }
-
   html { scroll-behavior: smooth; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  
-  body {
-    background: var(--bg-panel);
-    color: var(--ink);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-
+  body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+  .wrap-narrow { max-width: 800px; margin: 0 auto; padding: 0 32px; }
 
   /* ===== NAV ===== */
-  nav {
-    position: sticky; top: 0; z-index: 100;
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--line);
-  }
-  .nav-inner {
-    max-width: 1100px; margin: 0 auto; padding: 0 32px;
-    display: flex; align-items: center; justify-content: space-between;
-    height: 56px;
-  }
+  nav { position: sticky; top: 0; z-index: 100; background: var(--bg-panel); border-bottom: 1px solid var(--line); }
+  .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
   .logo { color: var(--phos); font-weight: 700; font-size: 15px; text-decoration: none; }
   .logo-text { color: var(--ink); }
   .nav-links { display: flex; gap: 24px; align-items: center; }
-  .nav-links a {
-    color: var(--ink-dim); text-decoration: none; font-size: 13px;
-    transition: color .15s;
-  }
+  .nav-links a { color: var(--ink-dim); text-decoration: none; font-size: 13px; transition: color .15s; }
   .nav-links a:hover { color: var(--phos); }
-  .nav-cta {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 14px; background: var(--line); color: var(--ink);
-    text-decoration: none; font-size: 12px; font-weight: 500;
-  }
+  .nav-cta { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--line); color: var(--ink); text-decoration: none; font-size: 12px; font-weight: 500; }
   .nav-cta:hover { background: var(--line-bright); }
+
+  /* Dropdown */
+  .dropdown { position: relative; }
+  .dropdown-toggle { cursor: pointer; user-select: none; }
+  .dropdown-toggle::after { content: ' ▾'; font-size: 10px; }
+  .dropdown-menu { display: none; position: absolute; top: 100%; left: 0; background: var(--bg-panel); border: 1px solid var(--line-bright); min-width: 260px; z-index: 101; }
+  .dropdown:hover .dropdown-menu { display: block; }
+  .dropdown-menu a { display: block; padding: 10px 16px; font-size: 12px; color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .dropdown-menu a:last-child { border-bottom: none; }
+  .dropdown-menu a:hover { background: var(--bg-2); color: var(--phos); }
+  .dropdown-menu .case-tag { font-size: 10px; color: var(--phos); display: block; }
 
   /* ===== SECTIONS ===== */
   section { padding: 80px 0; }
   section + section { border-top: 1px solid var(--line); }
+  .section-intro { text-align: center; margin-bottom: 48px; }
+  .section-intro h2 { font-size: clamp(22px, 3.5vw, 30px); font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .section-intro p { color: var(--ink-faint); font-size: 14px; }
 
   /* ===== HERO ===== */
-  .hero { padding: 100px 0 80px; text-align: center; }
-  .hero-topline {
-    display: inline-block; padding: 4px 12px;
-    background: var(--line); color: var(--phos);
-    font-size: 11px; font-weight: 500; letter-spacing: .5px;
-    margin-bottom: 24px;
-  }
-  .hero-title {
-    font-size: clamp(32px, 6vw, 56px); font-weight: 700;
-    color: var(--ink); line-height: 1.15; margin-bottom: 16px;
-    letter-spacing: -1px;
-  }
+  .hero { padding: 100px 0 80px; text-align: center; border-top: none; }
+  .hero-topline { display: inline-block; padding: 4px 12px; background: var(--line); color: var(--phos); font-size: 11px; font-weight: 500; letter-spacing: .5px; margin-bottom: 24px; }
+  .hero-title { font-size: clamp(32px, 6vw, 56px); font-weight: 700; color: var(--ink); line-height: 1.15; margin-bottom: 16px; letter-spacing: -1px; }
   .hero-title em { color: var(--phos); font-style: normal; }
-  .hero-subtitle {
-    font-size: clamp(16px, 2.5vw, 20px); color: var(--ink-dim);
-    font-weight: 400; margin-bottom: 12px;
-  }
-  .hero-sub {
-    font-size: 14px; color: var(--ink-faint); margin-bottom: 40px;
-    max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.7;
-  }
+  .hero-subtitle { font-size: clamp(16px, 2.5vw, 20px); color: var(--ink-dim); font-weight: 400; margin-bottom: 12px; }
+  .hero-sub { font-size: 14px; color: var(--ink-faint); margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.7; }
   .hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 10px 24px; font-family: 'JetBrains Mono', monospace;
-    font-size: 13px; font-weight: 500; text-decoration: none;
-    transition: all .15s; cursor: pointer;
-  }
-  .btn-primary {
-    background: var(--phos); color: #000; border: none;
-    font-weight: 700;
-  }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none; transition: all .15s; cursor: pointer; }
+  .btn-primary { background: var(--phos); color: #000; border: none; font-weight: 700; }
   .btn-primary:hover { background: #8affa0; }
-  .btn-secondary {
-    background: transparent; color: var(--ink);
-    border: 1px solid var(--line-bright);
-  }
+  .btn-secondary { background: transparent; color: var(--ink); border: 1px solid var(--line-bright); }
   .btn-secondary:hover { border-color: var(--phos); color: var(--phos); }
 
   /* ===== TERMINAL ===== */
-  .terminal {
-    max-width: 700px; margin: 0 auto;
-    border: 1px solid var(--line-bright);
-    background: #080b09;
-  }
-  .terminal-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; border-bottom: 1px solid var(--line);
-    font-size: 12px;
-  }
+  .terminal { max-width: 700px; margin: 0 auto; border: 1px solid var(--line-bright); background: #080b09; }
+  .terminal-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 12px; }
   .terminal-dots { display: flex; gap: 6px; }
-  .terminal-dots span {
-    width: 10px; height: 10px; display: block;
-  }
+  .terminal-dots span { width: 10px; height: 10px; display: block; }
   .terminal-dots span:nth-child(1) { background: var(--danger); }
   .terminal-dots span:nth-child(2) { background: var(--amber); }
   .terminal-dots span:nth-child(3) { background: var(--phos); }
@@ -138,157 +83,155 @@
   @keyframes blink { 50% { opacity: 0; } }
 
   /* ===== FEATURES ===== */
-  .section-intro { text-align: center; margin-bottom: 48px; }
-  .section-intro h2 {
-    font-size: clamp(22px, 3.5vw, 30px); font-weight: 700;
-    color: var(--ink); margin-bottom: 12px;
-  }
-  .section-intro p { color: var(--ink-faint); font-size: 14px; }
-  .features-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1px; background: var(--line);
-    border: 1px solid var(--line);
-  }
-  .feature {
-    background: var(--bg-panel); padding: 32px 24px;
-    display: flex; flex-direction: column; gap: 8px;
-  }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .feature { background: var(--bg-panel); padding: 32px 24px; display: flex; flex-direction: column; gap: 8px; }
   .feature-num { font-size: 12px; color: var(--phos); font-weight: 700; }
   .feature h3 { font-size: 15px; font-weight: 700; color: var(--ink); }
   .feature p { font-size: 13px; color: var(--ink-dim); line-height: 1.6; }
 
   /* ===== STACK ===== */
-  .stack-section { padding: 80px 0; }
-  .stack-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1px; background: var(--line);
-    border: 1px solid var(--line);
-  }
-  .stack-card {
-    background: var(--bg-panel); padding: 28px 20px;
-    text-align: center;
-  }
-  .stack-card .price {
-    font-size: 28px; font-weight: 700; color: var(--phos);
-    margin-bottom: 4px;
-  }
-  .stack-card .label { font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+  .stack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .stack-card { background: var(--bg-panel); padding: 32px 24px; }
+  .stack-card.featured { background: #0a140d; border: 1px solid var(--phos-dim); margin: -1px; }
+  .stack-card .tag { display: inline-block; padding: 2px 8px; background: var(--phos); color: #000; font-size: 10px; font-weight: 700; margin-bottom: 12px; }
+  .stack-card h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .stack-card .price { font-size: 32px; font-weight: 700; color: var(--phos); margin: 8px 0; }
+  .stack-card .price span { font-size: 14px; color: var(--ink-dim); font-weight: 400; }
   .stack-card .desc { font-size: 13px; color: var(--ink-dim); margin-bottom: 16px; line-height: 1.5; }
   .stack-card .features { list-style: none; }
   .stack-card .features li { font-size: 12px; color: var(--ink-dim); padding: 4px 0; }
   .stack-card .features li::before { content: '✓ '; color: var(--phos); }
-  .stack-card.featured { background: #0a140d; border: 1px solid var(--phos-dim); margin: -1px; }
-  .stack-card .tag { display: inline-block; padding: 2px 8px; background: var(--phos); color: #000; font-size: 10px; font-weight: 700; margin-bottom: 12px; }
 
-  /* ===== GUARANTEE ===== */
-  .manifesto { padding: 80px 0; }
-  .manifesto-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1px; background: var(--line);
-    border: 1px solid var(--line);
-  }
-  .manifesto-item {
-    background: var(--bg-panel); padding: 32px 24px;
-  }
+  /* ===== MANIFESTO ===== */
+  .manifesto-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .manifesto-item { background: var(--bg-panel); padding: 32px 24px; }
   .manifesto-num { font-size: 12px; color: var(--phos); font-weight: 700; margin-bottom: 8px; }
   .manifesto-item h3 { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
   .manifesto-item p { font-size: 13px; color: var(--ink-dim); line-height: 1.6; }
 
-  /* ===== NICHE GRID ===== */
-  .niche-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1px; background: var(--line);
-    border: 1px solid var(--line);
-  }
-  .niche-item {
-    background: var(--bg-panel); padding: 24px 20px;
-    text-align: center;
-  }
-  .niche-item .icon { font-size: 24px; margin-bottom: 8px; }
-  .niche-item h4 { font-size: 14px; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
-  .niche-item p { font-size: 12px; color: var(--ink-faint); }
-
-  /* ===== CTA ===== */
-  .final-cta { padding: 100px 0; text-align: center; }
-  .final-cta h2 {
-    font-size: clamp(24px, 4vw, 36px); font-weight: 700;
-    color: var(--ink); margin-bottom: 12px;
-  }
-  .final-cta p { color: var(--ink-dim); margin-bottom: 32px; font-size: 14px; }
-
-  /* ===== FOOTER ===== */
-  footer { border-top: 1px solid var(--line); padding: 40px 0; }
-  .footer-grid {
-    display: flex; justify-content: space-between; align-items: center;
-    flex-wrap: wrap; gap: 16px;
-  }
-  .footer-col { font-size: 12px; color: var(--ink-faint); }
-  .footer-col a { color: var(--ink-dim); text-decoration: none; margin-left: 16px; }
-  .footer-col a:hover { color: var(--phos); }
-
   /* ===== TABLE ===== */
-  .compare-table {
-    width: 100%; border-collapse: collapse;
-    border: 1px solid var(--line);
-  }
-  .compare-table th {
-    text-align: left; padding: 14px 16px; font-size: 12px; font-weight: 700;
-    color: var(--ink-dim); border-bottom: 1px solid var(--line);
-    background: var(--bg-2);
-  }
-  .compare-table td {
-    padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--line);
-  }
+  .compare-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); }
+  .compare-table th { text-align: left; padding: 14px 16px; font-size: 12px; font-weight: 700; color: var(--ink-dim); border-bottom: 1px solid var(--line); background: var(--bg-2); }
+  .compare-table td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--line); }
   .compare-table tr:last-child td { border-bottom: none; }
   .compare-table .num { color: var(--phos); font-weight: 700; font-size: 22px; }
   .compare-table .txt { color: var(--ink); }
   .compare-table .toks { color: var(--ink-dim); font-size: 12px; }
 
-  /* ===== RESPONSIVE ===== */
+  /* ===== NICHES ===== */
+  .niche-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .niche-item { background: var(--bg-panel); padding: 24px 20px; text-align: center; }
+  .niche-item .icon { font-size: 24px; margin-bottom: 8px; }
+  .niche-item h4 { font-size: 14px; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
+  .niche-item p { font-size: 12px; color: var(--ink-faint); }
+
+  /* ===== TEAM ===== */
+  .org-tree { font-size: 13px; line-height: 2; padding: 32px; background: var(--bg-2); border: 1px solid var(--line); margin-bottom: 48px; }
+  .org-tree .branch { margin-left: 32px; border-left: 1px solid var(--line); padding-left: 16px; }
+  .org-tree .node { padding: 2px 0; }
+  .org-tree .commander { color: var(--phos); font-weight: 700; }
+  .org-tree .ceo { color: var(--amber); font-weight: 700; }
+  .org-tree .pi { color: var(--phos); }
+  .org-tree .label { color: var(--ink-faint); font-size: 11px; margin-left: 8px; }
+  .agent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .agent-card { background: var(--bg-panel); padding: 28px 20px; }
+  .agent-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .agent-card h3 { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .agent-card .role { font-size: 12px; color: var(--phos); font-weight: 500; margin-bottom: 8px; }
+  .agent-card .desc { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+
+  /* ===== CASE STUDIES ===== */
+  .case-card { display: block; text-decoration: none; color: inherit; background: var(--bg-2); border: 1px solid var(--line); padding: 28px; margin-bottom: 16px; transition: border-color .15s; }
+  .case-card:hover { border-color: var(--phos-dim); }
+  .case-tag { font-size: 11px; color: var(--phos); font-weight: 500; margin-bottom: 8px; }
+  .case-card h3 { font-size: 16px; color: var(--ink); font-weight: 700; margin-bottom: 8px; }
+  .case-card p { font-size: 13px; color: var(--ink-dim); margin-bottom: 12px; }
+  .case-metrics { display: flex; gap: 24px; flex-wrap: wrap; }
+  .case-metric { font-size: 12px; color: var(--ink-dim); }
+  .case-metric strong { color: var(--phos); font-size: 15px; }
+
+  /* Case detail */
+  .case-detail { background: var(--bg-2); border: 1px solid var(--line); padding: 32px 28px; margin-bottom: 24px; }
+  .case-detail h3 { font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 16px; line-height: 1.3; }
+  .case-detail h4 { font-size: 15px; font-weight: 700; color: var(--ink); margin: 32px 0 8px; }
+  .case-detail p { color: var(--ink-dim); font-size: 13px; margin-bottom: 12px; }
+  .case-detail strong { color: var(--ink); }
+  .client-box { background: var(--bg-panel); border: 1px solid var(--line); padding: 20px; margin: 20px 0; }
+  .client-box p { margin-bottom: 4px; }
+  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin: 28px 0; }
+  .metric-box { text-align: center; background: var(--bg-panel); padding: 20px 10px; }
+  .metric-box .val { font-size: 24px; font-weight: 700; color: var(--phos); }
+  .metric-box .lbl { color: var(--ink-faint); font-size: 11px; margin-top: 4px; line-height: 1.4; }
+  .phase-list { margin: 16px 0; }
+  .phase { display: flex; justify-content: space-between; align-items: center; background: var(--bg-panel); border: 1px solid var(--line); padding: 14px 16px; margin-bottom: 4px; }
+  .phase-name { font-size: 13px; color: var(--ink); font-weight: 500; }
+  .phase-del { font-size: 11px; color: var(--ink-faint); display: block; margin-top: 2px; }
+  .phase-dur { font-size: 12px; color: var(--phos); font-weight: 500; }
+  blockquote { border-left: 2px solid var(--phos); padding: 16px 20px; color: var(--ink-dim); font-size: 13px; font-style: italic; background: var(--bg-panel); margin: 28px 0; }
+  blockquote strong { color: var(--ink); display: block; margin-top: 12px; font-style: normal; font-size: 12px; }
+  td.up { color: var(--phos); }
+
+  /* ===== CTA ===== */
+  .final-cta { padding: 100px 0; text-align: center; }
+  .final-cta h2 { font-size: clamp(24px, 4vw, 36px); font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+  .final-cta p { color: var(--ink-dim); margin-bottom: 32px; font-size: 14px; }
+
+  /* ===== FOOTER ===== */
+  footer { border-top: 1px solid var(--line); padding: 40px 0; }
+  .footer-grid { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .footer-col { font-size: 12px; color: var(--ink-faint); }
+  .footer-col a { color: var(--ink-dim); text-decoration: none; margin-left: 16px; }
+  .footer-col a:hover { color: var(--phos); }
+
   @media (max-width: 640px) {
     .nav-links { display: none; }
     section { padding: 48px 0; }
     .hero { padding: 64px 0 48px; }
     .hero-ctas { flex-direction: column; align-items: center; }
     .btn { width: 100%; justify-content: center; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
+<!-- ===== NAV ===== -->
 <nav>
   <div class="nav-inner">
-    <a href="/" class="logo">&gt;_ <span class="logo-text">FocusRunner</span></a>
+    <a href="#" class="logo">&gt;_ <span class="logo-text">FocusRunner</span></a>
     <div class="nav-links">
       <a href="#how-it-works">How It Works</a>
       <a href="#stack">Pricing</a>
       <a href="#niches">Niches</a>
-      <a href="about/team.html">Team</a>
-      <a href="case-studies/">Cases</a>
+      <a href="#team">Team</a>
+      <div class="dropdown">
+        <span class="dropdown-toggle" style="color:var(--ink-dim);font-size:13px;">Cases</span>
+        <div class="dropdown-menu">
+          <a href="#case-techstyle"><span class="case-tag">AI Voice Agents</span>TechStyle Inc.</a>
+          <a href="#cases" style="color:var(--ink-faint);font-size:11px;">→ All case studies</a>
+        </div>
+      </div>
     </div>
     <a href="https://focusrunner.com" class="nav-cta">★ Book a Call</a>
   </div>
 </nav>
 
-<!-- HERO -->
+<!-- ===== HERO ===== -->
 <section class="hero">
   <div class="wrap">
     <div class="hero-topline">v2.0&nbsp;&nbsp;//&nbsp;&nbsp;AI PATIENT ACQUISITION&nbsp;&nbsp;·&nbsp;&nbsp;LIVE</div>
     <h1 class="hero-title">Your med spa.<br><em>Fully booked.</em></h1>
     <p class="hero-subtitle">20–50 qualified patient leads. Every month. Guaranteed.</p>
-    <p class="hero-sub">
-      FocusRunner is a terminal-native AI agency that builds complete patient acquisition systems for high-ticket medical aesthetics. Landing page, AI chatbot, SMS follow-ups, ad campaigns — deployed, tested, running.
-    </p>
+    <p class="hero-sub">FocusRunner is a terminal-native AI agency that builds complete patient acquisition systems for high-ticket medical aesthetics. Landing page, AI chatbot, SMS follow-ups, ad campaigns — deployed, tested, running.</p>
     <div class="hero-ctas">
       <a href="https://focusrunner.com" class="btn btn-primary">→ Get a Free Audit</a>
-      <a href="about/pricing.html" class="btn btn-secondary">View Pricing</a>
-      <a href="case-studies/" class="btn btn-secondary">See Case Studies</a>
+      <a href="#stack" class="btn btn-secondary">View Pricing</a>
+      <a href="#cases" class="btn btn-secondary">See Case Studies</a>
     </div>
   </div>
 </section>
 
-<!-- TERMINAL -->
+<!-- ===== TERMINAL ===== -->
 <section style="padding-top:0;">
   <div class="wrap">
     <div class="terminal">
@@ -314,217 +257,208 @@
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
+<!-- ===== HOW IT WORKS ===== -->
 <section id="how-it-works">
   <div class="wrap">
-    <div class="section-intro">
-      <h2>How It Works</h2>
-      <p>Three steps from zero to booked. No fluff. No six-month ramp.</p>
-    </div>
+    <div class="section-intro"><h2>How It Works</h2><p>Three steps from zero to booked. No fluff. No six-month ramp.</p></div>
     <div class="features-grid">
-      <div class="feature">
-        <div class="feature-num">01 // AUDIT</div>
-        <h3>Free Patient Acquisition Audit</h3>
-        <p>We analyze your market, competitors, and current funnel. You get a report showing exactly how many patients you're leaving on the table — and what it would take to capture them.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-num">02 // BUILD</div>
-        <h3>AI System Deployment</h3>
-        <p>Landing page. AI chatbot that qualifies leads 24/7. SMS &amp; email follow-ups. Ad creative. CRM integration. Everything built, tested, and running in 7 days.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-num">03 // SCALE</div>
-        <h3>Leads Arrive. You Close.</h3>
-        <p>Qualified leads land in your inbox. The chatbot pre-qualifies — you only talk to people ready to book. We optimize weekly. You focus on the procedure, we handle the pipeline.</p>
-      </div>
+      <div class="feature"><div class="feature-num">01 // AUDIT</div><h3>Free Patient Acquisition Audit</h3><p>We analyze your market, competitors, and current funnel. You get a report showing exactly how many patients you're leaving on the table — and what it would take to capture them.</p></div>
+      <div class="feature"><div class="feature-num">02 // BUILD</div><h3>AI System Deployment</h3><p>Landing page. AI chatbot that qualifies leads 24/7. SMS &amp; email follow-ups. Ad creative. CRM integration. Everything built, tested, and running in 7 days.</p></div>
+      <div class="feature"><div class="feature-num">03 // SCALE</div><h3>Leads Arrive. You Close.</h3><p>Qualified leads land in your inbox. The chatbot pre-qualifies — you only talk to people ready to book. We optimize weekly. You focus on the procedure, we handle the pipeline.</p></div>
     </div>
   </div>
 </section>
 
-<!-- PRICING STACK -->
-<section id="stack" class="stack-section">
+<!-- ===== THE OFFER STACK ===== -->
+<section id="stack">
   <div class="wrap">
-    <div class="section-intro">
-      <h2>The Offer Stack</h2>
-      <p>Everything you need to fill your patient pipeline. One price. No surprises.</p>
-    </div>
+    <div class="section-intro"><h2>The Offer Stack</h2><p>Everything you need to fill your patient pipeline. One price. No surprises.</p></div>
     <div class="stack-grid">
-      <div class="stack-card">
-        <h3>Free Audit</h3>
-        <div class="price">$0</div>
-        <div class="desc">See how many patients you're leaving on the table.</div>
-        <ul class="features">
-          <li>Market analysis</li>
-          <li>Competitor breakdown</li>
-          <li>Lead gap report</li>
-          <li>30-min strategy call</li>
-        </ul>
-      </div>
-      <div class="stack-card featured">
-        <div class="tag">RECOMMENDED</div>
-        <h3>AI Patient Acquisition System</h3>
-        <div class="price">$2,500 <span>setup</span></div>
-        <div class="price" style="font-size:24px;">+ $1,500 <span>/mo</span></div>
-        <div class="desc">Complete patient acquisition stack.</div>
-        <ul class="features">
-          <li>High-converting landing page</li>
-          <li>AI Chatbot — lead qualification 24/7</li>
-          <li>SMS + Email follow-up sequences</li>
-          <li>CRM pipeline with booking tracking</li>
-          <li>Monthly optimization</li>
-          <li>30-day guarantee</li>
-        </ul>
-      </div>
-      <div class="stack-card">
-        <h3>Ads Management</h3>
-        <div class="price">+$1,000 <span>/mo</span></div>
-        <div class="desc">Google + Meta ads on top of core system.</div>
-        <ul class="features">
-          <li>Ad creative &amp; copy</li>
-          <li>Audience targeting</li>
-          <li>Weekly optimization</li>
-          <li>ROAS reporting</li>
-        </ul>
-      </div>
+      <div class="stack-card"><h3>Free Audit</h3><div class="price">$0</div><div class="desc">See how many patients you're leaving on the table.</div><ul class="features"><li>Market analysis</li><li>Competitor breakdown</li><li>Lead gap report</li><li>30-min strategy call</li></ul></div>
+      <div class="stack-card featured"><div class="tag">RECOMMENDED</div><h3>AI Patient Acquisition System</h3><div class="price">$2,500 <span>setup</span></div><div class="price" style="font-size:24px;">+ $1,500 <span>/mo</span></div><div class="desc">Complete patient acquisition stack.</div><ul class="features"><li>High-converting landing page</li><li>AI Chatbot — lead qualification 24/7</li><li>SMS + Email follow-up sequences</li><li>CRM pipeline with booking tracking</li><li>Monthly optimization</li><li>30-day guarantee</li></ul></div>
+      <div class="stack-card"><h3>Ads Management</h3><div class="price">+$1,000 <span>/mo</span></div><div class="desc">Google + Meta ads on top of core system.</div><ul class="features"><li>Ad creative &amp; copy</li><li>Audience targeting</li><li>Weekly optimization</li><li>ROAS reporting</li></ul></div>
     </div>
   </div>
 </section>
 
-<!-- GUARANTEE -->
+<!-- ===== GUARANTEE ===== -->
 <section class="manifesto">
   <div class="wrap">
-    <div class="section-intro">
-      <h2>The Guarantee</h2>
-      <p>We put our money where our mouth is.</p>
-    </div>
+    <div class="section-intro"><h2>The Guarantee</h2><p>We put our money where our mouth is.</p></div>
     <div class="manifesto-grid">
-      <div class="manifesto-item">
-        <div class="manifesto-num">// 01</div>
-        <h3>15 Qualified Leads in 30 Days</h3>
-        <p>If we don't deliver 15 qualified patient leads within 30 days, you don't pay a cent until we do.</p>
-      </div>
-      <div class="manifesto-item">
-        <div class="manifesto-num">// 02</div>
-        <h3>Cancel Anytime</h3>
-        <p>No contracts. No lock-in. If you're not seeing results, walk away. The landing page and chatbot are yours to keep.</p>
-      </div>
-      <div class="manifesto-item">
-        <div class="manifesto-num">// 03</div>
-        <h3>Performance Reports</h3>
-        <p>Weekly reports with real numbers: leads generated, conversion rates, cost per lead. No vanity metrics. No BS.</p>
-      </div>
-      <div class="manifesto-item">
-        <div class="manifesto-num">// 04</div>
-        <h3>You Own Everything</h3>
-        <p>The landing page, the chatbot, the email sequences — all yours. We build on your infrastructure, not ours.</p>
-      </div>
+      <div class="manifesto-item"><div class="manifesto-num">// 01</div><h3>15 Qualified Leads in 30 Days</h3><p>If we don't deliver 15 qualified patient leads within 30 days, you don't pay a cent until we do.</p></div>
+      <div class="manifesto-item"><div class="manifesto-num">// 02</div><h3>Cancel Anytime</h3><p>No contracts. No lock-in. If you're not seeing results, walk away. The landing page and chatbot are yours to keep.</p></div>
+      <div class="manifesto-item"><div class="manifesto-num">// 03</div><h3>Performance Reports</h3><p>Weekly reports with real numbers: leads generated, conversion rates, cost per lead. No vanity metrics. No BS.</p></div>
+      <div class="manifesto-item"><div class="manifesto-num">// 04</div><h3>You Own Everything</h3><p>The landing page, the chatbot, the email sequences — all yours. We build on your infrastructure, not ours.</p></div>
     </div>
   </div>
 </section>
 
-<!-- STATS -->
+<!-- ===== BY THE NUMBERS ===== -->
 <section>
   <div class="wrap">
-    <div class="section-intro">
-      <h2>By the Numbers</h2>
-      <p>What our system delivers for medical aesthetics practices.</p>
-    </div>
+    <div class="section-intro"><h2>By the Numbers</h2><p>What our system delivers for medical aesthetics practices.</p></div>
     <table class="compare-table">
       <tr><th>Metric</th><th>Without FocusRunner</th><th>With FocusRunner</th></tr>
-      <tr>
-        <td class="txt">Monthly qualified leads</td>
-        <td class="toks">5–10 (word of mouth)</td>
-        <td class="num">20–50</td>
-      </tr>
-      <tr>
-        <td class="txt">Cost per lead</td>
-        <td class="toks">$80–$150 (ads only)</td>
-        <td class="num">$30–$60</td>
-      </tr>
-      <tr>
-        <td class="txt">Lead response time</td>
-        <td class="toks">4–24 hours</td>
-        <td class="num">&lt; 2 min</td>
-      </tr>
-      <tr>
-        <td class="txt">Booking rate</td>
-        <td class="toks">15–25%</td>
-        <td class="num">40–60%</td>
-      </tr>
-      <tr>
-        <td class="txt">Patient LTV</td>
-        <td class="toks">$2K–$8K</td>
-        <td class="num">$5K–$15K</td>
-      </tr>
+      <tr><td class="txt">Monthly qualified leads</td><td class="toks">5–10 (word of mouth)</td><td class="num">20–50</td></tr>
+      <tr><td class="txt">Cost per lead</td><td class="toks">$80–$150 (ads only)</td><td class="num">$30–$60</td></tr>
+      <tr><td class="txt">Lead response time</td><td class="toks">4–24 hours</td><td class="num">&lt; 2 min</td></tr>
+      <tr><td class="txt">Booking rate</td><td class="toks">15–25%</td><td class="num">40–60%</td></tr>
+      <tr><td class="txt">Patient LTV</td><td class="toks">$2K–$8K</td><td class="num">$5K–$15K</td></tr>
     </table>
   </div>
 </section>
 
-<!-- NICHES -->
+<!-- ===== NICHES ===== -->
 <section id="niches">
   <div class="wrap">
-    <div class="section-intro">
-      <h2>Built For</h2>
-      <p>High-ticket medical aesthetics. Procedures people pay premium for.</p>
-    </div>
+    <div class="section-intro"><h2>Built For</h2><p>High-ticket medical aesthetics. Procedures people pay premium for.</p></div>
     <div class="niche-grid">
-      <div class="niche-item">
-        <div class="icon">💉</div>
-        <h4>Med Spas</h4>
-        <p>Botox, fillers, laser, IV therapy</p>
-      </div>
-      <div class="niche-item">
-        <div class="icon">🦷</div>
-        <h4>Cosmetic Dentistry</h4>
-        <p>Veneers, implants, whitening</p>
-      </div>
-      <div class="niche-item">
-        <div class="icon">🔪</div>
-        <h4>Plastic Surgery</h4>
-        <p>Rhinoplasty, lipo, mommy makeover</p>
-      </div>
-      <div class="niche-item">
-        <div class="icon">💇</div>
-        <h4>Hair Transplant</h4>
-        <p>FUE, DHI, PRP therapy</p>
-      </div>
-      <div class="niche-item">
-        <div class="icon">👁</div>
-        <h4>LASIK / Eye</h4>
-        <p>LASIK, SMILE, lens replacement</p>
-      </div>
-      <div class="niche-item">
-        <div class="icon">🧴</div>
-        <h4>Dermatology</h4>
-        <p>Mohs, cosmetic derm, acne</p>
-      </div>
+      <div class="niche-item"><div class="icon">💉</div><h4>Med Spas</h4><p>Botox, fillers, laser, IV therapy</p></div>
+      <div class="niche-item"><div class="icon">🦷</div><h4>Cosmetic Dentistry</h4><p>Veneers, implants, whitening</p></div>
+      <div class="niche-item"><div class="icon">🔪</div><h4>Plastic Surgery</h4><p>Rhinoplasty, lipo, mommy makeover</p></div>
+      <div class="niche-item"><div class="icon">💇</div><h4>Hair Transplant</h4><p>FUE, DHI, PRP therapy</p></div>
+      <div class="niche-item"><div class="icon">👁</div><h4>LASIK / Eye</h4><p>LASIK, SMILE, lens replacement</p></div>
+      <div class="niche-item"><div class="icon">🧴</div><h4>Dermatology</h4><p>Mohs, cosmetic derm, acne</p></div>
     </div>
   </div>
 </section>
 
-<!-- FINAL CTA -->
+<!-- ===== TEAM ===== -->
+<section id="team">
+  <div class="wrap">
+    <div class="section-intro"><h2>Team</h2><p>FocusRunner is powered by specialized AI agents — each an expert in its domain, orchestrated through Paperclip.</p></div>
+
+    <div class="org-tree">
+      <div class="node"><span class="commander">&gt; Hermes Agent</span> <span class="label">// commander-in-chief</span></div>
+      <div class="branch">
+        <div class="node"><span class="ceo">CEO Agent</span> <span class="label">// strategy & revenue — Rumelt framework</span></div>
+        <div class="branch">
+          <div class="node"><span style="color:var(--phos);">CTO Agent</span> <span class="label">// Pi Coding Agent — team lead</span></div>
+          <div class="branch">
+            <div class="node"><span class="pi">Pi Agent</span> <span class="label">// lead coding agent</span></div>
+            <div class="node"><span class="pi">Senior Engineer</span> <span class="label">// implementation lead</span></div>
+            <div class="node"><span class="pi">Engineer</span> <span class="label">// implementation</span></div>
+          </div>
+        </div>
+        <div class="branch">
+          <div class="node"><span style="color:var(--ink);">CMO Agent</span> <span class="label">// growth & demand gen — Godin framework</span></div>
+          <div class="branch">
+            <div class="node"><span style="color:var(--ink-dim);">Copywriter</span> <span class="label">// conversion copy — Schwartz framework</span></div>
+            <div class="node"><span style="color:var(--ink-dim);">Sales</span> <span class="label">// lead conversion — SPIN + Challenger</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="agent-grid">
+      <div class="agent-card"><div class="icon">│</div><h3>Hermes Agent</h3><div class="role">Commander-in-Chief</div><div class="desc">Controls all Paperclip operations. Issues strategic directives to CEO. Runs Pi Coding Agent directly via terminal.</div></div>
+      <div class="agent-card"><div class="icon">🧑‍💼</div><h3>CEO Agent</h3><div class="role">Strategy & Revenue</div><div class="desc">Defines niche, builds offers, sets pricing. Takes direction from Hermes. Controls CTO and CMO. Framework: Rumelt.</div></div>
+      <div class="agent-card"><div class="icon">🧑‍💻</div><h3>CTO Agent</h3><div class="role">Pi Coding Agent — Lead</div><div class="desc">Designs AI pipelines. Leads Pi Coding Agent engineering team. Reports to CEO. Framework: Blank + Ford. Model: deepseek-v4-pro.</div></div>
+      <div class="agent-card"><div class="icon">│</div><h3>Pi Agent</h3><div class="role">Pi Coding Agent — Coding Lead</div><div class="desc">Primary coding agent. Executes implementation, debugging, architecture. Reports to CTO. Model: deepseek-v4-pro.</div></div>
+      <div class="agent-card"><div class="icon">🔧</div><h3>Senior Engineer</h3><div class="role">Pi Coding Agent — Sr Engineer</div><div class="desc">Builds workflows, deploys solutions. Reports to CTO. Model: deepseek-v4-pro.</div></div>
+      <div class="agent-card"><div class="icon">🔧</div><h3>Engineer</h3><div class="role">Pi Coding Agent — Engineer</div><div class="desc">Builds and tests AI components. Debugs production systems. Reports to CTO. Model: deepseek-v4-pro.</div></div>
+      <div class="agent-card"><div class="icon">📈</div><h3>CMO Agent</h3><div class="role">Growth & Demand Gen</div><div class="desc">Generates leads through content, funnels, paid acquisition. Reports to CEO. Framework: Godin.</div></div>
+      <div class="agent-card"><div class="icon">✍️</div><h3>Copywriter Agent</h3><div class="role">Conversion Copy</div><div class="desc">Writes landing pages, ads, email sequences. Reports to CMO. Framework: Schwartz.</div></div>
+      <div class="agent-card"><div class="icon">💰</div><h3>Sales Agent</h3><div class="role">Lead Conversion</div><div class="desc">Crafts outreach scripts, handles objections, closes deals. Reports to CMO. Framework: SPIN + Challenger.</div></div>
+    </div>
+    <p style="color:var(--ink-faint);margin-top:32px;font-size:12px;text-align:center;">// All agents run on Paperclip. Pi Coding Agents on deepseek-v4-pro. Elastically scalable.</p>
+  </div>
+</section>
+
+<!-- ===== CASE STUDIES ===== -->
+<section id="cases">
+  <div class="wrap">
+    <div class="section-intro"><h2>Case Studies</h2><p>Real results from AI systems we've deployed. Every metric verified.</p></div>
+
+    <a href="#case-techstyle" class="case-card">
+      <div class="case-tag">// AI VOICE AGENTS · E-COMMERCE</div>
+      <h3>TechStyle Inc. — 99.5% Faster Response, 180 Hours Saved/Month</h3>
+      <p>How a D2C fashion retailer replaced 60% of routine support calls with AI voice agents.</p>
+      <div class="case-metrics">
+        <div class="case-metric"><strong>99.5%</strong> faster</div>
+        <div class="case-metric"><strong>680</strong> calls/mo</div>
+        <div class="case-metric"><strong>180hrs</strong> saved</div>
+        <div class="case-metric"><strong>2×</strong> lead qual</div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- ===== CASE DETAIL: TechStyle ===== -->
+<section id="case-techstyle">
+  <div class="wrap-narrow">
+    <div class="case-detail">
+      <div class="case-tag">// CASE STUDY · AI VOICE AGENTS</div>
+      <h3>How TechStyle Inc. Reclaimed 180 Hours/Month with AI Voice Agents</h3>
+      <div class="client-box">
+        <p><strong>Client:</strong> TechStyle Inc. — D2C fashion e-commerce | $12M annual revenue | 45 employees</p>
+        <p><strong>Industry:</strong> Retail / E-commerce</p>
+        <p><strong>Challenge:</strong> Support team of 6 drowning in 800+ monthly calls. 60% were routine order status and returns. Response times averaged 4+ hours.</p>
+      </div>
+      <div class="metrics-row">
+        <div class="metric-box"><div class="val">99.5%</div><div class="lbl">Faster response</div></div>
+        <div class="metric-box"><div class="val">680/mo</div><div class="lbl">AI-handled calls</div></div>
+        <div class="metric-box"><div class="val">180 hrs</div><div class="lbl">Saved per month</div></div>
+        <div class="metric-box"><div class="val">2×</div><div class="lbl">Lead qual rate</div></div>
+      </div>
+      <h4>// The Problem</h4>
+      <p>TechStyle's customer support team was buried in repetitive inquiries — order status checks, return authorizations, shipping questions. During peak seasons, response times ballooned to 4+ hours. The team wanted to focus on complex issues and high-value customers but couldn't break free from the volume of routine calls. Hiring 3 more agents would cost $180K/year — and wouldn't solve the root problem.</p>
+      <h4>// The Solution</h4>
+      <p>FocusRunner deployed an AI Voice Agent in 10 business days — a fully integrated system that handles routine calls autonomously while seamlessly escalating complex issues to the human team.</p>
+      <h4>// Implementation Timeline</h4>
+      <div class="phase-list">
+        <div class="phase"><div><span class="phase-name">01 Discovery</span><span class="phase-del">Call flow mapping, integration audit</span></div><div class="phase-dur">2 days</div></div>
+        <div class="phase"><div><span class="phase-name">02 Build</span><span class="phase-del">STT→LLM→TTS pipeline, CRM integration, testing</span></div><div class="phase-dur">5 days</div></div>
+        <div class="phase"><div><span class="phase-name">03 Testing</span><span class="phase-del">Live call testing, tone calibration, accuracy verification</span></div><div class="phase-dur">2 days</div></div>
+        <div class="phase"><div><span class="phase-name">04 Launch</span><span class="phase-del">Production deployment, team training, monitoring</span></div><div class="phase-dur">1 day</div></div>
+      </div>
+      <h4>// Tech Stack</h4>
+      <p>Whisper (real-time STT) → Custom LLM pipeline (RAG with product catalog and return policies) → Neural TTS → Twilio SIP trunking → HubSpot CRM sync</p>
+      <h4>// Results — First 60 Days</h4>
+      <table class="compare-table">
+        <tr><th>Metric</th><th>Before</th><th>After</th><th>Change</th></tr>
+        <tr><td>Avg. response time</td><td>4.2 hours</td><td>12 seconds</td><td class="up">↓ 99.5%</td></tr>
+        <tr><td>Monthly call capacity</td><td>800 (human)</td><td>1,200 (680 AI + 520 human)</td><td class="up">↑ 50%</td></tr>
+        <tr><td>Routine resolution rate</td><td>65%</td><td>92%</td><td class="up">↑ 27%</td></tr>
+        <tr><td>Lead qualification rate</td><td>1 in 8 calls</td><td>1 in 4 calls</td><td class="up">↑ 2×</td></tr>
+        <tr><td>Support team hours saved</td><td>—</td><td>180 hrs/month</td><td class="up">1 FTE equivalent</td></tr>
+      </table>
+      <blockquote>"We were skeptical about AI voice agents sounding robotic. FocusRunner's agent is indistinguishable from a good human agent — our customers don't even know they're talking to AI. The fact that it works 24/7 and our team finally has time for strategic work is game-changing."<strong>— Sarah Chen, VP of Operations, TechStyle Inc.</strong></blockquote>
+      <h4>// What Happened Next</h4>
+      <p>Based on the pilot's success, TechStyle expanded to outbound sales calls for abandoned cart recovery (+12% conversion), multi-language support (English + Spanish), and proactive order delay notifications.</p>
+      <div style="border:1px solid var(--phos-dim);background:var(--bg-panel);padding:28px;text-align:center;margin-top:28px;">
+        <h4 style="margin-top:0;">Want results like this?</h4>
+        <p style="margin-bottom:16px;">We'll audit your current lead flow and show you exactly how many qualified leads you're losing — and how we'll fix it.</p>
+        <a href="https://focusrunner.com" class="btn btn-primary">→ Get a Free Strategy Call</a>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:20px;"><a href="#cases" style="color:var(--ink-faint);text-decoration:none;font-size:12px;">↑ Back to Case Studies</a></p>
+  </div>
+</section>
+
+<!-- ===== FINAL CTA ===== -->
 <section class="final-cta">
   <div class="wrap">
     <h2>Stop renting intelligence.<br>Own your patient pipeline.</h2>
     <p>Free audit. No commitment. See how many patients you're missing.</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
       <a href="https://focusrunner.com" class="btn btn-primary">→ Get Your Free Audit</a>
-      <a href="about/pricing.html" class="btn btn-secondary">See Full Pricing</a>
+      <a href="#stack" class="btn btn-secondary">See Full Pricing</a>
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
+<!-- ===== FOOTER ===== -->
 <footer>
   <div class="wrap">
     <div class="footer-grid">
+      <div class="footer-col">&gt;_ FocusRunner · v2.0 · AI Patient Acquisition</div>
       <div class="footer-col">
-        &gt;_ FocusRunner · v2.0 · AI Patient Acquisition
-      </div>
-      <div class="footer-col">
-        <a href="about/team.html">Team</a>
-        <a href="about/pricing.html">Pricing</a>
-        <a href="case-studies/">Cases</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#stack">Pricing</a>
+        <a href="#team">Team</a>
+        <a href="#cases">Cases</a>
         <a href="https://focusrunner.com">Book a Call</a>
       </div>
     </div>
