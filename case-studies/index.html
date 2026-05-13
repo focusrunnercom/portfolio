@@ -20,6 +20,11 @@
   .nav-inner { max-width: 900px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
   .logo { color: var(--phos); font-weight: 700; font-size: 15px; text-decoration: none; }
   .logo-text { color: var(--ink); }
+  .nav-links { display: flex; gap: 24px; align-items: center; }
+  .nav-links a { color: var(--ink-dim); text-decoration: none; font-size: 13px; transition: color .15s; }
+  .nav-links a:hover { color: var(--phos); }
+  .nav-cta { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--line); color: var(--ink); text-decoration: none; font-size: 12px; font-weight: 500; }
+  .nav-cta:hover { background: var(--line-bright); }
 
   section { padding: 80px 0; }
   .section-intro { text-align: center; margin-bottom: 48px; }
@@ -38,6 +43,8 @@
   footer { border-top: 1px solid var(--line); padding: 40px 0; text-align: center; font-size: 12px; color: var(--ink-faint); }
   footer a { color: var(--ink-dim); text-decoration: none; }
   footer a:hover { color: var(--phos); }
+
+  @media (max-width: 640px) { .nav-links { display: none; } }
 </style>
 </head>
 <body>
@@ -45,6 +52,14 @@
 <nav>
   <div class="nav-inner">
     <a href="../index.html" class="logo">&gt;_ <span class="logo-text">FocusRunner</span></a>
+    <div class="nav-links">
+      <a href="../index.html#how-it-works">How It Works</a>
+      <a href="../index.html#stack">Pricing</a>
+      <a href="../index.html#niches">Niches</a>
+      <a href="../about/team.html">Team</a>
+      <a href="index.html">Cases</a>
+    </div>
+    <a href="https://focusrunner.com" class="nav-cta">★ Book a Call</a>
   </div>
 </nav>
 

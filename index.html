@@ -173,7 +173,12 @@
     margin-bottom: 4px;
   }
   .stack-card .label { font-size: 13px; color: var(--ink); margin-bottom: 12px; }
-  .stack-card .desc { font-size: 12px; color: var(--ink-dim); line-height: 1.7; }
+  .stack-card .desc { font-size: 13px; color: var(--ink-dim); margin-bottom: 16px; line-height: 1.5; }
+  .stack-card .features { list-style: none; }
+  .stack-card .features li { font-size: 12px; color: var(--ink-dim); padding: 4px 0; }
+  .stack-card .features li::before { content: '✓ '; color: var(--phos); }
+  .stack-card.featured { background: #0a140d; border: 1px solid var(--phos-dim); margin: -1px; }
+  .stack-card .tag { display: inline-block; padding: 2px 8px; background: var(--phos); color: #000; font-size: 10px; font-weight: 700; margin-bottom: 12px; }
 
   /* ===== GUARANTEE ===== */
   .manifesto { padding: 80px 0; }
@@ -345,24 +350,41 @@
     </div>
     <div class="stack-grid">
       <div class="stack-card">
+        <h3>Free Audit</h3>
         <div class="price">$0</div>
-        <div class="label">Free Audit</div>
-        <div class="desc">Market analysis.<br>Competitor breakdown.<br>Lead gap report.<br>30-minute strategy call.<br>No commitment.</div>
+        <div class="desc">See how many patients you're leaving on the table.</div>
+        <ul class="features">
+          <li>Market analysis</li>
+          <li>Competitor breakdown</li>
+          <li>Lead gap report</li>
+          <li>30-min strategy call</li>
+        </ul>
+      </div>
+      <div class="stack-card featured">
+        <div class="tag">RECOMMENDED</div>
+        <h3>AI Patient Acquisition System</h3>
+        <div class="price">$2,500 <span>setup</span></div>
+        <div class="price" style="font-size:24px;">+ $1,500 <span>/mo</span></div>
+        <div class="desc">Complete patient acquisition stack.</div>
+        <ul class="features">
+          <li>High-converting landing page</li>
+          <li>AI Chatbot — lead qualification 24/7</li>
+          <li>SMS + Email follow-up sequences</li>
+          <li>CRM pipeline with booking tracking</li>
+          <li>Monthly optimization</li>
+          <li>30-day guarantee</li>
+        </ul>
       </div>
       <div class="stack-card">
-        <div class="price">$2.5K</div>
-        <div class="label">Setup — One-time</div>
-        <div class="desc">Landing page build.<br>AI chatbot deployment.<br>SMS/email follow-up.<br>CRM integration.<br>Ad creative pack.<br>7-day launch.</div>
-      </div>
-      <div class="stack-card">
-        <div class="price">$1.5K</div>
-        <div class="label">Monthly Retainer</div>
-        <div class="desc">Weekly optimization.<br>Chatbot tuning.<br>Lead reports.<br>A/B testing.<br>Copy updates.<br>Priority support.</div>
-      </div>
-      <div class="stack-card">
-        <div class="price">+$1K</div>
-        <div class="label">Ads Management</div>
-        <div class="desc">Google Ads campaigns.<br>Meta/Instagram ads.<br>Weekly performance calls.<br>Creative refresh.<br>Budget management.<br>ROAS optimization.</div>
+        <h3>Ads Management</h3>
+        <div class="price">+$1,000 <span>/mo</span></div>
+        <div class="desc">Google + Meta ads on top of core system.</div>
+        <ul class="features">
+          <li>Ad creative &amp; copy</li>
+          <li>Audience targeting</li>
+          <li>Weekly optimization</li>
+          <li>ROAS reporting</li>
+        </ul>
       </div>
     </div>
   </div>
