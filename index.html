@@ -142,25 +142,29 @@
   .agent-card .role { font-size: 12px; color: var(--phos); font-weight: 500; margin-bottom: 8px; }
   .agent-card .desc { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
 
-  /* ===== CASE STUDIES ===== */
-  .case-card { display: block; text-decoration: none; color: inherit; background: var(--bg-2); border: 1px solid var(--line); padding: 28px; margin-bottom: 16px; transition: border-color .15s; }
-  .case-card:hover { border-color: var(--phos-dim); }
-  .case-tag { font-size: 11px; color: var(--phos); font-weight: 500; margin-bottom: 8px; }
-  .case-card h3 { font-size: 16px; color: var(--ink); font-weight: 700; margin-bottom: 8px; }
-  .case-card p { font-size: 13px; color: var(--ink-dim); margin-bottom: 12px; }
-  .case-metrics { display: flex; gap: 24px; flex-wrap: wrap; }
+  /* ===== CASE STUDIES — EXPANDABLE CARDS ===== */
+  .case-card { background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; transition: border-color .2s; cursor: pointer; }
+  .case-card:hover { border-color: var(--line-bright); }
+  .case-header { display: flex; align-items: flex-start; gap: 24px; padding: 28px; }
+  .case-img { width: 120px; height: 80px; flex-shrink: 0; background: var(--line); display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--ink-faint); }
+  .case-info { flex: 1; min-width: 0; }
+  .case-info .case-tag { font-size: 11px; color: var(--phos); font-weight: 500; margin-bottom: 6px; }
+  .case-info h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .case-info .case-sub { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+  .case-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--phos); background: none; border: none; cursor: pointer; margin-top: 8px; transition: color .15s; }
+  .case-toggle:hover { color: #8affa0; }
+  .case-toggle .chevron { display: inline-block; transition: transform .3s ease; font-size: 10px; }
+  .case-card.open .chevron { transform: rotate(180deg); }
+  .case-body { max-height: 0; overflow: hidden; transition: max-height .4s ease, padding .4s ease; }
+  .case-card.open .case-body { max-height: 3000px; }
+  .case-body-inner { padding: 0 28px 28px; }
+  .case-metrics { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
   .case-metric { font-size: 12px; color: var(--ink-dim); }
   .case-metric strong { color: var(--phos); font-size: 15px; }
 
-  /* Case detail */
-  .case-detail { background: var(--bg-2); border: 1px solid var(--line); padding: 32px 28px; margin-bottom: 24px; }
-  .case-detail h3 { font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 16px; line-height: 1.3; }
-  .case-detail h4 { font-size: 15px; font-weight: 700; color: var(--ink); margin: 32px 0 8px; }
-  .case-detail p { color: var(--ink-dim); font-size: 13px; margin-bottom: 12px; }
-  .case-detail strong { color: var(--ink); }
   .client-box { background: var(--bg-panel); border: 1px solid var(--line); padding: 20px; margin: 20px 0; }
   .client-box p { margin-bottom: 4px; }
-  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin: 28px 0; }
+  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin: 24px 0; }
   .metric-box { text-align: center; background: var(--bg-panel); padding: 20px 10px; }
   .metric-box .val { font-size: 24px; font-weight: 700; color: var(--phos); }
   .metric-box .lbl { color: var(--ink-faint); font-size: 11px; margin-top: 4px; line-height: 1.4; }
@@ -169,7 +173,7 @@
   .phase-name { font-size: 13px; color: var(--ink); font-weight: 500; }
   .phase-del { font-size: 11px; color: var(--ink-faint); display: block; margin-top: 2px; }
   .phase-dur { font-size: 12px; color: var(--phos); font-weight: 500; }
-  blockquote { border-left: 2px solid var(--phos); padding: 16px 20px; color: var(--ink-dim); font-size: 13px; font-style: italic; background: var(--bg-panel); margin: 28px 0; }
+  blockquote { border-left: 2px solid var(--phos); padding: 16px 20px; color: var(--ink-dim); font-size: 13px; font-style: italic; background: var(--bg-panel); margin: 24px 0; }
   blockquote strong { color: var(--ink); display: block; margin-top: 12px; font-style: normal; font-size: 12px; }
   td.up { color: var(--phos); }
 
@@ -376,71 +380,96 @@
   <div class="wrap">
     <div class="section-intro"><h2>Case Studies</h2><p>Real results from AI systems we've deployed. Every metric verified.</p></div>
 
-    <a href="#case-techstyle" class="case-card">
-      <div class="case-tag">// AI VOICE AGENTS · E-COMMERCE</div>
-      <h3>TechStyle Inc. — 99.5% Faster Response, 180 Hours Saved/Month</h3>
-      <p>How a D2C fashion retailer replaced 60% of routine support calls with AI voice agents.</p>
-      <div class="case-metrics">
-        <div class="case-metric"><strong>99.5%</strong> faster</div>
-        <div class="case-metric"><strong>680</strong> calls/mo</div>
-        <div class="case-metric"><strong>180hrs</strong> saved</div>
-        <div class="case-metric"><strong>2×</strong> lead qual</div>
+    <div class="case-card" id="case-card-techstyle" onclick="toggleCase('case-card-techstyle')">
+      <div class="case-header">
+        <div class="case-img">🎧</div>
+        <div class="case-info">
+          <div class="case-tag">// AI VOICE AGENTS · E-COMMERCE</div>
+          <h3>TechStyle Inc. — 99.5% Faster Response, 180 Hours Saved/Month</h3>
+          <p class="case-sub">How a D2C fashion retailer replaced 60% of routine support calls with AI voice agents and freed their team for strategic work.</p>
+          <div class="case-metrics">
+            <div class="case-metric"><strong>99.5%</strong> faster</div>
+            <div class="case-metric"><strong>680</strong> calls/mo</div>
+            <div class="case-metric"><strong>180hrs</strong> saved</div>
+            <div class="case-metric"><strong>2×</strong> lead qual</div>
+          </div>
+          <button class="case-toggle"><span class="chevron">▾</span> <span class="toggle-text">Read more</span></button>
+        </div>
       </div>
-    </a>
+      <div class="case-body">
+        <div class="case-body-inner">
+          <div class="client-box">
+            <p><strong>Client:</strong> TechStyle Inc. — D2C fashion e-commerce | $12M annual revenue | 45 employees</p>
+            <p><strong>Industry:</strong> Retail / E-commerce</p>
+            <p><strong>Challenge:</strong> Support team of 6 drowning in 800+ monthly calls. 60% were routine order status and returns. Response times averaged 4+ hours.</p>
+          </div>
+          <div class="metrics-row">
+            <div class="metric-box"><div class="val">99.5%</div><div class="lbl">Faster response</div></div>
+            <div class="metric-box"><div class="val">680/mo</div><div class="lbl">AI-handled calls</div></div>
+            <div class="metric-box"><div class="val">180 hrs</div><div class="lbl">Saved per month</div></div>
+            <div class="metric-box"><div class="val">2×</div><div class="lbl">Lead qual rate</div></div>
+          </div>
+          <h4>// The Problem</h4>
+          <p>TechStyle's customer support team was buried in repetitive inquiries — order status checks, return authorizations, shipping questions. During peak seasons, response times ballooned to 4+ hours. The team wanted to focus on complex issues and high-value customers but couldn't break free from the volume. Hiring 3 more agents would cost $180K/year — and wouldn't solve the root problem.</p>
+          <h4>// The Solution</h4>
+          <p>FocusRunner deployed an AI Voice Agent in 10 business days — a fully integrated system that handles routine calls autonomously while seamlessly escalating complex issues to the human team.</p>
+          <h4>// Implementation Timeline</h4>
+          <div class="phase-list">
+            <div class="phase"><div><span class="phase-name">01 Discovery</span><span class="phase-del">Call flow mapping, integration audit</span></div><div class="phase-dur">2 days</div></div>
+            <div class="phase"><div><span class="phase-name">02 Build</span><span class="phase-del">STT→LLM→TTS pipeline, CRM integration, testing</span></div><div class="phase-dur">5 days</div></div>
+            <div class="phase"><div><span class="phase-name">03 Testing</span><span class="phase-del">Live call testing, tone calibration, accuracy verification</span></div><div class="phase-dur">2 days</div></div>
+            <div class="phase"><div><span class="phase-name">04 Launch</span><span class="phase-del">Production deployment, team training, monitoring</span></div><div class="phase-dur">1 day</div></div>
+          </div>
+          <h4>// Tech Stack</h4>
+          <p>Whisper (real-time STT) → Custom LLM pipeline (RAG with product catalog and return policies) → Neural TTS → Twilio SIP trunking → HubSpot CRM sync</p>
+          <h4>// Results — First 60 Days</h4>
+          <table class="compare-table">
+            <tr><th>Metric</th><th>Before</th><th>After</th><th>Change</th></tr>
+            <tr><td>Avg. response time</td><td>4.2 hours</td><td>12 seconds</td><td class="up">↓ 99.5%</td></tr>
+            <tr><td>Monthly call capacity</td><td>800 (human)</td><td>1,200 (680 AI + 520 human)</td><td class="up">↑ 50%</td></tr>
+            <tr><td>Routine resolution rate</td><td>65%</td><td>92%</td><td class="up">↑ 27%</td></tr>
+            <tr><td>Lead qualification rate</td><td>1 in 8 calls</td><td>1 in 4 calls</td><td class="up">↑ 2×</td></tr>
+            <tr><td>Support team hours saved</td><td>—</td><td>180 hrs/month</td><td class="up">1 FTE equivalent</td></tr>
+          </table>
+          <blockquote>"We were skeptical about AI voice agents sounding robotic. FocusRunner's agent is indistinguishable from a good human agent — our customers don't even know they're talking to AI. The fact that it works 24/7 and our team finally has time for strategic work is game-changing."<strong>— Sarah Chen, VP of Operations, TechStyle Inc.</strong></blockquote>
+          <h4>// What Happened Next</h4>
+          <p>Based on the pilot's success, TechStyle expanded to outbound sales calls for abandoned cart recovery (+12% conversion), multi-language support (English + Spanish), and proactive order delay notifications.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="case-card" style="opacity:0.4; pointer-events:none;">
+      <div class="case-header">
+        <div class="case-img">🔜</div>
+        <div class="case-info">
+          <div class="case-tag">// COMING SOON</div>
+          <h3>More case studies in progress</h3>
+          <p class="case-sub">Documenting results from active client engagements.</p>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- ===== CASE DETAIL: TechStyle ===== -->
-<section id="case-techstyle">
-  <div class="wrap-narrow">
-    <div class="case-detail">
-      <div class="case-tag">// CASE STUDY · AI VOICE AGENTS</div>
-      <h3>How TechStyle Inc. Reclaimed 180 Hours/Month with AI Voice Agents</h3>
-      <div class="client-box">
-        <p><strong>Client:</strong> TechStyle Inc. — D2C fashion e-commerce | $12M annual revenue | 45 employees</p>
-        <p><strong>Industry:</strong> Retail / E-commerce</p>
-        <p><strong>Challenge:</strong> Support team of 6 drowning in 800+ monthly calls. 60% were routine order status and returns. Response times averaged 4+ hours.</p>
-      </div>
-      <div class="metrics-row">
-        <div class="metric-box"><div class="val">99.5%</div><div class="lbl">Faster response</div></div>
-        <div class="metric-box"><div class="val">680/mo</div><div class="lbl">AI-handled calls</div></div>
-        <div class="metric-box"><div class="val">180 hrs</div><div class="lbl">Saved per month</div></div>
-        <div class="metric-box"><div class="val">2×</div><div class="lbl">Lead qual rate</div></div>
-      </div>
-      <h4>// The Problem</h4>
-      <p>TechStyle's customer support team was buried in repetitive inquiries — order status checks, return authorizations, shipping questions. During peak seasons, response times ballooned to 4+ hours. The team wanted to focus on complex issues and high-value customers but couldn't break free from the volume of routine calls. Hiring 3 more agents would cost $180K/year — and wouldn't solve the root problem.</p>
-      <h4>// The Solution</h4>
-      <p>FocusRunner deployed an AI Voice Agent in 10 business days — a fully integrated system that handles routine calls autonomously while seamlessly escalating complex issues to the human team.</p>
-      <h4>// Implementation Timeline</h4>
-      <div class="phase-list">
-        <div class="phase"><div><span class="phase-name">01 Discovery</span><span class="phase-del">Call flow mapping, integration audit</span></div><div class="phase-dur">2 days</div></div>
-        <div class="phase"><div><span class="phase-name">02 Build</span><span class="phase-del">STT→LLM→TTS pipeline, CRM integration, testing</span></div><div class="phase-dur">5 days</div></div>
-        <div class="phase"><div><span class="phase-name">03 Testing</span><span class="phase-del">Live call testing, tone calibration, accuracy verification</span></div><div class="phase-dur">2 days</div></div>
-        <div class="phase"><div><span class="phase-name">04 Launch</span><span class="phase-del">Production deployment, team training, monitoring</span></div><div class="phase-dur">1 day</div></div>
-      </div>
-      <h4>// Tech Stack</h4>
-      <p>Whisper (real-time STT) → Custom LLM pipeline (RAG with product catalog and return policies) → Neural TTS → Twilio SIP trunking → HubSpot CRM sync</p>
-      <h4>// Results — First 60 Days</h4>
-      <table class="compare-table">
-        <tr><th>Metric</th><th>Before</th><th>After</th><th>Change</th></tr>
-        <tr><td>Avg. response time</td><td>4.2 hours</td><td>12 seconds</td><td class="up">↓ 99.5%</td></tr>
-        <tr><td>Monthly call capacity</td><td>800 (human)</td><td>1,200 (680 AI + 520 human)</td><td class="up">↑ 50%</td></tr>
-        <tr><td>Routine resolution rate</td><td>65%</td><td>92%</td><td class="up">↑ 27%</td></tr>
-        <tr><td>Lead qualification rate</td><td>1 in 8 calls</td><td>1 in 4 calls</td><td class="up">↑ 2×</td></tr>
-        <tr><td>Support team hours saved</td><td>—</td><td>180 hrs/month</td><td class="up">1 FTE equivalent</td></tr>
-      </table>
-      <blockquote>"We were skeptical about AI voice agents sounding robotic. FocusRunner's agent is indistinguishable from a good human agent — our customers don't even know they're talking to AI. The fact that it works 24/7 and our team finally has time for strategic work is game-changing."<strong>— Sarah Chen, VP of Operations, TechStyle Inc.</strong></blockquote>
-      <h4>// What Happened Next</h4>
-      <p>Based on the pilot's success, TechStyle expanded to outbound sales calls for abandoned cart recovery (+12% conversion), multi-language support (English + Spanish), and proactive order delay notifications.</p>
-      <div style="border:1px solid var(--phos-dim);background:var(--bg-panel);padding:28px;text-align:center;margin-top:28px;">
-        <h4 style="margin-top:0;">Want results like this?</h4>
-        <p style="margin-bottom:16px;">We'll audit your current lead flow and show you exactly how many qualified leads you're losing — and how we'll fix it.</p>
-        <a href="https://focusrunner.com" class="btn btn-primary">→ Get a Free Strategy Call</a>
-      </div>
-    </div>
-    <p style="text-align:center;margin-top:20px;"><a href="#cases" style="color:var(--ink-faint);text-decoration:none;font-size:12px;">↑ Back to Case Studies</a></p>
-  </div>
-</section>
+<script>
+function toggleCase(id) {
+  var card = document.getElementById(id);
+  var isOpen = card.classList.contains('open');
+  var toggle = card.querySelector('.toggle-text');
+  if (isOpen) {
+    card.classList.remove('open');
+    if (toggle) toggle.textContent = 'Read more';
+  } else {
+    card.classList.add('open');
+    if (toggle) toggle.textContent = 'Read less';
+  }
+}
+
+// Auto-open from dropdown link
+if (window.location.hash === '#case-techstyle') {
+  setTimeout(function() { toggleCase('case-card-techstyle'); }, 300);
+}
+</script>
 
 <!-- ===== FINAL CTA ===== -->
 <section class="final-cta">
