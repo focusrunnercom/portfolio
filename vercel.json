@@ -1,7 +1,22 @@
 {
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs18.x", "maxDuration": 30 },
+    "api/**/*.py": { "runtime": "python3.12", "maxDuration": 30 }
+  },
   "rewrites": [
-    { "source": "/lead-capture", "destination": "/lead-capture.html" },
-    { "source": "/lead-capture.html", "destination": "/lead-capture.html" },
+    { "source": "/api/leads/export", "destination": "/api/leads.js" },
+    { "source": "/api/leads", "destination": "/api/leads.js" },
+    { "source": "/api/chat", "destination": "/api/chat.js" },
+    { "source": "/api/webhook", "destination": "/api/webhook.js" },
+    { "source": "/api/kv", "destination": "/api/kv.js" },
+    { "source": "/api/client-config", "destination": "/api/client-config.js" },
+    { "source": "/api/notify-status", "destination": "/api/notify-status.js" },
+    { "source": "/api/lead-notify", "destination": "/api/lead-notify.js" },
+    { "source": "/api/direct-qualify", "destination": "/api/direct-qualify.js" },
+    { "source": "/api/health", "destination": "/api/health.js" },
+    { "source": "/api/ping", "destination": "/api/ping.js" },
+    { "source": "/admin/leads/:path*", "destination": "/admin/leads.html" },
+    { "source": "/admin/leads", "destination": "/admin/leads.html" },
     { "source": "/lead-capture-ai", "destination": "/lead-capture-ai.html" },
     { "source": "/lead-capture-ai.html", "destination": "/lead-capture-ai.html" },
     { "source": "/(.*)\\.html", "destination": "/$1.html" },
