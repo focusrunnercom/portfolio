@@ -72,7 +72,8 @@ export default async function handler(request) {
       });
     }
 
-    writeFileSync(STORAGE_PATH, JSON.stringify({ leads: [] }), 'utf-8');
+    const { writeFileSync } = await import('fs');
+    writeFileSync('/tmp/leads.json', JSON.stringify({ leads: [] }), 'utf-8');
     return new Response(JSON.stringify({ success: true, message: 'Lead store purged' }), {
       status: 200,
       headers,
