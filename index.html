@@ -217,6 +217,7 @@
     .btn { width: 100%; justify-content: center; }
     .metrics-row { grid-template-columns: repeat(2, 1fr); }
     .chat-window { right: 8px; bottom: 80px; width: calc(100vw - 16px); max-width: 360px; }
+    .lead-form-window { width: calc(100vw - 16px); max-width: 400px; }
   }
 
   /* ===== LEAD CAPTURE CHAT WIDGET ===== */
@@ -259,6 +260,48 @@
   .chat-send:hover { background: #8affa0; }
   .chat-option { display: block; width: 100%; text-align: left; background: var(--bg-2); border: 1px solid var(--line); color: var(--ink); padding: 10px 14px; margin: 4px 0; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: border-color .15s; }
   .chat-option:hover { border-color: var(--phos); color: var(--phos); }
+
+  /* ===== LEAD FORM OVERLAY & WINDOW ===== */
+  .lead-form-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6); z-index: 997;
+  }
+  .lead-form-overlay.open { display: block; }
+  .lead-form-window {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 998; width: 420px; max-width: calc(100vw - 32px);
+    background: var(--bg-panel); border: 1px solid var(--line-bright);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6); display: none;
+  }
+  .lead-form-window.open { display: block; }
+  .lead-form-window-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 14px; font-weight: 700; color: var(--phos);
+  }
+  .lead-form-window-close {
+    background: none; border: none; color: var(--ink-faint);
+    cursor: pointer; font-size: 20px; font-family: 'JetBrains Mono', monospace;
+  }
+  .lead-form-window-close:hover { color: var(--danger); }
+  .lead-form-body { padding: 20px; }
+
+  /* ===== DUAL FLOATING FABS ===== */
+  .fab-group { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column-reverse; gap: 12px; align-items: flex-end; }
+  .fab-secondary { display: flex; align-items: center; gap: 8px; }
+  .fab-label { font-size: 11px; color: var(--ink-faint); background: var(--bg-panel); border: 1px solid var(--line); padding: 4px 10px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
+  .fab-secondary:hover .fab-label { opacity: 1; }
+  .fab {
+    width: 48px; height: 48px; border-radius: 0; border: 1px solid var(--line-bright);
+    background: var(--bg-panel); color: var(--ink-dim);
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .15s; font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+  }
+  .fab:hover { border-color: var(--phos); color: var(--phos); }
+  .fab.primary {
+    width: 56px; height: 56px; border-color: var(--phos); color: var(--phos); font-size: 24px; position: relative;
+  }
+  .fab.primary:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(110,255,138,0.15); }
 </style>
 </head>
 <body>
@@ -676,8 +719,72 @@ function closeMenu() {
   </div>
 </footer>
 
-<!-- ===== LEAD CAPTURE CHAT WIDGET ===== -->
-<button class="chat-fab" id="chatFab" onclick="toggleChat()" title="Free Patient Acquisition Audit">💬<span class="dot"></span></button>
+<!-- ===== DUAL FLOATING FABS ===== -->
+<div class="fab-group">
+  <button class="fab primary" id="fabChat" onclick="toggleChat()" title="Free Patient Acquisition Audit">💬<span class="dot" id="chatDot"></span></button>
+  <div class="fab-secondary" id="fabFormWrap">
+    <span class="fab-label">Quick Audit Form</span>
+    <button class="fab" id="fabForm" onclick="toggleLeadForm()" title="Quick Audit Form">✉</button>
+  </div>
+</div>
+
+<!-- ===== LEAD FORM OVERLAY ===== -->
+<div class="lead-form-overlay" id="leadFormOverlay" onclick="toggleLeadForm()"></div>
+<div class="lead-form-window" id="leadFormWindow">
+  <div class="lead-form-window-header">
+    &gt;_ Free Patient Acquisition Audit
+    <button class="lead-form-window-close" onclick="toggleLeadForm()">×</button>
+  </div>
+  <div class="lead-form-body" id="leadFormBody">
+    <p style="font-size:12px;color:var(--ink-faint);padding:0 0 16px;">Tell us about your practice. We'll text you a personalized audit within 24 hours — free.</p>
+    <div class="lead-form-fields" id="leadFormFields">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Your Name</label>
+        <input type="text" id="lfName" placeholder="e.g. Sarah" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Phone Number</label>
+        <input type="tel" id="lfPhone" placeholder="+1 (555) 123-4567" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Practice Name</label>
+        <input type="text" id="lfPractice" placeholder="e.g. Glow Aesthetics Miami" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="form-group">
+          <label>Practice Type</label>
+          <select id="lfNiche" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;cursor:pointer;">
+            <option value="med_spa">Med Spa</option>
+            <option value="cosmetic_dentistry">Cosmetic Dentistry</option>
+            <option value="plastic_surgery">Plastic Surgery</option>
+            <option value="hair_transplant">Hair Transplant</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Patients / Month</label>
+          <select id="lfVolume" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;cursor:pointer;">
+            <option value="under_10">Under 10</option>
+            <option value="10_30">10–30</option>
+            <option value="30_60">30–60</option>
+            <option value="60_plus">60+</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>What's your biggest challenge?</label>
+        <textarea id="lfMessage" placeholder="e.g. Low website traffic, leads going cold, need more bookings..." style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;min-height:60px;resize:vertical;"></textarea>
+      </div>
+      <button class="btn btn-primary" id="lfSubmit" onclick="submitLeadForm()" style="width:100%;justify-content:center;font-size:13px;">→ Get My Free Audit</button>
+      <div id="lfStatus" style="font-size:12px;padding:10px 14px;display:none;margin-top:8px;"></div>
+    </div>
+    <div id="leadFormSuccess" style="display:none;padding:32px 0;text-align:center;">
+      <div style="font-size:32px;margin-bottom:12px;color:var(--phos);">✓</div>
+      <p style="color:var(--phos);font-weight:700;margin-bottom:8px;">Audit Request Received!</p>
+      <p style="font-size:12px;color:var(--ink-dim);">We'll text your personalized Patient Acquisition Audit within 24 hours. Check your phone.</p>
+    </div>
+  </div>
+</div>
 
 <div class="chat-window" id="chatWindow">
   <div class="chat-window-header">
@@ -848,6 +955,63 @@ function sendMessage() {
   } else if (!leadData.practice) {
     handlePractice(text);
   }
+}
+
+// Lead form functions
+function toggleLeadForm() {
+  var w = document.getElementById('leadFormWindow');
+  var o = document.getElementById('leadFormOverlay');
+  w.classList.toggle('open');
+  o.classList.toggle('open');
+}
+
+function submitLeadForm() {
+  var name = document.getElementById('lfName').value.trim();
+  var phone = document.getElementById('lfPhone').value.trim();
+  var practice = document.getElementById('lfPractice').value.trim();
+  var niche = document.getElementById('lfNiche').value;
+  var volume = document.getElementById('lfVolume').value;
+  var message = document.getElementById('lfMessage').value.trim();
+  var btn = document.getElementById('lfSubmit');
+  var status = document.getElementById('lfStatus');
+
+  if (!name || !phone || !practice) {
+    status.style.display = 'block';
+    status.style.background = 'rgba(255,92,77,0.08)';
+    status.style.border = '1px solid #5c2a24';
+    status.style.color = '#ff5c4d';
+    status.textContent = 'Please fill in name, phone, and practice.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  fetch('/api/webhook', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, phone: phone, practice: practice, niche: niche, volume: volume, message: message, source: 'lead_form'})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    document.getElementById('leadFormFields').style.display = 'none';
+    document.getElementById('leadFormSuccess').style.display = 'block';
+    setTimeout(function() {
+      var w = document.getElementById('leadFormWindow');
+      var o = document.getElementById('leadFormOverlay');
+      w.classList.remove('open');
+      o.classList.remove('open');
+    }, 4000);
+  })
+  .catch(function(err) {
+    status.style.display = 'block';
+    status.style.background = 'rgba(255,92,77,0.08)';
+    status.style.border = '1px solid #5c2a24';
+    status.style.color = '#ff5c4d';
+    status.textContent = 'Something went wrong. Email us at hello@focusrunner.com';
+    btn.disabled = false;
+    btn.textContent = '→ Get My Free Audit';
+  });
 }
 </script>
 
