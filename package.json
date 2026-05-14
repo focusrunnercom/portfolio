@@ -19,6 +19,10 @@
     "vite": "^6.2.0"
   },
   "engines": {
+<<<<<<< HEAD
     "node": "18.x"
+=======
+    "node": "22.x"
+>>>>>>> 5ee47f9 (CEO: Fix API deployment — remove includeFiles config, downgrade node to 22.x for Vercel Hobby compat)
   }
 }
