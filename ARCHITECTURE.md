@@ -1,7 +1,7 @@
 # FocusRunner Platform Architecture
 
-**Last Updated:** 2026-05-14 (v2 — added webhook notification, removed duplicate lib/lead-notify.js)
-**Author:** Senior Engineer
+**Last Updated:** 2026-05-14 (v3 — HARD CUT Vercel API, Flask is the only backend)
+**Author:** CTO
 
 ---
 
@@ -10,279 +10,163 @@
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                    Vercel (Hobby Plan)                        │
-│  ┌──────────┐  ┌────────────────────┐  ┌──────────────────┐  │
-│  │   SPA    │  │  API Functions     │  │  Static Assets   │  │
-│  │  React   │  │  (Node 18 CJS)     │  │  /admin/leads    │  │
-│  │  /dist   │  │  /api/*.js        │  │  /lead-form      │  │
-│  └────┬─────┘  └────────┬───────────┘  └──────────────────┘  │
-│       │                 │                                     │
-│       └──────┬──────────┘                                     │
-│              │                                                │
-│         ┌────▼─────┐                                         │
-│         │ vercel.json (rewrites)                              │
-│         │ /api/* → /api/*.js                                  │
-│         │ /*     → /index.html (SPA catch-all)                │
-│         └─────────────────────────────────────────────────────┘
+│  ┌──────────┐                                                │
+│  │   SPA    │  SPA only. No API functions.                   │
+│  │  React   │  Lead capture forms served from Flask.         │
+│  │  /dist   │                                                │
+│  └──────────┘                                                │
+│                                                              │
+│  vercel.json: SPA catch-all only. No /api/* rewrites.        │
+│                                                              │
+│  SPA: focusrunner.io (Vercel CDN)                            │
+│  API: 192.168.40.1:5000 (Flask — local server)               │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│              Flask Backend (192.168.40.1:5000)                │
+│                                                              │
+│  Endpoints:                                                   │
+│    GET  /lead-capture         — serve lead form HTML          │
+│    GET  /lead-capture-ai      — serve AI variant              │
+│    POST /api/webhook          — lead capture from forms       │
+│    POST /api/lead             — lead from chat widget          │
+│    POST /api/capture          — lead capture (alias)           │
+│    POST /api/chat             — chat qualification state       │
+│    GET  /api/leads            — list leads (auth required)     │
+│    GET  /api/health           — health check                   │
+│    GET  /health               — health check (alias)           │
+│    POST /api/admin/login      — admin auth                     │
+│                                                              │
+│  Storage: SQLite (workspace/portfolio/lead-dashboard/leads.db)│
+│  Notifications: Telegram (hermes .env config)                 │
+│  Scoring: volume + spend rules → hot/warm/cold               │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### 1.1 Vercel Hobby Plan Constraints
+### 1.1 Why This Architecture
 
-| Constraint | Value | Impact |
-|---|---|---|
-| Node version | 18.x (max on Hobby) | No ESM, no `@vercel/node` builder |
-| Deploys/day | 100 | ~24h lockout when exhausted |
-| Function timeout | 10s (free) / 30s (pro) | Configure `maxDuration: 30` |
-| Concurrent functions | 2 (free) | Acceptable for single-user lead flow |
-| Runtime auto-detect | Partially broken on Hobby | Requires `functions.runtime` explicit config |
+- **Vercel API was unreliable**: Hobby plan rate-limits (100 deploys/day), silent failures with Node 24.x, SPA catch-all serving HTML for API routes
+- **Flask is local + fast**: 0ms cold start, no rate limits, full control over the stack
+- **Lead forms POST directly to Flask**: no Vercel API dependency at all
 
-### 1.2 vercel.json — Current (Working) Config
+### 1.2 Removed (HARD CUT 2026-05-14)
 
-```json
-{
-  "functions": {
-    "api/**/*.js": { "runtime": "nodejs18.x", "maxDuration": 30 }
-  },
-  "rewrites": [
-    { "source": "/api/health",     "destination": "/api/health.js" },
-    { "source": "/api/leads",     "destination": "/api/leads.js" },
-    { "source": "/api/chat",      "destination": "/api/chat.js" },
-    { "source": "/api/webhook",   "destination": "/api/webhook.js" },
-    { "source": "/api/direct-qualify", "destination": "/api/direct-qualify.js" },
-    { "source": "/api/kv",        "destination": "/api/kv.js" },
-    { "source": "/api/client-config", "destination": "/api/client-config.js" },
-    { "source": "/api/notify-status", "destination": "/api/notify-status.js" },
-    { "source": "/api/lead-notify",   "destination": "/api/lead-notify.js" },
-    { "source": "/api/leads/export",  "destination": "/api/leads.js" },
-    { "source": "/admin/leads",       "destination": "/admin/leads.html" },
-    { "source": "/admin/leads/:path*","destination": "/admin/leads.html" },
-    { "source": "/(.*)",              "destination": "/index.html" }
-  ]
-}
-```
+All Vercel API serverless functions deleted from git:
+- api/webhook.js, api/chat.js, api/health.js, api/kv.js, api/leads.js
+- api/client-config.js, api/notify-status.js, api/lead-notify.js, api/ping.js
+- api/direct-qualify.py, api/direct-qualify.js
+- api/lib/* (shared libraries)
+- vercel.json rewrites for /api/* removed
 
-**Critical rule:** API rewrites MUST be listed before the SPA catch-all `/(.*)`.
-
-### 1.3 Deployment Flow
+### 1.3 Lead Capture Flow
 
 ```
-git push origin main  →  GitHub
-                          ↓
-vercel deploy --prod   →  Vercel Pipeline
-                          ↓
-                   Build Phase:
-                   - SPA: vite build → dist/
-                   - API: auto-detect api/*.js → serverless functions
-                          ↓
-                   Deploy Phase:
-                   - Upload assets to Vercel CDN
-                   - Register serverless functions with rewrites
-                          ↓
-                   Validation:
-                   - curl /api/health → JSON { status: "ok" }
-                   - curl / → HTML SPA
-                   - curl /admin/leads → HTML dashboard
+User → focusrunner.io/lead-capture.html (Vercel SPA, or Flask direct)
+                                    │
+                                    ▼
+                  POST http://192.168.40.1:5000/api/webhook
+                                    │
+                                    ├───► Save to SQLite leads.db
+                                    │
+                                    ├───► Send Telegram notification
+                                    │
+                                    └───► Score lead (hot/warm/cold)
+                                          based on volume + spend
 ```
 
-## 2. API Layer
+## 2. Data Layer
 
-### 2.1 API Functions — All CJS for Node 18 Hobby Compatibility
-
-| Endpoint | File | Method(s) | Description |
-|---|---|---|---|
-| `/api/health` | `health.js` | GET | Health check + env diagnostics |
-| `/api/leads` | `leads.js` | GET, POST | Lead CRUD (file-based) |
-| `/api/chat` | `chat.js` | POST | AI lead qualification (DeepSeek) |
-| `/api/webhook` | `webhook.js` | POST | Lead ingestion from forms + GHL sync |
-| `/api/direct-qualify` | `direct-qualify.js` | POST | Rules-based qualification (no AI) |
-| `/api/kv` | `kv.js` | GET, POST, DELETE | Vercel KV abstraction with memory fallback |
-| `/api/client-config` | `client-config.js` | GET, POST, DELETE | Per-client CRM/AI config |
-| `/api/notify-status` | `notify-status.js` | GET, POST | Notification pipeline diagnostics |
-| `/api/lead-notify` | `lead-notify.js` | POST | Email notification via Resend |
-
-### 2.2 Shared Libraries (`/api/lib/`)
-
-| Library | File | Purpose |
-|---|---|---|
-| KV client | `kv.js` | Vercel KV REST API wrapper with in-memory fallback |
-| Lead store | `lead-store.js` | File-based /tmp/leads.json persistence |
-| Notify | `notify.js` | Email notification via Resend API |
-
-### 2.3 CJS Compatibility Notes
-
-All API files must:
-- Use `require()` not `import`/`from`
-- Use `module.exports` not `export default`
-- Avoid top-level `await`
-- Avoid ESM-only packages
-- Use `process.env` for config (not compile-time injection)
-
-## 3. Data Layer
-
-### 3.1 Lead Storage (File-Based, Zero Infra)
+### 2.1 Lead Storage (SQLite)
 
 ```
-File: /tmp/leads.json
+File: /home/ai13/workspace/portfolio/lead-dashboard/leads.db
 Schema:
-[
-  {
-    "id": "uuid",
-    "name": "string",
-    "phone": "string",
-    "email": "string",
-    "practice": "string",
-    "source": "web|chat|manual|api",
-    "qualification": "hot|warm|cold|null",
-    "score": 0-100,
-    "timestamp": "ISO-8601"
-  }
-]
+  leads:
+    id          INTEGER PRIMARY KEY AUTOINCREMENT
+    name        TEXT NOT NULL
+    email       TEXT NOT NULL
+    phone       TEXT DEFAULT ''
+    practice    TEXT DEFAULT ''
+    volume      TEXT DEFAULT ''
+    spend       TEXT DEFAULT ''
+    message     TEXT DEFAULT ''
+    page_url    TEXT DEFAULT ''
+    ip_address  TEXT DEFAULT ''
+    source      TEXT DEFAULT 'web'
+    score       TEXT DEFAULT 'unscored'
+    created_at  TEXT DEFAULT datetime('now')
 ```
 
-Atomic writes via `/tmp/leads.json.tmp` + `os.replace()`. Survives warm instance restarts.
+Scoring logic:
+- hot (85+): volume >= 100 OR spend >= $5,000
+- warm (60): volume >= 30 OR spend >= $1,000
+- cold (25): everything else
 
-### 3.2 Vercel KV (Upstash) — When Configured
-
-Used for: client-specific AI configs, session state, analytics counters.
-Falls back to in-memory Map when KV env vars are unset.
-
-### 3.3 GoHighLevel Integration
-
-Webhook payload shape for GHL:
-```json
-{
-  "name": "string",
-  "phone": "string",
-  "email": "string",
-  "practice": "string",
-  "source": "web",
-  "qualification": "hot",
-  "score": 85,
-  "gclid": "string or null"
-}
-```
-
-## 4. Frontend Layer
-
-### 4.1 Lead Capture (`/lead-capture.html`)
-
-- Standalone static HTML (no build step)
-- Three fields: name, phone, email
-- POSTs to `/api/webhook`
-- Schwartz framework copy for med spa owners
-- Works with or without SPA React app
-
-### 4.2 Lead Dashboard (`/admin/leads.html`)
-
-- Dark theme with `#6eff8a` accent, JetBrains Mono
-- Fetches from `/api/leads`
-- Filters: qualification (hot/warm/cold), source, date
-- Auto-refresh every 30s
-- Full data with auth, anonymized without
-
-### 4.3 Chat Widget (`focusrunner-chat-widget.js`)
-
-- External .js file — one `<script>` tag embed
-- Posts to `/api/chat`
-- 3-question lead qualification: practice → volume → interest
-- Returns hot/warm/cold with score
-
-## 5. Notification Pipeline
+### 2.2 Admin Dashboard
 
 ```
-Lead Captured
-      │
-      ▼
-/api/webhook
-      │
-      ├───► Save to /tmp/leads.json
-      │
-      ├───► Send to GoHighLevel (if configured)
-      │
-      ├───► /api/lead-notify → Resend email
-      │         (if RESEND_API_KEY set)
-      │
-      └───► SMS followup (via Make.com webhook)
-                (planned — FOC-187)
+GET /api/leads?token=<admin_token>  → full lead list (JSON)
+GET /api/leads                      → count only (public)
 ```
 
-### 5.1 Required Environment Variables
+Admin token: `focusrunner-admin-2026` (configurable via LEAD_DASHBOARD_ADMIN_TOKEN env)
+
+## 3. Frontend
+
+### 3.1 SPA (Vercel)
+
+React app at `focusrunner.io` — portfolio site only. No API calls to Vercel functions.
+
+### 3.2 Lead Capture Form
+
+- `/lead-capture.html` — standalone HTML, dark theme, #22c55e green
+- Schwartz framework copy (Desire → Identification → Credibility → Action)
+- Posts to Flask `/api/webhook` at 192.168.40.1:5000
+- Works served from Vercel (CORS to Flask) or directly from Flask
+
+### 3.3 Admin Panel
+
+- `/admin/leads.html` — dark theme admin panel
+- Fetches from Flask `http://192.168.40.1:5000/api/leads`
+- Auth via admin token
+
+## 4. Operations
+
+### 4.1 Start Flask Backend
+
+```bash
+cd /home/ai13/workspace/portfolio/lead-dashboard
+python3 app.py
+# Listens on 0.0.0.0:5000
+```
+
+Managed via `/home/ai13/workspace/lead-dashboard/lead-dashboard.sh {start|stop|status}`
+
+### 4.2 Deploy Vercel SPA
+
+```bash
+cd /home/ai13/focusrunnercom/portfolio
+git add -A && git commit -m "message" && git push origin main
+# Vercel auto-deploys from main branch
+```
+
+### 4.3 Required Environment Variables
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DEEPSEEK_API_KEY` | Yes | AI lead qualification |
-| `ADMIN_API_KEY` | Yes | Dashboard + API admin auth |
-| `RESEND_API_KEY` | No (fallback degrades) | Email notifications |
-| `NOTIFY_EMAIL` | No (defaults) | Notification recipient |
-| `KV_URL` | No (in-memory fallback) | Upstash KV |
-| `KV_REST_API_TOKEN` | No (in-memory fallback) | Upstash KV token |
-| `GHL_API_KEY` | No | GoHighLevel CRM sync |
+| `TELEGRAM_BOT_TOKEN` | Yes (via .hermes/.env) | Telegram notifications |
+| `ADMIN_API_KEY` | No | Admin auth for /api/admin/login |
+| `LEAD_DASHBOARD_ADMIN_TOKEN` | No | Admin dashboard access (default: focusrunner-admin-2026) |
 
-## 6. Known Issues & Technical Debt
+## 5. Future Roadmap
 
-### 6.1 Vercel Hobby Deploy Rate Limit
+### 5.1 SMS Reactivation (FOC-187, FOC-287)
+- Add SMS reminder endpoint to Flask
+- Schedule follow-up texts for cold leads after 24h
+- Use Twilio or Telegram-native SMS via Make.com
 
-- **Problem:** 100 deploys/day cap, easily exhausted during iteration
-- **Impact:** Cannot deploy urgent fixes for ~24h after hitting limit
-- **Workaround:** Local Flask fallback server (see §6.3)
-- **Fix:** Upgrade to Vercel Pro ($20/mo) for unlimited deploys
-
-### 6.2 API Functions Return SPA HTML
-
-- **Root cause:** Last successful deploy had no `@vercel/node` or `functions.runtime` config. Vercel Hobby auto-detection doesn't compile api/*.js without explicit build instructions.
-- **Fix deployed in:** Commit `5136174` (uses `functions.runtime: nodejs18.x`)
-- **Status:** Staged, blocked by rate limit
-
-### 6.3 Fallback Architecture — Local Flask Server
-
-When Vercel is down or rate-limited:
-```
-lead-capture.html ──► POST ──► focusrunner.io/api/webhook (Vercel, if up)
-                               └──► localhost:5000/api/webhook (Flask fallback)
-                                         │
-                                         ▼
-                                   /tmp/leads.json
-                                         │
-                                         ▼
-                              localhost:5000/admin (Flask dashboard)
-```
-
-### 6.4 Notification Pipeline (Resend)
-
-- `RESEND_API_KEY` and `NOTIFY_EMAIL` exist in Vercel env as **empty strings** (Resend not provisioned)
-- Trigger: any lead qualification (hot/warm) — wired in `chat.js`, `direct-qualify.js`, `webhook.js`
-- All endpoints now use shared `api/lib/notify.js` (consolidated per td-notify-consolidation.md)
-- `api/lib/lead-notify.js` removed (was duplicate of `api/lib/notify.js`)
-
-## 7. Future Architecture
-
-### 7.1 Multi-Tenant Analytics Schema
-
-```
-Goal: Cross-client aggregate queries
-Approach: Vercel KV with structured keys
-  analytics:{clientId}:{date}:{metric}
-Schema in api/lib/analytics-lib.js
-```
-
-### 7.2 SMS Followup Pipeline
-
-See `api/lib/sms-followup-ARCHITECTURE.md`
-
-### 7.3 Make.com Integration
-
-```
-/api/webhook ──► fire webhook to Make.com
-                     │
-                     ├──► Email notification
-                     ├──► SMS followup (Twilio)
-                     └──► CRM update (GHL/Airtable)
-```
-
-### 7.4 Recommended Upgrades
-
-| Priority | Item | Cost | Impact |
-|---|---|---|---|
-| P0 | Vercel Pro | $20/mo | Unlimited deploys, 300s timeout |
-| P1 | Vercel KV (Upstash) | $0-25/mo | Persistent cross-region state |
-| P2 | Twilio SMS | Pay-per-use | SMS followup pipeline |
-| P3 | Resend Pro | $0-10/mo | Reliable email notifications |
+### 5.2 Multi-Tenant
+- Add client_id to leads schema
+- Per-client qualification rules
+- White-label dashboard per med spa

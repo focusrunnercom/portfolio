@@ -257,6 +257,10 @@
   </div>
 
   <script>
+    var API_BASE = window.location.hostname === 'focusrunner.io'
+      ? '/api/webhook'  // Vercel proxy fallback (will 404 after cut — form should be served via Flask)
+      : 'http://192.168.40.1:5000/api/webhook';  // local Flask:5000
+
     function submitForm() {
       var name = document.getElementById('name').value.trim();
       var email = document.getElementById('email').value.trim();
@@ -276,7 +280,7 @@
       btn.textContent = 'Sending...';
       status.className = 'status';
 
-      fetch('http://192.168.40.1:5000/api/webhook', {
+      fetch(API_BASE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
