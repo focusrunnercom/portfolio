@@ -164,61 +164,62 @@ function corsHeaders() {
   };
 }
 
-function jsonResponse(data, status) {
+function jsonResponse(res, data, status) {
   status = status || 200;
-  return new Response(JSON.stringify(data), {
-    status: status,
-    headers: corsHeaders(),
-  });
+  res.writeHead(status, corsHeaders());
+  res.end(JSON.stringify(data));
 }
 
 // =============================================================================
 // Handler
 // =============================================================================
 
-async function handler(request) {
+async function handler(req, res) {
   // CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders(),
-    });
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, corsHeaders());
+    return res.end();
   }
 
   // Health check
-  if (request.method === 'GET') {
-    return jsonResponse({
+  if (req.method === 'GET') {
+    jsonResponse(res, {
       status: 'ok',
       endpoint: '/api/webhook',
       version: '1.1',
     });
+    return;
   }
 
-  if (request.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
+  if (req.method !== 'POST') {
+    jsonResponse(res, { error: 'Method not allowed' }, 405);
+    return;
   }
 
   // Parse body
-  var body;
-  try {
-    body = await request.json();
-  } catch (e) {
-    return jsonResponse({ error: 'Invalid JSON body' }, 400);
-  }
+  var body = '';
+  req.on('data', function(chunk) { body += chunk; });
+  req.on('end', async function() {
+    var data;
+    try { data = JSON.parse(body); } catch (e) {
+      jsonResponse(res, { error: 'Invalid JSON body' }, 400);
+      return;
+    }
 
   // Validate
-  var validation = validateLeadBody(body);
+  var validation = validateLeadBody(data);
   if (!validation.valid) {
-    return jsonResponse({ error: 'Validation failed', details: validation.errors }, 400);
+    jsonResponse(res, { error: 'Validation failed', details: validation.errors }, 400);
+    return;
   }
 
   var leadData = {
-    name: body.name,
-    phone: body.phone,
-    email: body.email || '',
-    practice: body.practice || '',
-    volume: body.volume || '',
-    source: body.source || 'lead_capture',
+    name: data.name,
+    phone: data.phone,
+    email: data.email || '',
+    practice: data.practice || '',
+    volume: data.volume || '',
+    source: data.source || 'lead_capture',
   };
 
   console.log('[webhook] Received lead: name=' + leadData.name + ' phone=' + leadData.phone + ' source=' + leadData.source);
@@ -237,13 +238,13 @@ async function handler(request) {
   var ghlSuccess = ghlResult !== null;
   var httpStatus = ghlSuccess ? 200 : 202;
 
-  return jsonResponse({
+  jsonResponse(res, {
     success: ghlSuccess,
     lead_id: ghlResult?.contact?.id || ghlResult?.id || null,
     message: ghlSuccess
       ? 'Lead received and forwarded'
       : 'Lead received but GHL forwarding failed',
   }, httpStatus);
-}
-
+  });
+};
 module.exports = handler;

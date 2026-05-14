@@ -1,445 +1,123 @@
 /**
  * Vercel Serverless Function: /api/chat
- * Lead qualification endpoint — called by the focusrunner-chat-widget.js
- *
- * Input:  POST { name, email, phone, time, page_url, practice, niche, volume }
- *         Header: X-Client-Id — optional, resolves per-client AI config
- * Output: { reply, qualification, booking_link }
- *
- * Features:
- * - Per-client AI config (model, temperature, max_tokens) via KV
- * - AbortController timeout (8s) for DeepSeek API calls
- * - Multi-strategy JSON extraction (fenced block, bare JSON, multi-line fragment)
- * - Returns 504 on timeout instead of generic 502
- * - Validates required fields (name, phone) — returns 400 if missing
- * - File-based lead storage fallback (zero infra, crash-recoverable)
- * - Email notification on hot/warm leads via Resend (fire-and-forget)
- * - Cached qualification fallback when DeepSeek API is down
+ * SINGLE-FILE — zero imports. CJS for Vercel Node 18.x Hobby compat.
+ * Lead qualification — rules-based scoring. Stores leads. Email notif on hot/warm.
  */
-// =============================================================================
-// Configuration
-// =============================================================================
-const { kvGet } = require('./kv');
-const { notifyLead } = require('./lib/notify');
-const { appendLead } = require('./lib/lead-store');
 
-const AI_TIMEOUT_MS = 8000;
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+var fs = require('fs');
+var crypto = require('crypto');
+var STORE = '/tmp/leads.json';
 
-/** Cached qualification flow — served when the AI API is unreachable */
-const FALLBACK_REPLY = `Thanks for reaching out! We've noted your information and our team will follow up shortly to discuss how FocusRunner can help grow your practice. In the meantime, check out focusrunner.io to learn more.`;
+function readAll() {
+  try {
+    if (!fs.existsSync(STORE)) return [];
+    return JSON.parse(fs.readFileSync(STORE, 'utf-8')).leads || [];
+  } catch (e) { return []; }
+}
 
-const FALLBACK_QUALIFICATION = {
-  score: 50,
-  classification: 'warm',
-  summary: 'Lead captured during AI API outage — stored for manual qualification.',
+function store(d) {
+  try {
+    var lead = {
+      id: crypto.randomUUID(),
+      name: String(d.name || '').slice(0, 200),
+      phone: String(d.phone || '').slice(0, 30),
+      email: String(d.email || '').slice(0, 254),
+      practice: String(d.practice || '').slice(0, 200),
+      qualification: d.qualification || null,
+      source: d.source || 'chat',
+      timestamp: new Date().toISOString()
+    };
+    var all = readAll();
+    all.push(lead);
+    if (all.length > 500) all = all.slice(-500);
+    fs.writeFileSync(STORE, JSON.stringify({ leads: all }));
+    return lead.id;
+  } catch (e) { return null; }
+}
+
+function qualify(v) {
+  var n = parseInt(String(v.volume || '0'), 10) || 0;
+  var p = !!(v.practice || '').trim();
+  if (p && n >= 50) return { classification: 'hot', score: 85, next_action: 'book_call' };
+  if (p && n >= 10) return { classification: 'warm', score: 45, next_action: 'send_info' };
+  return { classification: 'cold', score: 10, next_action: 'drip' };
+}
+
+function sendNotif(d, cls, score) {
+  var k = process.env.RESEND_API_KEY;
+  if (!k) return;
+  var t = process.env.NOTIFY_EMAIL || 'hello@focusrunner.com';
+  var colors = { hot: '#dc2626', warm: '#ea580c', cold: '#2563eb' };
+  var bc = colors[cls] || '#6b7280';
+  var name = d.name || '';
+  var phone = d.phone || '';
+  var practice = d.practice || '';
+  var html = '<div style="background:#0f172a;padding:24px;color:#fff;border-radius:12px">' +
+    '<h1>New Lead</h1>' +
+    '<p style="display:inline-block;padding:4px 12px;border-radius:20px;background:' + bc + '">' +
+    cls.toUpperCase() + ' ' + score + '/100</p>' +
+    '<p><b>' + name + '</b> ' + phone + ' ' + practice + '</p></div>';
+  fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + k, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'FocusRunner <leads@focusrunner.io>',
+      to: t,
+      subject: 'Lead: ' + name + ' - ' + cls.toUpperCase(),
+      html: html
+    })
+  }).catch(function() {});
+}
+
+var MSGS = {
+  greeting: 'Hey, I see you are checking out FocusRunner. Quick 3 questions.',
+  ask_practice: 'What is your practice name?',
+  ask_volume: 'How many new patients per month?',
+  ask_spend: 'What is your monthly ad spend?',
+  hot: 'Great fit! Our team will reach out within 24h.',
+  warm: 'Solid prospect. We will send case studies.',
+  cold: 'Thanks. Reach out anytime at hello@focusrunner.com.'
 };
 
-// =============================================================================
-// Per-client AI config
-// =============================================================================
-
-/**
- * Resolve AI configuration for a client.
- * Falls back to env vars if no client config found.
- */
-async function resolveAIConfig(clientId) {
-  // Default config from env
-  const config = {
-    apiKey: process.env.DEEPSEEK_API_KEY || '',
-    apiBase: process.env.OPENAI_API_BASE || 'https://api.deepseek.com/v1',
-    model: process.env.CHAT_MODEL || 'deepseek-chat',
-    temperature: 0.7,
-    maxTokens: 500,
-    bookingUrl: process.env.BOOKING_URL || 'https://focusrunner.io',
-  };
-
-  if (!clientId) return config;
-
-  try {
-    const clientConfig = await kvGet(`client:${clientId}`);
-    if (clientConfig && clientConfig.active !== false && clientConfig.ai) {
-      config.model = clientConfig.ai.model || config.model;
-      config.temperature = clientConfig.ai.temperature ?? config.temperature;
-      config.maxTokens = clientConfig.ai.max_tokens ?? config.maxTokens;
-      config.bookingUrl = clientConfig.booking_url || config.bookingUrl;
-      // If client has a per-client API key, use it
-      if (clientConfig.crm?.api_key && clientConfig.crm?.api_key !== '__PENDING_SETUP__') {
-        config.apiKey = clientConfig.crm.api_key;
-      }
-      console.log(`[chat] Using per-client config for ${clientId}: model=${config.model} temp=${config.temperature}`);
-    }
-  } catch (err) {
-    console.warn(`[chat] Failed to load client config for ${clientId}:`, err.message);
-  }
-
-  return config;
-}
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-/**
- * Fetch with an AbortController timeout.
- * Throws on timeout — caller catches and returns fallback.
- */
-async function fetchWithTimeout(url, options, timeoutMs = AI_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/**
- * Build the system prompt for lead qualification.
- */
-function buildSystemPrompt(leadData) {
-  const name = leadData.name || 'there';
-  const phone = leadData.phone || 'unknown';
-  const email = leadData.email || 'unknown';
-  const time = leadData.time || 'unknown';
-  const pageUrl = leadData.page_url || 'unknown';
-  const practice = leadData.practice || 'a med spa';
-  const niche = leadData.niche || 'med spa services';
-  const volume = leadData.volume || 'some';
-
-  return `You are a senior marketing consultant at FocusRunner. You only talk to med spa owners — the person who signs the checks.
-
-YOUR JOB: Figure out if this med spa owner is a fit for what we do. Nothing else. No small talk. No fluff.
-
-THE PROBLEM THEY HAVE (state it, don't ask about it):
-They spend $3K-$10K/month on Meta ads. 85% of those leads go cold — nobody follows up at 2AM on Saturday. A booked patient is worth $2K-$5K lifetime. Every cold lead is cash on the table.
-
-TALK TO THEM LIKE THIS:
-- "I've seen this a hundred times. What are you spending on ads right now?"
-- "Out of 100 leads, how many actually book?"
-- "What's a booked patient worth to you in revenue?"
-- No buzzwords. No "revolutionary AI". No "paradigm shift." Just math.
-
-SCORING (internal, invisible to them — compute silently):
-1. Ad Spend: $3K-$5K=20pts, $5K-$10K=30pts, $10K+=35pts, under $3K=5pts
-2. Booking Rate: under 10%=35pts, 10-15%=25pts, 15-20%=10pts, 20%+=5pts
-3. Timeline: ASAP=30pts, this quarter=20pts, exploring=5pts
-Total: 0-100
-
-CONVERSATION ARC (keep it tight — 3-4 messages max):
-1. Hit them with the problem they already feel but can't solve
-2. Ask ad spend + booking rate
-3. Ask timeline
-4. Close: "Let me show you the math" + ask for booking
-
-TONE RULES:
-- Direct. Minimal. No emoji. No exclamation marks.
-- Numbers win arguments. "If you're spending $5K/mo and booking 8%, you're burning $4,600."
-- Never pitch. Never sell. Consult.
-- If they're under $3K ad spend or timeline >6 months, be honest: "You're not ready yet."
-
-KNOWN INFO (use this, don't ask for it again):
-- Name: ${name}
-- Phone: ${phone}
-- Email: ${email}
-- Practice: ${practice}
-- Niche: ${niche}
-- Current patients/mo: ${volume}
-
-OUTPUT FORMAT at the very end (keep it silent — append after your last message):
-\`\`\`json
-{
-  "score": <0-100>,
-  "classification": "hot|warm|cold",
-  "ad_spend_tier": "premium|mid|low",
-  "service_focus": "<main service from conversation>",
-  "timeline": "immediate|this_quarter|exploring",
-  "summary": "<1-sentence summary for sales team>",
-  "booking_link": "https://focusrunner.com/book-demo"
-}
-\`\`\``;
-}
-
-/**
- * Multi-strategy JSON qualification extraction from AI response.
- * Strategy 1: ```json ... ``` fenced block
- * Strategy 2: Bare JSON object with "score" field
- * Strategy 3: Multi-line brace-balanced fragment
- */
-function parseQualification(text) {
-  if (!text || typeof text !== 'string') return null;
-
-  // Strategy 1: ```json ... ``` block (most common)
-  const fencedMatch = text.match(/```(?:json)?\s*(\{[^`]*?\})\s*```/s);
-  if (fencedMatch) {
-    try {
-      const parsed = JSON.parse(fencedMatch[1]);
-      if (parsed && typeof parsed.score === 'number') return parsed;
-    } catch (e) { /* fallthrough */ }
-  }
-
-  // Strategy 2: Bare JSON anywhere in text with a "score" field
-  const bareMatch = text.match(/\{\s*"[^"]*"\s*:[\s\S]*?"score"\s*:\s*\d+[\s\S]*?\}/);
-  if (bareMatch) {
-    try {
-      const parsed = JSON.parse(bareMatch[0]);
-      if (parsed && typeof parsed.score === 'number') return parsed;
-    } catch (e) { /* fallthrough */ }
-  }
-
-  // Strategy 3: Multi-line JSON fragment — walk lines tracking brace depth
-  const lines = text.split('\n');
-  let braceDepth = 0;
-  let jsonStart = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (let j = 0; j < line.length; j++) {
-      if (line[j] === '{') {
-        if (braceDepth === 0) jsonStart = i;
-        braceDepth++;
-      } else if (line[j] === '}') {
-        braceDepth--;
-        if (braceDepth === 0 && jsonStart >= 0) {
-          const candidate = lines.slice(jsonStart, i + 1).join('\n');
-          try {
-            const parsed = JSON.parse(candidate);
-            if (parsed && typeof parsed.score === 'number') return parsed;
-          } catch (e) { /* not valid — keep looking */ }
-          jsonStart = -1;
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
-function corsHeaders() {
+function cors() {
   return {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST,GET,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   };
 }
 
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: corsHeaders(),
-  });
-}
+module.exports = function(req, res) {
+  if (req.method === 'OPTIONS') { res.writeHead(204, cors()); return res.end(); }
+  if (req.method === 'GET') { res.writeHead(200, cors()); return res.end(JSON.stringify({ status: 'ok', endpoint: '/api/chat' })); }
+  if (req.method !== 'POST') { res.writeHead(405, cors()); return res.end(JSON.stringify({ error: 'Method not allowed' })); }
 
-// =============================================================================
-// Handler
-// =============================================================================
+  var body = '';
+  req.on('data', function(chunk) { body += chunk; });
+  req.on('end', function() {
+    var d;
+    try { d = JSON.parse(body); } catch (e) { res.writeHead(400, cors()); return res.end(JSON.stringify({ error: 'Invalid JSON' })); }
 
-async function handler(request) {
-  // CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders(),
-    });
-  }
+    var name = d.name || '', email = d.email || '', phone = d.phone || '';
+    var practice = d.practice || '', volume = d.volume || '', spend = d.spend || '';
+    var state = d.state || {}, step = state.step || 'greeting';
 
-  // Health check
-  if (request.method === 'GET') {
-    const url = request.url.startsWith('http') ? new URL(request.url) : new URL(request.url, 'https://focusrunner.io');
-    const clientId = url.searchParams.get('clientId') || '';
-    return jsonResponse({
-      status: 'ok',
-      endpoint: '/api/chat',
-      model: process.env.CHAT_MODEL || 'deepseek-chat',
-      client_config: clientId ? `resolved for: ${clientId}` : 'none (using defaults)',
-    });
-  }
-
-  if (request.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
-  }
-
-  // Parse body
-  let body;
-  try {
-    body = await request.json();
-  } catch (e) {
-    return jsonResponse({ error: 'Invalid JSON body' }, 400);
-  }
-
-  const { name, email, phone, time, page_url, practice, niche, volume } = body || {};
-
-  // Validate required fields
-  if (!name || !phone) {
-    return jsonResponse({
-      error: 'name and phone are required',
-      required: ['name', 'phone'],
-      received: { name: !!name, email: !!email, phone: !!phone },
-    }, 400);
-  }
-
-  // Resolve per-client AI config from X-Client-Id header
-  const clientId = request.headers.get('x-client-id') || '';
-  const aiConfig = await resolveAIConfig(clientId);
-
-  // Check AI API key
-  if (!aiConfig.apiKey) {
-    console.warn('[chat] No AI API key configured — using cached fallback, storing lead');
-    // Store lead with fallback qualification
-    try {
-      appendLead({
-        name, phone: phone || '', email: email || '',
-        qualification: FALLBACK_QUALIFICATION,
-        source: 'chat_widget',
-        referral_source: page_url || '',
-      });
-    } catch (_) { /* fail-safe */ }
-
-    return jsonResponse({
-      reply: FALLBACK_REPLY,
-      qualification: FALLBACK_QUALIFICATION,
-      booking_link: null,
-      lead_received: true,
-      using_fallback: true,
-    });
-  }
-
-  const leadData = { name, email, phone, time, page_url };
-  const systemPrompt = buildSystemPrompt(leadData);
-
-  const fullMessages = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: `New lead: Name=${name}, Email=${email||'none'}, Phone=${phone||'none'}, Time=${time||'any'}` },
-  ];
-
-  let aiResponse;
-  try {
-    aiResponse = await fetchWithTimeout(`${aiConfig.apiBase}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${aiConfig.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: aiConfig.model,
-        messages: fullMessages,
-        temperature: aiConfig.temperature,
-        max_tokens: aiConfig.maxTokens,
-      }),
-    });
-  } catch (err) {
-    // Timeout or network error → serve cached fallback
-    if (err.name === 'AbortError') {
-      console.error('[chat] AI API timeout — serving fallback response');
-    } else {
-      console.error(`[chat] AI API error: ${err.message} — serving fallback response`);
+    if (practice && volume) {
+      var q = qualify({ practice: practice, volume: volume, spend: spend });
+      var qo = { score: q.score, classification: q.classification, next_action: q.next_action };
+      var id = store({ name: name, email: email, phone: phone, practice: practice, source: 'chat', qualification: qo });
+      if (q.classification !== 'cold') sendNotif({ name: name, phone: phone, practice: practice }, q.classification, q.score);
+      return res.end(JSON.stringify({ response: MSGS[q.classification], score: q.classification, next_action: q.next_action, qualification: qo, lead_id: id }));
     }
 
-    // Store lead with fallback qualification
-    try {
-      appendLead({
-        name, phone: phone || '', email: email || '',
-        qualification: FALLBACK_QUALIFICATION,
-        source: 'chat_widget',
-        referral_source: page_url || '',
-      });
-    } catch (_) { /* fail-safe */ }
-
-    // Also try to notify via email about the fallback lead
-    const leadPayload = { name, email, phone, practice, niche, volume, qualification: FALLBACK_QUALIFICATION, source: 'chat_widget' };
-    notifyLead(leadPayload).catch(() => {});
-
-    return jsonResponse({
-      reply: FALLBACK_REPLY,
-      qualification: FALLBACK_QUALIFICATION,
-      booking_link: null,
-      lead_received: true,
-      using_fallback: true,
-      fallback_reason: err.name === 'AbortError' ? 'timeout' : 'network_error',
-    });
-  }
-
-  if (!aiResponse.ok) {
-    const errorText = await aiResponse.text().catch(() => '(no body)');
-    console.error(`[chat] AI API error ${aiResponse.status}: ${errorText.slice(0, 300)} — serving fallback`);
-
-    try {
-      appendLead({
-        name, phone: phone || '', email: email || '',
-        qualification: FALLBACK_QUALIFICATION,
-        source: 'chat_widget',
-        referral_source: page_url || '',
-      });
-    } catch (_) { /* fail-safe */ }
-
-    const leadPayload = { name, email, phone, practice, niche, volume, qualification: FALLBACK_QUALIFICATION, source: 'chat_widget' };
-    notifyLead(leadPayload).catch(() => {});
-
-    return jsonResponse({
-      reply: FALLBACK_REPLY,
-      qualification: FALLBACK_QUALIFICATION,
-      booking_link: null,
-      lead_received: true,
-      using_fallback: true,
-      fallback_reason: `ai_api_error_${aiResponse.status}`,
-    });
-  }
-
-  const aiData = await aiResponse.json();
-  const aiText = aiData.choices?.[0]?.message?.content || '';
-
-  const qualification = parseQualification(aiText);
-
-  // --- File-based lead storage ---
-  try {
-    appendLead({
-      name,
-      phone: phone || '',
-      email: email || '',
-      qualification,
-      source: 'chat_widget',
-      referral_source: page_url || '',
-    });
-  } catch (_) {
-    // fail-safe
-  }
-
-  // Strip JSON block from visible reply
-  let reply = aiText.replace(/```json\s*\{.*?\}\s*```/gs, '').trim();
-  if (!reply) reply = aiText.trim();
-  // Truncate to keep response tight
-  if (reply.length > 300) reply = reply.slice(0, 297) + '...';
-
-  const bookingLink = qualification?.classification === 'hot'
-    ? (aiConfig.bookingUrl || process.env.BOOKING_URL || 'https://focusrunner.io')
-    : null;
-
-  console.log(`[chat] Lead qualified: ${name} score=${qualification?.score ?? 'N/A'} class=${qualification?.classification ?? 'N/A'}`);
-
-  // === EMAIL NOTIFICATION: alert the team in real-time ===
-  // Only send for hot/warm leads (skips cold/unknown)
-  if (qualification && qualification.classification !== 'cold') {
-    const leadPayload = {
-      name: name || 'Anonymous',
-      email: email || '',
-      phone: phone || '',
-      practice: practice || '',
-      niche: niche || '',
-      volume: volume || '',
-      qualification,
-      source: 'chat_widget',
-    };
-    notifyLead(leadPayload).catch(err =>
-      console.error('[chat] Email notification failed:', err.message)
-    );
-  }
-
-  return jsonResponse({
-    reply,
-    qualification,
-    booking_link: bookingLink,
-    lead_received: true,
+    if (step === 'greeting') return res.end(JSON.stringify({ response: MSGS.greeting + '\n\n' + MSGS.ask_practice, next_step: 'ask_volume', requires_input: true, field: 'practice' }));
+    if (step === 'ask_volume') return res.end(JSON.stringify({ response: MSGS.ask_volume, next_step: 'ask_spend', requires_input: true, field: 'volume' }));
+    if (step === 'ask_spend') return res.end(JSON.stringify({ response: MSGS.ask_spend, next_step: 'done', requires_input: true, field: 'spend' }));
+    if (step === 'done') {
+      var q = qualify({ practice: state.practice || '', volume: state.volume || '' });
+      return res.end(JSON.stringify({ response: MSGS[q.classification], score: q.classification, next_action: q.next_action, next_step: 'complete' }));
+    }
+    res.end(JSON.stringify({ response: MSGS.greeting, next_step: 'ask_volume', requires_input: true, field: 'practice' }));
   });
-}
-
-module.exports = handler;
+};
