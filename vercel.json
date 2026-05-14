@@ -17,6 +17,7 @@
     { "source": "/admin/leads", "destination": "/admin/leads.html" },
     { "source": "/lead-capture-ai", "destination": "/lead-capture-ai.html" },
     { "source": "/lead-capture-ai.html", "destination": "/lead-capture-ai.html" },
+    { "source": "/(.*)\\.html", "destination": "/$1.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
