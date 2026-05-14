@@ -32,7 +32,11 @@ STEP_MESSAGES = {
 
 # ─── Scoring Engine ────────────────────────────────────────────────────────
 
-def qualify(practice="", volume=0, spend=""):
+SPEND_SCORES = {"Under $3K": 5, "$3K-$5K": 20, "$5K-$10K": 30, "$10K+": 35}
+BOOKING_SCORES = {"Under 10%": 35, "10-15%": 25, "15-20%": 10, "20%+": 5}
+TIMELINE_SCORES = {"ASAP -- ready now": 30, "This quarter": 20, "Just researching": 5}
+
+def qualify(practice="", volume=0, spend="", ad_spend=None, booking_rate=None, timeline=None):
     """Return (score, next_action) based on lead data."""
     has_practice = bool(practice and practice.strip())
 
@@ -47,6 +51,21 @@ def qualify(practice="", volume=0, spend=""):
     if has_practice and vol >= 10:
         return ("warm", "send_info")
     return ("cold", "drip")
+
+
+def calc_form_score(ad_spend, booking_rate, timeline):
+    """Calculate numeric qualification score from form fields (0-100)."""
+    s = SPEND_SCORES.get(ad_spend, 5) + BOOKING_SCORES.get(booking_rate, 5) + TIMELINE_SCORES.get(timeline, 5)
+    return s
+
+
+def classify_numeric(score):
+    """Classify a numeric form score into hot/warm/cold."""
+    if score >= 65:
+        return "hot"
+    if score >= 30:
+        return "warm"
+    return "cold"
 
 
 # ─── Conversation State Machine ────────────────────────────────────────────
