@@ -226,7 +226,7 @@ function loadAll() {
     api('/api/leads?limit=500').then(r => r.ok ? r.json() : {leads:[]}),
     api('/api/analytics').then(r => r.ok ? r.json() : null),
     api('/api/health').then(r => r.ok ? r.json() : null),
-    api('/api/visitors').then(r => r.ok ? r.json() : null),
+    api('/api/visitor-count').then(r => r.ok ? r.json() : null),
   ]).then(function(results) {
     var leadsData = results[0];
     ANALYTICS = results[1];

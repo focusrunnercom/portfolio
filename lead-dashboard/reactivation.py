@@ -1,383 +1,547 @@
 #!/usr/bin/env python3
 """
 FocusRunner Lead Reactivation — 3-Touch SMS+Email Sequence
-FOC-426
+FOC-495
 
-Sends a sequence of 3 touchpoints to cold/warm leads over 7 days:
-  Touch 1 (Day 0): "We can help fill your treatment roster..."
-  Touch 2 (Day 3): "Case study: Miami med spa recovered 70% of cold leads..."
-  Touch 3 (Day 7): "Final touch — 15-min strategy call?"
+Sends a 3-touch reactivation sequence to cold leads over 7 days:
+  Touch 1 (Day 1):  SMS — "Hey [Name], saw your med spa on IG..."
+  Touch 2 (Day 3):  Email — Value proposition + case study link
+  Touch 3 (Day 7):  SMS — "Last chance for your free patient acquisition audit..."
 
-Each lead advances through: pending -> touch1_sent -> touch2_sent -> touch3_sent -> completed.
-If a lead replies or converts, it's removed from the sequence.
+Uses Twilio (SMS) and Resend (Email) when API keys are configured.
+Graceful fallback to dry-run mode if no API keys.
 
-Designed to work without Twilio/Resend — produces log entries and stores
-intent in the notifications table. When Twilio/Resend are configured,
-simply set ENABLE_SMS=True / ENABLE_EMAIL=True.
+Database: reactivation.db (separate tracking DB per spec)
+Schema: CREATE TABLE reactivation_tracking (
+    lead_id TEXT,
+    touch_1_sent TEXT,
+    touch_2_sent TEXT,
+    touch_3_sent TEXT,
+    created_at TEXT,
+    updated_at TEXT
+)
 
 Usage:
-    python3 reactivation.py status              # Show sequence state
-    python3 reactivation.py process             # Process due touches
-    python3 reactivation.py preview             # Preview next batch
+    python3 reactivation.py --dry-run    # Preview without sending
+    python3 reactivation.py --run        # Execute the sequence
 """
 
 import os
+import sys
 import json
 import sqlite3
 import datetime
-import logging
-import sys
+import argparse
 from pathlib import Path
-from typing import Optional
 
-logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
-logger = logging.getLogger("reactivation")
-
+# ─── Paths ───────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
-DB_PATH = BASE_DIR / "leads.db"
+LEADS_DB = BASE_DIR / "leads.db"
+REACT_DB = BASE_DIR / "reactivation.db"
 
-# ─── Configuration ──────────────────────────────────────────
+# ─── API Configuration ───────────────────────────────────────
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
-# When True, actually sends via available channels
-ENABLE_SMS = os.environ.get("ENABLE_REACTIVATION_SMS", "").lower() in ("1", "true", "yes")
-ENABLE_EMAIL = os.environ.get("ENABLE_REACTIVATION_EMAIL", "").lower() in ("1", "true", "yes")
+SMS_CONFIGURED = all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER])
+EMAIL_CONFIGURED = bool(RESEND_API_KEY)
 
-SEQUENCE = [
-    {
-        "touch": 1,
-        "day": 0,
-        "channel": "sms",
-        "subject": "",
-        "body": "Hi {name}, FocusRunner here. We help med spas recover leads that went cold — no upfront cost. Reply to see how we'd re-engage your {practice} leads.",
-    },
-    {
-        "touch": 2,
-        "day": 3,
-        "channel": "sms",
-        "subject": "",
-        "body": "Case study: A Miami med spa recovered 70% of cold leads using our AI qualification + 3-touch sequence. Want the playbook? Reply YES.",
-    },
-    {
-        "touch": 3,
-        "day": 7,
-        "channel": "sms",
-        "subject": "",
-        "body": "Last call: we're offering a free 15-min strategy session for med spa owners. See how FocusRunner can fill your {practice} pipeline. Reply STOP to opt out.",
-    },
-]
-
-# Future: email versions (when Resend configured)
-EMAIL_SEQUENCE = [
-    {
-        "touch": 1,
-        "day": 0,
-        "channel": "email",
-        "subject": "Your cold leads aren't dead — here's proof",
-        "body": "Hi {name},\n\nWe noticed you\'ve been exploring lead capture for {practice}. Most med spas see a 70% drop-off after the first inquiry — but those leads aren\'t gone, they\'re just unqualified.\n\nFocusRunner recovers them with:\n- AI qualification that scores leads in real-time\n- Automated 3-touch SMS/email sequences\n- Direct booking links for hot leads\n\nBook a 15-min walkthrough: https://focusrunner.io/demo\n\n— FocusRunner Team",
-    },
-    {
-        "touch": 2,
-        "day": 3,
-        "channel": "email",
-        "subject": "70% lead recovery — the playbook",
-        "body": "Hi {name},\n\nLast week we mentioned our lead recovery framework. Here\'s how it works:\n\n1. Capture -> AI qualifies (volume, spend, intent)\n2. Score -> Hot leads get SMS alert within 60s\n3. Reactivate -> Cold leads enter 3-touch sequence\n\nA Miami client went from 23 cold leads to 16 booked consults in 14 days.\n\nSee the full case study: https://focusrunner.io/case-studies/miami-recovery\n\n— FocusRunner Team",
-    },
-    {
-        "touch": 3,
-        "day": 7,
-        "channel": "email",
-        "subject": "Your pipeline analysis is ready",
-        "body": "Hi {name},\n\nThis is the last message in this sequence. We\'ve prepared a free pipeline analysis for {practice} based on industry benchmarks for med spas in your area.\n\nClaim it here: https://focusrunner.io/audit\n\nNo strings attached. If you\'d rather not hear from us again, just reply STOP.\n\n— FocusRunner Team",
-    },
-]
+FROM_EMAIL = "FocusRunner AI <hello@focusrunner.io>"
 
 
-# ─── Database ───────────────────────────────────────────────
+# ─── Database ─────────────────────────────────────────────────
 
-def ensure_tables():
-    """Create reactivation tracking tables if needed."""
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS reactivation_queue (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            lead_id         TEXT NOT NULL,
-            next_touch      INTEGER NOT NULL DEFAULT 1,
-            status          TEXT NOT NULL DEFAULT 'pending',
-                -- pending | active | paused | completed | opted_out | converted
-            scheduled_at    TEXT,
-            last_touch_at   TEXT,
-            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-            updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY (lead_id) REFERENCES leads(id)
-        );
-        CREATE INDEX IF NOT EXISTS idx_reactivation_status ON reactivation_queue(status);
-        CREATE INDEX IF NOT EXISTS idx_reactivation_scheduled ON reactivation_queue(scheduled_at);
-        CREATE INDEX IF NOT EXISTS idx_reactivation_lead ON reactivation_queue(lead_id);
+def ensure_tracking_db():
+    """Create reactivation.db with the tracking schema."""
+    conn = sqlite3.connect(str(REACT_DB))
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS reactivation_tracking (
+            lead_id      TEXT PRIMARY KEY,
+            touch_1_sent TEXT,
+            touch_2_sent TEXT,
+            touch_3_sent TEXT,
+            created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        )
     """)
     conn.commit()
     conn.close()
 
 
-def get_conn():
-    conn = sqlite3.connect(str(DB_PATH))
+def get_react_conn():
+    conn = sqlite3.connect(str(REACT_DB))
     conn.row_factory = sqlite3.Row
     return conn
 
 
-# ─── Core Logic ─────────────────────────────────────────────
-
-def enqueue_cold_leads(dry_run: bool = False) -> dict:
-    """Find cold/warm leads not yet in queue and enqueue them."""
-    conn = get_conn()
-    stats = {"found": 0, "enqueued": 0, "already_in_queue": 0, "skipped_no_contact": 0}
-
-    candidates = conn.execute("""
-        SELECT id, name, email, phone, practice, score, source
-        FROM leads
-        WHERE (score LIKE 'cold%' OR score LIKE 'warm%')
-          AND id NOT IN (SELECT lead_id FROM reactivation_queue)
-        ORDER BY created_at ASC
-    """).fetchall()
-
-    stats["found"] = len(candidates)
-
-    for row in candidates:
-        lead = dict(row)
-        lid = lead["id"]
-        has_phone = len((lead.get("phone") or "").strip()) > 3
-        has_email = len((lead.get("email") or "").strip()) > 3
-
-        if not has_phone and not has_email:
-            stats["skipped_no_contact"] += 1
-            if not dry_run:
-                logger.info(f"  SKIP {lid[:12]} — no phone or email")
-            continue
-
-        if dry_run:
-            logger.info(f"  QUEUE {lid[:12]} {lead['name'] or '?'} ({lead.get('phone','')[:12]} / {lead.get('email','')[:20]})")
-            stats["enqueued"] += 1
-            continue
-
-        try:
-            conn.execute(
-                """INSERT INTO reactivation_queue (lead_id, next_touch, status, scheduled_at)
-                   VALUES (?, 1, 'active', datetime('now'))""",
-                (lid,),
-            )
-            conn.commit()
-            stats["enqueued"] += 1
-        except Exception as e:
-            logger.warning(f"  ERROR enqueuing {lid[:12]}: {e}")
-
-    conn.close()
-    return stats
+def get_leads_conn():
+    if not LEADS_DB.exists():
+        print(f"[ERROR] Leads database not found at {LEADS_DB}")
+        sys.exit(1)
+    conn = sqlite3.connect(str(LEADS_DB))
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
-def process_due(dry_run: bool = False) -> dict:
-    """Process leads whose next touch is due."""
-    conn = get_conn()
-    stats = {"due": 0, "sent": 0, "skipped_no_channel": 0, "completed": 0, "errors": 0}
+# ─── Sending Functions ───────────────────────────────────────
 
-    now = datetime.datetime.utcnow()
+def send_sms(to: str, body: str, dry_run: bool = False) -> dict:
+    """Send SMS via Twilio API (HTTP direct, no SDK)."""
+    if not SMS_CONFIGURED and not dry_run:
+        return {"sid": "dry-run", "status": "unconfigured"}
 
-    # Find leads due for their next touch
-    # Touch 1: immediately (scheduled = enqueue time)
-    # Touch 2: 3 days after touch 1
-    # Touch 3: 7 days after touch 1
-    due = conn.execute("""
-        SELECT rq.id as queue_id, rq.lead_id, rq.next_touch, rq.scheduled_at,
-               l.name, l.email, l.phone, l.practice, l.score
-        FROM reactivation_queue rq
-        JOIN leads l ON l.id = rq.lead_id
-        WHERE rq.status = 'active'
-          AND rq.scheduled_at <= datetime('now')
-        ORDER BY rq.scheduled_at ASC
-        LIMIT 20
-    """).fetchall()
+    if dry_run:
+        print(f"  [DRY-RUN SMS] To: {to}")
+        print(f"  [DRY-RUN SMS] Body: {body[:100]}")
+        return {"sid": "dry-run", "status": "dry-run"}
 
-    stats["due"] = len(due)
+    import urllib.request
+    import urllib.parse
+    import base64
 
-    for row in due:
-        q = dict(row)
-        lid = q["lead_id"]
+    auth_bytes = f"{TWILIO_ACCOUNT_SID}:{TWILIO_AUTH_TOKEN}".encode()
+    auth_b64 = base64.b64encode(auth_bytes).decode()
 
-        if dry_run:
-            next_touch = q["next_touch"]
-            channel = SEQUENCE[next_touch - 1]["channel"] if next_touch <= len(SEQUENCE) else "?"
-            logger.info(f"  TOUCH {next_touch} -> {lid[:12]} {q.get('name','')[:20]} via {channel}")
-            continue
+    payload = {"To": to, "From": TWILIO_PHONE_NUMBER, "Body": body}
+    data = "&".join(f"{k}={urllib.parse.quote(v)}" for k, v in payload.items()).encode()
 
-        touch_num = q["next_touch"]
-        if touch_num > len(SEQUENCE):
-            # All touches sent — mark completed
-            conn.execute(
-                "UPDATE reactivation_queue SET status='completed', updated_at=datetime('now') WHERE id=?",
-                (q["queue_id"],),
-            )
-            conn.commit()
-            stats["completed"] += 1
-            continue
+    req = urllib.request.Request(
+        f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json",
+        data=data,
+        headers={"Authorization": f"Basic {auth_b64}", "Content-Type": "application/x-www-form-urlencoded"},
+    )
 
-        template = SEQUENCE[touch_num - 1]
-        body = template["body"].format(
-            name=q.get("name", "there"),
-            practice=q.get("practice", "your med spa"),
-        )
-
-        # Determine channel availability
-        channel = template["channel"]
-        has_channel = {
-            "sms": len((q.get("phone") or "").strip()) > 3 and ENABLE_SMS,
-            "email": len((q.get("email") or "").strip()) > 3 and ENABLE_EMAIL,
-        }
-
-        if not has_channel.get(channel, False):
-            # Fallback: try alternative channel or skip
-            if channel == "sms" and has_channel.get("email", False):
-                channel = "email"
-                body = EMAIL_SEQUENCE[touch_num - 1]["body"].format(
-                    name=q.get("name", "there"),
-                    practice=q.get("practice", "your med spa"),
-                )
-            elif channel == "email" and has_channel.get("sms", False):
-                channel = "sms"
-            else:
-                logger.info(f"  SKIP {lid[:12]} touch {touch_num} — no {channel} channel available")
-                stats["skipped_no_channel"] += 1
-                # Schedule retry in 1 day
-                conn.execute(
-                    "UPDATE reactivation_queue SET scheduled_at=datetime('now', '+1 day'), updated_at=datetime('now') WHERE id=?",
-                    (q["queue_id"],),
-                )
-                conn.commit()
-                continue
-
-        # Log the notification
-        recipient = q.get("phone", q.get("email", ""))
-        conn.execute(
-            """INSERT INTO notifications (type, lead_id, recipient, status, message)
-               VALUES (?, ?, ?, 'queued', ?)""",
-            (f"reactivation_touch{touch_num}", lid, recipient, body[:500]),
-        )
-
-        # Advance to next touch
-        next_touch = touch_num + 1
-        if next_touch <= len(SEQUENCE):
-            # Schedule next touch
-            conn.execute(
-                """UPDATE reactivation_queue
-                   SET next_touch=?, status='active',
-                       scheduled_at=datetime('now', '+? days'),
-                       last_touch_at=datetime('now'),
-                       updated_at=datetime('now')
-                   WHERE id=?""",
-                (next_touch, SEQUENCE[next_touch - 1]["day"] - SEQUENCE[touch_num - 1]["day"], q["queue_id"]),
-            )
-        else:
-            # All touches done
-            conn.execute(
-                "UPDATE reactivation_queue SET status='completed', last_touch_at=datetime('now'), updated_at=datetime('now') WHERE id=?",
-                (q["queue_id"],),
-            )
-            stats["completed"] += 1
-
-        conn.commit()
-        stats["sent"] += 1
-        logger.info(f"  SENT touch {touch_num} to {lid[:12]} via {channel}")
-
-    conn.close()
-    return stats
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read())
+            sid = result.get("sid", "?")
+            status = result.get("status", "?")
+            print(f"  [SENT SMS] to {to} | SID: {sid} | Status: {status}")
+            return result
+    except Exception as e:
+        print(f"  [FAIL SMS] to {to}: {e}")
+        return {"error": str(e)}
 
 
-def status() -> dict:
-    """Show current reactivation queue state."""
-    conn = get_conn()
-    result = {}
+def send_email(to: str, subject: str, html_body: str, dry_run: bool = False) -> dict:
+    """Send email via Resend API (direct HTTP, no SDK)."""
+    if not EMAIL_CONFIGURED and not dry_run:
+        return {"id": "dry-run", "status": "unconfigured"}
 
-    # Counts by status
+    if dry_run:
+        print(f"  [DRY-RUN EMAIL] To: {to}")
+        print(f"  [DRY-RUN EMAIL] Subject: {subject}")
+        print(f"  [DRY-RUN EMAIL] Body preview: {html_body[:120]}...")
+        return {"id": "dry-run", "status": "dry-run"}
+
+    import urllib.request
+
+    payload = json.dumps({
+        "from": FROM_EMAIL,
+        "to": [to],
+        "subject": subject,
+        "html": html_body,
+    }).encode()
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+    )
+
+    try:
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read())
+        print(f"  [SENT EMAIL] to {to} | ID: {result.get('id', '?')}")
+        return result
+    except Exception as e:
+        # Try to extract HTTP error details if it's an HTTPError
+        error_str = str(e)
+        if hasattr(e, 'code') and hasattr(e, 'read'):
+            try:
+                error_body = e.read().decode()
+                error_str = f"{e.code} — {error_body[:200]}"
+            except Exception:
+                pass
+        print(f"  [FAIL EMAIL] to {to}: {error_str}")
+        return {"error": error_str}
+
+
+# ─── Touch Templates ─────────────────────────────────────────
+
+def touch_1_sms_body(name: str, practice: str) -> str:
+    """Touch 1: SMS — Day 1"""
+    return (
+        f"Hey {name}, saw your med spa on IG. "
+        f"We help practices like {practice} recover 70% of lost leads. Free audit?"
+    )
+
+
+def touch_2_email_html(name: str, practice: str) -> str:
+    """Touch 2: Email — Day 3, value proposition + case study link"""
+    return f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1a1a1a;">
+  <div style="border-bottom: 3px solid #7c3aed; padding-bottom: 15px; margin-bottom: 20px;">
+    <h1 style="color: #7c3aed; margin: 0;">FocusRunner AI</h1>
+    <p style="color: #666; margin: 5px 0 0;">AI-Powered Patient Acquisition</p>
+  </div>
+
+  <p>Hi {name},</p>
+
+  <p>Last week we mentioned our lead recovery framework. Here's how it works for practices like <strong>{practice}</strong>:</p>
+
+  <ul>
+    <li><strong>Capture</strong> — AI qualifies every lead in real-time (volume, spend, intent)</li>
+    <li><strong>Score</strong> — Hot leads get an SMS alert to your front desk within 60 seconds</li>
+    <li><strong>Reactivate</strong> — Cold leads enter our 3-touch automated sequence</li>
+  </ul>
+
+  <p>A Miami med spa using FocusRunner went from <strong>23 cold leads to 16 booked consults</strong> in just 14 days.</p>
+
+  <p><a href="https://focusrunner.io/case-studies/miami-recovery" style="background: #7c3aed; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; display: inline-block;">See the Full Case Study →</a></p>
+
+  <p>No catch. Just results.</p>
+
+  <p>— CEO, FocusRunner AI</p>
+
+  <div style="border-top: 1px solid #e5e5e5; padding-top: 15px; margin-top: 20px; font-size: 12px; color: #999;">
+    <p>FocusRunner AI · 15 qualified leads in 30 days or it's free</p>
+    <p><a href="https://focusrunner.io" style="color: #7c3aed;">focusrunner.io</a></p>
+  </div>
+</body>
+</html>"""
+
+
+def touch_3_sms_body() -> str:
+    """Touch 3: SMS — Day 7, last chance"""
+    return "Last chance for your free patient acquisition audit. 5 min setup at focusrunner.io/lead-capture"
+
+
+def touch_2_email_subject() -> str:
+    return "70% lead recovery — the playbook for your med spa"
+
+
+# ─── Core Sequence Logic ─────────────────────────────────────
+
+def get_cold_leads() -> list[dict]:
+    """Fetch leads with score LIKE 'cold%' from leads.db."""
+    conn = get_leads_conn()
     rows = conn.execute(
-        "SELECT status, COUNT(*) as cnt FROM reactivation_queue GROUP BY status"
+        "SELECT id, name, email, phone, practice, score, source FROM leads WHERE score LIKE 'cold%' ORDER BY created_at ASC"
     ).fetchall()
-    result["by_status"] = {r["status"]: r["cnt"] for r in rows}
-
-    # Total leads eligible
-    eligible = conn.execute(
-        "SELECT COUNT(*) FROM leads WHERE score LIKE 'cold%' OR score LIKE 'warm%'"
-    ).fetchone()[0]
-    result["eligible_leads"] = eligible
-    result["queued"] = sum(result["by_status"].values()) if result["by_status"] else 0
-    result["remaining"] = eligible - result["queued"]
-
-    # Next due
-    next_due = conn.execute(
-        """SELECT rq.next_touch, rq.scheduled_at, l.name, l.phone, l.email
-           FROM reactivation_queue rq
-           JOIN leads l ON l.id = rq.lead_id
-           WHERE rq.status = 'active'
-           ORDER BY rq.scheduled_at ASC
-           LIMIT 5"""
-    ).fetchall()
-    result["next_due"] = [dict(r) for r in next_due]
-
-    # Channels configured
-    result["sms_configured"] = ENABLE_SMS
-    result["email_configured"] = ENABLE_EMAIL
-
     conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_tracking_state(lead_id: str) -> dict | None:
+    """Get current tracking state for a lead, or None if not tracked."""
+    conn = get_react_conn()
+    row = conn.execute(
+        "SELECT * FROM reactivation_tracking WHERE lead_id = ?", (lead_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def upsert_tracking(lead_id: str, touch_field: str, timestamp: str):
+    """Insert or update the tracking record for a lead."""
+    conn = get_react_conn()
+    existing = conn.execute(
+        "SELECT lead_id FROM reactivation_tracking WHERE lead_id = ?", (lead_id,)
+    ).fetchone()
+
+    now = timestamp or datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+    if existing:
+        conn.execute(
+            f"UPDATE reactivation_tracking SET {touch_field} = ?, updated_at = ? WHERE lead_id = ?",
+            (now, now, lead_id),
+        )
+    else:
+        cols = ["lead_id", touch_field, "created_at", "updated_at"]
+        vals = [lead_id, now, now, now]
+        placeholders = ", ".join("?" for _ in cols)
+        conn.execute(
+            f"INSERT INTO reactivation_tracking ({', '.join(cols)}) VALUES ({placeholders})",
+            vals,
+        )
+    conn.commit()
+    conn.close()
+
+
+# ─── Send Functions (exported) ───────────────────────────────
+
+def send_touch_1(lead: dict, dry_run: bool = False) -> dict:
+    """
+    Touch 1 (Day 1): SMS to cold lead.
+    Reads leads with score like 'cold%'.
+    """
+    name = lead.get("name", "there")
+    practice = lead.get("practice", "your med spa")
+    phone = lead.get("phone", "")
+
+    if not phone or len(phone.strip()) < 5:
+        print(f"  [SKIP] {lead.get('id','?')[:12]} — no valid phone for SMS touch 1")
+        return {"status": "skipped", "reason": "no_phone"}
+
+    body = touch_1_sms_body(name, practice)
+    result = send_sms(phone, body, dry_run=dry_run)
+
+    if not dry_run and "error" not in result:
+        ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        upsert_tracking(lead["id"], "touch_1_sent", ts)
+        print(f"  ✓ Touch 1 (SMS) sent to {name} ({phone})")
+
     return result
 
 
-# ─── CLI ────────────────────────────────────────────────────
+def send_touch_2(lead: dict, dry_run: bool = False) -> dict:
+    """
+    Touch 2 (Day 3): Email with value proposition + case study link.
+    """
+    name = lead.get("name", "there")
+    practice = lead.get("practice", "your med spa")
+    email = lead.get("email", "")
+
+    if not email or "@" not in email:
+        print(f"  [SKIP] {lead.get('id','?')[:12]} — no valid email for touch 2")
+        return {"status": "skipped", "reason": "no_email"}
+
+    subject = touch_2_email_subject()
+    html_body = touch_2_email_html(name, practice)
+    result = send_email(email, subject, html_body, dry_run=dry_run)
+
+    if not dry_run and "error" not in result:
+        ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        upsert_tracking(lead["id"], "touch_2_sent", ts)
+        print(f"  ✓ Touch 2 (Email) sent to {name} ({email})")
+
+    return result
+
+
+def send_touch_3(lead: dict, dry_run: bool = False) -> dict:
+    """
+    Touch 3 (Day 7): SMS — last chance for free audit.
+    """
+    phone = lead.get("phone", "")
+
+    if not phone or len(phone.strip()) < 5:
+        print(f"  [SKIP] {lead.get('id','?')[:12]} — no valid phone for SMS touch 3")
+        return {"status": "skipped", "reason": "no_phone"}
+
+    body = touch_3_sms_body()
+    result = send_sms(phone, body, dry_run=dry_run)
+
+    if not dry_run and "error" not in result:
+        ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        upsert_tracking(lead["id"], "touch_3_sent", ts)
+        print(f"  ✓ Touch 3 (SMS) sent to {lead.get('name','?')} ({phone})")
+
+    return result
+
+
+# ─── Orchestrator ────────────────────────────────────────────
+
+def run_sequence(dry_run: bool = False) -> dict:
+    """
+    Run the full 3-touch reactivation sequence for all cold leads.
+    Touch 1: SMS (Day 1)
+    Touch 2: Email (Day 3)
+    Touch 3: SMS (Day 7)
+
+    In --dry-run mode: preview everything without sending.
+    In --run mode: sends Touch 1 now (Day 1). Touch 2 and 3
+                   are logged as scheduled — caller should run
+                   on Day 3 and Day 7 with the same command.
+    """
+    ensure_tracking_db()
+    leads = get_cold_leads()
+
+    if not leads:
+        print("No cold leads found in the database.")
+        return {"total": 0, "touch_1": 0, "touch_2": 0, "touch_3": 0, "skipped": 0}
+
+    mode = "DRY RUN" if dry_run else "LIVE"
+    print(f"\n{'='*60}")
+    print(f"  FocusRunner Lead Reactivation — {mode}")
+    print(f"{'='*60}")
+    print(f"  Cold leads found: {len(leads)}")
+    print(f"  SMS configured:   {SMS_CONFIGURED}")
+    print(f"  Email configured: {EMAIL_CONFIGURED}")
+    print(f"{'='*60}\n")
+
+    results = {"total": len(leads), "touch_1": 0, "touch_2": 0, "touch_3": 0, "skipped": 0}
+
+    for lead in leads:
+        lid = lead["id"][:12]
+        name = lead.get("name", "?") or "?"
+        print(f"\n  ── Lead: {lid} ({name}) ──")
+
+        # Check current tracking state
+        state = get_tracking_state(lead["id"])
+        t1 = state and state.get("touch_1_sent")
+        t2 = state and state.get("touch_2_sent")
+        t3 = state and state.get("touch_3_sent")
+
+        if t3:
+            print(f"  Already completed (all 3 touches sent). Skipping.")
+            continue
+
+        # Touch 1 — SMS (Day 1)
+        if not t1:
+            print(f"  [DAY 1] Sending Touch 1 (SMS)...")
+            r1 = send_touch_1(lead, dry_run=dry_run)
+            if r1.get("status") == "skipped":
+                results["skipped"] += 1
+            else:
+                results["touch_1"] += 1
+        else:
+            print(f"  Touch 1 already sent on {t1}")
+
+        # Touch 2 — Email (Day 3)
+        if t1 and not t2:
+            # Check if 3+ days have passed since touch 1
+            t1_dt = datetime.datetime.strptime(t1[:19], "%Y-%m-%d %H:%M:%S")
+            days_since_t1 = (datetime.datetime.utcnow() - t1_dt).days
+            if days_since_t1 >= 3 or dry_run:
+                print(f"  [DAY 3] Sending Touch 2 (Email)...")
+                r2 = send_touch_2(lead, dry_run=dry_run)
+                if r2.get("status") == "skipped":
+                    results["skipped"] += 1
+                else:
+                    results["touch_2"] += 1
+            else:
+                print(f"  Touch 2 due in {3 - days_since_t1} day(s) (Day 3)")
+        elif not t1:
+            print(f"  Touch 2 will be sent on Day 3 (after Touch 1)")
+        else:
+            print(f"  Touch 2 already sent on {t2}")
+
+        # Touch 3 — SMS (Day 7)
+        if t2 and not t3:
+            t2_dt = datetime.datetime.strptime(t2[:19], "%Y-%m-%d %H:%M:%S")
+            days_since_t2 = (datetime.datetime.utcnow() - t2_dt).days
+            if days_since_t2 >= 4 or dry_run:  # 7-3=4 days after touch 2
+                print(f"  [DAY 7] Sending Touch 3 (SMS)...")
+                r3 = send_touch_3(lead, dry_run=dry_run)
+                if r3.get("status") == "skipped":
+                    results["skipped"] += 1
+                else:
+                    results["touch_3"] += 1
+            else:
+                print(f"  Touch 3 due in {4 - days_since_t2} day(s) (Day 7)")
+        elif not t2:
+            print(f"  Touch 3 will be sent on Day 7 (after Touch 2)")
+        else:
+            print(f"  Touch 3 already sent on {t3}")
+
+    print(f"\n{'='*60}")
+    print(f"  RESULTS ({mode})")
+    print(f"{'='*60}")
+    print(f"  Total cold leads processed: {results['total']}")
+    print(f"  Touch 1 (SMS) sent:         {results['touch_1']}")
+    print(f"  Touch 2 (Email) sent:       {results['touch_2']}")
+    print(f"  Touch 3 (SMS) sent:         {results['touch_3']}")
+    print(f"  Skipped (no contact info):  {results['skipped']}")
+
+    if not SMS_CONFIGURED and not dry_run:
+        print(f"\n  ⚠  Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,")
+        print(f"     and TWILIO_PHONE_NUMBER env vars for live SMS sending.")
+
+    if not EMAIL_CONFIGURED and not dry_run:
+        print(f"\n  ⚠  Resend not configured. Set RESEND_API_KEY env var for live email sending.")
+
+    print(f"{'='*60}\n")
+
+    return results
+
+
+def show_status():
+    """Display current reactivation tracking state."""
+    ensure_tracking_db()
+
+    # Get tracking records from reactivation.db
+    conn = get_react_conn()
+    rows = conn.execute("SELECT * FROM reactivation_tracking ORDER BY updated_at DESC").fetchall()
+    conn.close()
+
+    # Enrich with lead info from leads.db
+    leads_conn = get_leads_conn()
+    lead_info = {}
+    for r in leads_conn.execute("SELECT id, name, email, phone, score, practice FROM leads").fetchall():
+        lead_info[r["id"]] = dict(r)
+    leads_conn.close()
+
+    enriched = []
+    for r in rows:
+        d = dict(r)
+        li = lead_info.get(d["lead_id"], {})
+        d["name"] = li.get("name", "")
+        d["email"] = li.get("email", "")
+        d["phone"] = li.get("phone", "")
+        d["score"] = li.get("score", "")
+        d["practice"] = li.get("practice", "")
+        enriched.append(d)
+
+    total = len(enriched)
+    t1_count = sum(1 for r in enriched if r["touch_1_sent"])
+    t2_count = sum(1 for r in enriched if r["touch_2_sent"])
+    t3_count = sum(1 for r in enriched if r["touch_3_sent"])
+
+    print(f"\n{'='*60}")
+    print(f"  Reactivation Tracking Status")
+    print(f"{'='*60}")
+    print(f"  Leads in tracking: {total}")
+    print(f"  Touch 1 sent:      {t1_count}")
+    print(f"  Touch 2 sent:      {t2_count}")
+    print(f"  Touch 3 sent:      {t3_count}")
+    print()
+
+    if enriched:
+        print(f"  {'LEAD ID':<16} {'NAME':<20} {'TOUCH 1':<20} {'TOUCH 2':<20} {'TOUCH 3':<20}")
+        print(f"  {'─'*16} {'─'*20} {'─'*20} {'─'*20} {'─'*20}")
+        for r in enriched:
+            lid = (r["lead_id"] or "?")[:12]
+            name = (r.get("name") or "?")[:18]
+            t1 = (r["touch_1_sent"] or "—")[:18]
+            t2 = (r["touch_2_sent"] or "—")[:18]
+            t3 = (r["touch_3_sent"] or "—")[:18]
+            print(f"  {lid:<16} {name:<20} {t1:<20} {t2:<20} {t3:<20}")
+
+    print()
+
+
+# ─── CLI ─────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="FocusRunner Lead Reactivation — 3-Touch SMS+Email Sequence"
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--dry-run", action="store_true",
+                       help="Preview the sequence without sending anything")
+    group.add_argument("--run", action="store_true",
+                       help="Execute the reactivation sequence")
+    group.add_argument("--status", action="store_true",
+                       help="Show reactivation tracking status")
+
+    args = parser.parse_args()
+
+    if args.status:
+        show_status()
+    elif args.run:
+        run_sequence(dry_run=False)
+    else:
+        # Default: dry-run
+        run_sequence(dry_run=True)
+
 
 if __name__ == "__main__":
-    ensure_tables()
-
-    cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
-    dry_run = "--dry-run" in sys.argv or "-n" in sys.argv
-
-    if cmd == "status":
-        s = status()
-        print("=== Reactivation Queue Status ===")
-        print(f"  Eligible cold/warm leads: {s['eligible_leads']}")
-        print(f"  In queue:                 {s['queued']}")
-        print(f"  Remaining to enqueue:     {s['remaining']}")
-        print(f"  By status:               ")
-        for st, cnt in s.get("by_status", {}).items():
-            print(f"    {st}: {cnt}")
-        print(f"  SMS configured:           {s['sms_configured']}")
-        print(f"  Email configured:         {s['email_configured']}")
-        if s["next_due"]:
-            print(f"  Next due touches:")
-            for nd in s["next_due"]:
-                print(f"    Touch {nd['next_touch']} -> {nd['name']} at {nd['scheduled_at'][:19]}")
-
-    elif cmd == "enqueue":
-        print("=== Enqueue Cold/Warm Leads ===")
-        s = enqueue_cold_leads(dry_run=dry_run)
-        print(f"  Found:       {s['found']}")
-        print(f"  Enqueued:    {s['enqueued']}")
-        print(f"  No contact:  {s['skipped_no_contact']}")
-        print(f"  Already in:  {s['already_in_queue']}")
-        if dry_run:
-            print("  (dry run — no changes made)")
-
-    elif cmd == "process":
-        print("=== Process Due Touches ===")
-        s = process_due(dry_run=dry_run)
-        print(f"  Due:                  {s['due']}")
-        print(f"  Sent:                 {s['sent']}")
-        print(f"  Completed sequences:  {s['completed']}")
-        print(f"  Skipped (no channel): {s['skipped_no_channel']}")
-        print(f"  Errors:               {s['errors']}")
-        if dry_run:
-            print("  (dry run — no changes made)")
-
-    elif cmd == "preview":
-        print("=== Preview: What Would Happen ===")
-        enqueue_cold_leads(dry_run=True)
-        process_due(dry_run=True)
-
-    else:
-        print(f"Unknown command: {cmd}")
-        print("Usage: python3 reactivation.py [status|enqueue|process|preview] [--dry-run]")
-        sys.exit(1)
+    main()

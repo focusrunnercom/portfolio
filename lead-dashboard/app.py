@@ -10,7 +10,7 @@ CLI: python3 app.py --send-sms "+1555..." --body "..."
      python3 app.py --list-leads
 """
 
-import json, os, uuid, hmac, hashlib, sqlite3, csv, io, datetime, logging, sys
+import json, os, uuid, hmac, sqlite3, csv, io, datetime, logging, sys, hashlib
 from pathlib import Path
 from datetime import datetime, timezone
 from flask import Flask, jsonify, request, render_template_string, make_response
@@ -25,6 +25,8 @@ logging.basicConfig(level=logging.INFO, format="[%(name)s] %(message)s")
 logger = logging.getLogger("fr")
 
 ADMIN_TOKEN = os.environ.get("ADMIN_API_KEY", "")
+if not ADMIN_TOKEN:
+    raise RuntimeError("ADMIN_API_KEY not set in environment — admin endpoints disabled. Export ADMIN_API_KEY=<key> before starting.")
 
 def _check_admin():
     token = (request.headers.get("X-Admin-Key", "")
@@ -68,15 +70,6 @@ def req_auth_json(f):
 # ── DB ──────────────────────────────────────────────────────────
 
 SCHEMA = """
-CREATE INDEX IF NOT EXISTS idx_tenants_api_key ON tenants(api_key_hash);
-CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
-CREATE INDEX IF NOT EXISTS idx_leads_tenant_score ON leads(tenant_id, score, created_at);
-CREATE INDEX IF NOT EXISTS idx_leads_tenant_created ON leads(tenant_id, created_at);
-CREATE TABLE IF NOT EXISTS leads (
-CREATE INDEX IF NOT EXISTS idx_tenants_api_key ON tenants(api_key_hash);
-CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
-CREATE INDEX IF NOT EXISTS idx_leads_tenant_score ON leads(tenant_id, score, created_at);
-CREATE INDEX IF NOT EXISTS idx_leads_tenant_created ON leads(tenant_id, created_at);
 CREATE TABLE IF NOT EXISTS leads (
     id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL DEFAULT 'default',
     name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '',
@@ -95,7 +88,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     lead_id TEXT NOT NULL, recipient TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'pending', message TEXT DEFAULT '',
     error TEXT DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    sent_at TEXT
+    sent_at TEXT, dedup_count INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS visits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,11 +102,8 @@ CREATE TABLE IF NOT EXISTS visits (
 );
 CREATE INDEX IF NOT EXISTS idx_visits_date ON visits(created_at);
 CREATE INDEX IF NOT EXISTS idx_visits_session ON visits(session_id);
-CREATE INDEX IF NOT EXISTS idx_tenants_api_key ON tenants(api_key_hash);
-CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
 CREATE INDEX IF NOT EXISTS idx_leads_tenant_score ON leads(tenant_id, score, created_at);
 CREATE INDEX IF NOT EXISTS idx_leads_tenant_created ON leads(tenant_id, created_at);
-CREATE TABLE IF NOT EXISTS leads (
 """
 
 def init_db():
@@ -239,6 +229,26 @@ def sms_alert(lead: dict):
 # ── Store ────────────────────────────────────────────────────────
 
 def store(lead: dict) -> str:
+    # ── Dedup: skip if same phone+name combo already exists ──
+    phone = (lead.get("phone") or "").strip()
+    if phone:
+        name = (lead.get("name") or "").strip().lower()
+        c = conn()
+        try:
+            existing = c.execute(
+                "SELECT id, name, source FROM leads WHERE phone = ? ORDER BY created_at DESC LIMIT 1",
+                (phone,),
+            ).fetchone()
+            if existing:
+                existing_name = (existing["name"] or "").strip().lower()
+                # Phone match + name matches (or incoming name is empty — just phone match)
+                if not name or not existing_name or name == existing_name:
+                    logger.info(f"[Dedup] Skipped — phone={phone}, name={lead.get('name')}, existing id={existing['id']}, existing source={existing['source']}")
+                    c.close()
+                    return existing["id"]
+        finally:
+            c.close()
+
     lid = str(uuid.uuid4())
     sl, sv, sd = score_lead(lead)
     qj = json.dumps({"score": sv, "detail": sd, "category": sl.split("_")[0]})
@@ -336,6 +346,41 @@ def webhook():
                  "source": data.get("source", "webhook")})
     if not lead.get("name") or not lead.get("phone"):
         return jsonify({"error": "name and phone required"}), 400
+    # ── Webhook dedup: name+phone (case-insensitive) ──
+    name_lower = lead.get("name", "").strip().lower()
+    phone_lower = lead.get("phone", "").strip().lower()
+    c = conn()
+    try:
+        existing = c.execute(
+            "SELECT id, score, qualification FROM leads WHERE LOWER(name) = ? AND LOWER(phone) = ?",
+            (name_lower, phone_lower),
+        ).fetchone()
+        if existing:
+            # Re-score and update qualification
+            sl, sv, sd = score_lead(lead)
+            qj = json.dumps({"score": sv, "detail": sd, "category": sl.split("_")[0]})
+            c.execute(
+                "UPDATE leads SET score = ?, qualification = ?, updated_at = datetime('now') WHERE id = ?",
+                (sl, qj, existing["id"]),
+            )
+            c.commit()
+            # Log dedup event
+            dedup_count = c.execute(
+                "SELECT COUNT(*) FROM notifications WHERE type = 'dedup' AND lead_id = ?",
+                (existing["id"],),
+            ).fetchone()[0]
+            c.execute(
+                "INSERT INTO notifications (type, lead_id, recipient, status, message, error, dedup_count) VALUES (?,?,?,?,?,?,?)",
+                ("dedup", existing["id"], "webhook", "deduped",
+                 f"Webhook dedup: name={lead.get('name')}, phone={lead.get('phone')}, new_score={sl}",
+                 "", dedup_count + 1),
+            )
+            c.commit()
+            c.close()
+            logger.info(f"[Webhook Dedup] Updated id={existing['id']}, name={lead.get('name')}, score={sl}")
+            return jsonify({"ok": True, "id": existing["id"], "dedup": True}), 200
+    finally:
+        c.close()
     lid = store(lead)
     return jsonify({"ok": True, "id": lid}), 201
 
@@ -447,6 +492,42 @@ def visitor_count():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ── Make.com Webhook ──────────────────────────────────────────────
+MAKE_TOKEN = os.environ.get("MAKE_WEBHOOK_TOKEN", "fr-make-webhook-2026")
+
+@app.route("/api/webhook/make/lead", methods=["POST"])
+def make_webhook_lead():
+    """Accept new lead from Make.com automation."""
+    token = request.headers.get("X-Make-Webhook-Token", "") or request.args.get("token", "")
+    if not hmac.compare_digest(token, MAKE_TOKEN):
+        return jsonify({"error": "Invalid webhook token"}), 401
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    lead = norm(data)
+    if not lead.get("name") or not (lead.get("phone") or lead.get("email")):
+        return jsonify({"error": "name and (phone or email) required"}), 400
+    lead_id = store_lead(lead)
+    notify_all(lead)
+    logger.info(f"Make webhook: lead {lead_id} - {lead['name']}")
+    return jsonify({"ok": True, "id": lead_id}), 201
+
+@app.route("/api/webhook/make/notify", methods=["POST"])
+def make_webhook_notify():
+    """Trigger a notification via Make.com."""
+    token = request.headers.get("X-Make-Webhook-Token", "") or request.args.get("token", "")
+    if not hmac.compare_digest(token, MAKE_TOKEN):
+        return jsonify({"error": "Invalid webhook token"}), 401
+    data = request.get_json(silent=True) or {}
+    ntype = data.get("type", "manual")
+    msg = data.get("message", "")
+    lead_id = data.get("lead_id", "")
+    try:
+        c = conn()
+        c.execute("INSERT INTO notifications (type, lead_id, recipient, status, message) VALUES (?, ?, 'make-webhook', 'triggered', ?)", (ntype, lead_id, msg))
+        c.commit(); c.close()
+    except Exception as e:
+        logger.warning(f"Make notify log fail: {e}")
+    return jsonify({"ok": True, "type": ntype}), 200
+
 @app.route("/api/health", methods=["GET"])
 @app.route("/health", methods=["GET"])
 def health():
@@ -490,7 +571,6 @@ TENANT_HEADER = "X-Tenant-Key"
 
 def _resolve_tenant():
     """Resolve tenant via X-Tenant-Key header. Returns (ok: bool, tenant_id: str|None)."""
-    import hashlib
     api_key = request.headers.get(TENANT_HEADER, "")
     if not api_key:
         return False, None
@@ -539,7 +619,7 @@ def create_tenant():
     try:
         c = conn()
         c.execute(
-            "INSERT INTO tenants (id, name, subdomain, api_key, api_key_hash, api_key_prefix) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO tenants (id, name, subdomain, api_key_hash, api_key_prefix) VALUES (?, ?, ?, ?, ?)",
             (tid, name, subdomain or "", raw_key, key_hash, key_prefix),
         )
         c.commit()
@@ -564,131 +644,64 @@ def tenant_get(tid):
     if not t:
         return jsonify({"error": "Tenant not found"}), 404
     return jsonify(dict(t))
-
-
-
 @app.route("/api/tenants/<tid>", methods=["GET"])
-
 @req_auth_json
-
 def get_tenant(tid):
-
     c = conn()
-
     t = c.execute("SELECT * FROM tenants WHERE id = ?", (tid,)).fetchone()
-
     c.close()
-
     if not t:
-
         return jsonify({"error": "Tenant not found"}), 404
-
     return jsonify(dict(t))
-
-
-
 @app.route("/api/tenants/<tid>/stats", methods=["GET"])
-
 @req_auth_json
-
 def tenant_stats(tid):
-
     c = conn()
-
     # Verify tenant exists
-
     t = c.execute("SELECT id, name FROM tenants WHERE id = ?", (tid,)).fetchone()
-
     if not t:
-
         c.close()
-
         return jsonify({"error": "Tenant not found"}), 404
-
     # Get lead stats for this tenant
-
     rows = c.execute("SELECT * FROM leads WHERE tenant_id = ? ORDER BY created_at DESC", (tid,)).fetchall()
-
     cols = [d[1] for d in c.execute("PRAGMA table_info(leads)").fetchall()]
-
     c.close()
-
     leads = [dict(zip(cols, r)) for r in rows]
-
     total = len(leads)
-
     now_dt = datetime.now(timezone.utc)
-
     funnel = {"captured": total, "scored": 0, "qualified": 0, "hot": 0}
-
     bucket = {"unscored": 0, "cold_0_24": 0, "warm_25_49": 0, "qualified_50_74": 0, "hot_75_100": 0}
-
     for l in leads:
-
         st = l.get("score", "unscored")
-
         if st != "unscored":
-
             funnel["scored"] += 1
-
             try: sc = int(st.split("_")[-1])
-
             except: sc = 0
-
             if sc >= 50: funnel["qualified"] += 1
-
             if sc >= 75: funnel["hot"] += 1
-
             if sc < 25: bucket["cold_0_24"] += 1
-
             elif sc < 50: bucket["warm_25_49"] += 1
-
             elif sc < 75: bucket["qualified_50_74"] += 1
-
             else: bucket["hot_75_100"] += 1
-
         else:
-
             bucket["unscored"] += 1
-
     return jsonify({
-
         "tenant": dict(t),
-
         "total_leads": total,
-
         "funnel": funnel,
-
         "score_distribution": bucket,
-
     })
-
-
-
 @app.route("/api/v2/leads", methods=["GET"])
-
 def list_leads_v2():
-
     """Multi-tenant lead list. Requires X-Tenant-Key header."""
-
     ok, tenant_id = _resolve_tenant()
-
     if not ok:
-
         return jsonify({"error": "Invalid or missing X-Tenant-Key", "status": 401}), 401
-
     c = conn()
-
     rows = c.execute("SELECT * FROM leads WHERE tenant_id = ? ORDER BY created_at DESC", (tenant_id,)).fetchall()
-
     names = [d[1] for d in c.execute("PRAGMA table_info(leads)").fetchall()]
-
     c.close()
-
     return jsonify({"tenant_id": tenant_id, "leads": [dict(zip(names, r)) for r in rows]})
-
-
-
 # ── CLI ─────────────────────────────────────────────────────────
 
 
