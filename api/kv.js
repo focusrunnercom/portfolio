@@ -191,9 +191,6 @@ function kvPath(key) {
   return fsAvailable ? pathModule.join(KV_DIR, safeName) : `memory:${safeName}`;
 }
 
-// In-memory storage for Edge Runtime (no /tmp access)
-const memoryStore = new Map();
-
 function kvGetFallback(key) {
   if (!fsAvailable) {
     return memoryStore.get(key) || null;
