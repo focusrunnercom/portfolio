@@ -421,9 +421,6 @@ export default async function handler(request) {
     console.error('[webhook] Email notification failed:', err.message);
   }
 
-  // --- Store in in-memory lead store (fallback notification) ---
-  storeLead(leadData);
-
   // --- SMS followup ---
   if (qualification && qualification.classification !== 'cold' && qualification.classification !== 'not_a_fit') {
     try {
