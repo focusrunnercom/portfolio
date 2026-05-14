@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/**/*.js": { "runtime": "nodejs18.x", "maxDuration": 30 },
+    "api/**/*.js": { "runtime": "nodejs20.x", "maxDuration": 30 },
     "api/**/*.py": { "runtime": "python3.12", "maxDuration": 30 }
   },
   "rewrites": [
@@ -16,7 +16,9 @@
     { "source": "/api/analytics", "destination": "/api/analytics.js" },
     { "source": "/api/health", "destination": "/api/health.js" },
     { "source": "/api/send-outreach", "destination": "/api/send-outreach.js" },
+    { "source": "/api/credentials", "destination": "/api/credentials.js" },
     { "source": "/api/ping", "destination": "/api/ping.js" },
+    { "source": "/admin/credentials", "destination": "/admin/credentials.html" },
     { "source": "/admin/leads/:path*", "destination": "/admin/leads.html" },
     { "source": "/admin/leads", "destination": "/admin/leads.html" },
     { "source": "/lead-capture-ai", "destination": "/lead-capture-ai.html" },
