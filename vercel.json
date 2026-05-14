@@ -13,6 +13,7 @@
     { "source": "/api/notify-status", "destination": "/api/notify-status.js" },
     { "source": "/api/lead-notify", "destination": "/api/lead-notify.js" },
     { "source": "/api/direct-qualify", "destination": "/api/direct-qualify.js" },
+    { "source": "/api/analytics", "destination": "/api/analytics.js" },
     { "source": "/api/health", "destination": "/api/health.js" },
     { "source": "/api/ping", "destination": "/api/ping.js" },
     { "source": "/admin/leads/:path*", "destination": "/admin/leads.html" },
