@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <defs>
+    <linearGradient id="skyline-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="60%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="city-glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="phone-clip">
+      <rect x="380" y="300" width="320" height="500" rx="40"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1080" fill="url(#skyline-grad)"/>
+  <rect width="1080" height="1080" fill="url(#city-glow)"/>
+
+  <!-- Skyline silhouette buildings -->
+  <g opacity="0.15" fill="#f59e0b">
+    <rect x="60" y="400" width="60" height="500"/>
+    <rect x="140" y="350" width="50" height="550"/>
+    <rect x="200" y="420" width="70" height="480"/>
+    <rect x="280" y="300" width="45" height="600"/>
+    <rect x="700" y="380" width="55" height="520"/>
+    <rect x="760" y="280" width="40" height="620"/>
+    <rect x="810" y="350" width="60" height="550"/>
+    <rect x="880" y="450" width="50" height="450"/>
+    <rect x="940" y="320" width="80" height="580"/>
+  </g>
+
+  <!-- Headline -->
+  <text x="540" y="180" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="80" fill="#f8fafc">
+    15 competitors in
+  </text>
+  <rect x="430" y="195" width="220" height="3" fill="#22c55e"/>
+  <text x="540" y="260" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="76" fill="#f59e0b">
+    2 miles.
+  </text>
+
+  <!-- Phone frame -->
+  <rect x="380" y="300" width="320" height="500" rx="45" fill="#1e293b" stroke="#334155" stroke-width="3"/>
+  <rect x="470" y="310" width="140" height="18" rx="9" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+
+  <!-- DM inbox inside phone -->
+  <g clip-path="url(#phone-clip)">
+    <rect x="380" y="340" width="320" height="460" fill="#0f172a"/>
+
+    <!-- DM rows -->
+    <g font-family="Inter, Helvetica, Arial, sans-serif">
+      <!-- DM 1 - unread -->
+      <rect x="380" y="340" width="320" height="70" fill="#1e293b"/>
+      <circle cx="420" cy="375" r="20" fill="#334155"/>
+      <rect x="448" y="348" width="100" height="10" rx="3" fill="#f8fafc" opacity="0.9"/>
+      <rect x="448" y="363" width="160" height="8" rx="3" fill="#64748b" opacity="0.6"/>
+      <rect x="448" y="375" width="130" height="8" rx="3" fill="#64748b" opacity="0.4"/>
+      <circle cx="370" cy="360" r="6" fill="#ef4444"/>
+      <text x="590" y="353" font-size="10" fill="#64748b">3h ago</text>
+
+      <!-- DM 2 -->
+      <rect x="380" y="410" width="320" height="70" fill="#0f172a"/>
+      <circle cx="420" cy="445" r="20" fill="#334155"/>
+      <rect x="448" y="418" width="120" height="10" rx="3" fill="#f8fafc" opacity="0.7"/>
+      <rect x="448" y="433" width="140" height="8" rx="3" fill="#64748b" opacity="0.5"/>
+      <rect x="448" y="445" width="100" height="8" rx="3" fill="#64748b" opacity="0.3"/>
+      <text x="585" y="423" font-size="10" fill="#64748b">8h ago</text>
+
+      <!-- DM 3 -->
+      <rect x="380" y="480" width="320" height="70" fill="#1e293b"/>
+      <circle cx="420" cy="515" r="20" fill="#334155"/>
+      <rect x="448" y="488" width="90" height="10" rx="3" fill="#f8fafc" opacity="0.8"/>
+      <rect x="448" y="503" width="135" height="8" rx="3" fill="#64748b" opacity="0.5"/>
+      <text x="592" y="493" font-size="10" fill="#64748b">Yesterday</text>
+
+      <!-- DM 4 -->
+      <rect x="380" y="550" width="320" height="70" fill="#0f172a"/>
+      <circle cx="420" cy="585" r="20" fill="#334155"/>
+      <rect x="448" y="558" width="110" height="10" rx="3" fill="#f8fafc" opacity="0.7"/>
+      <rect x="448" y="573" width="95" height="8" rx="3" fill="#64748b" opacity="0.4"/>
+
+      <!-- DM 5 -->
+      <rect x="380" y="620" width="320" height="70" fill="#1e293b"/>
+      <circle cx="420" cy="655" r="20" fill="#334155"/>
+      <rect x="448" y="628" width="105" height="10" rx="3" fill="#f8fafc" opacity="0.8"/>
+    </g>
+  </g>
+
+  <!-- Accent line below phone -->
+  <rect x="460" y="840" width="160" height="4" rx="2" fill="#22c55e"/>
+  <text x="540" y="885" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="400" font-size="24" fill="#22c55e">
+    AI response ⟶ 90 seconds
+  </text>
+
+  <!-- FocusRunner logo bottom -->
+  <text x="540" y="980" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="300" font-size="14" fill="#475569" letter-spacing="4">
+    FOCUSRUNNER
+  </text>
+</svg>
