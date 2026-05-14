@@ -1,4 +1,8 @@
 {
+  "rewrites": [
+    { "source": "/admin/leads", "destination": "/admin/leads.html" },
+    { "source": "/admin/leads/:match(.*)", "destination": "/admin/leads.html" }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",

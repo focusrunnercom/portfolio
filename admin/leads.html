@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FocusRunner — Lead Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e;
+    --ink-faint: #3f4a43; --bg: #0d120f; --bg-2: #0f1412;
+    --line: #1a2620; --line-bright: #2a3f33;
+    --hot: #ff5c4d; --warm: #ffb547; --cold: #4d7aff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; padding: 24px; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .header h1 { font-size: 18px; font-weight: 700; color: var(--phos); }
+  .header .sub { font-size: 11px; color: var(--ink-faint); }
+  .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .controls input, .controls select {
+    background: var(--bg-2); border: 1px solid var(--line); color: var(--ink);
+    padding: 6px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; outline: none;
+  }
+  .controls input:focus, .controls select:focus { border-color: var(--phos); }
+  .controls .btn {
+    background: var(--phos); color: #000; border: none; padding: 6px 14px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .controls .btn:hover { background: #8affa0; }
+  .controls .btn-outline {
+    background: transparent; color: var(--ink); border: 1px solid var(--line-bright);
+    padding: 6px 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; cursor: pointer;
+  }
+  .controls .btn-outline:hover { border-color: var(--phos); color: var(--phos); }
+
+  /* Stats row */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-bottom: 24px; }
+  .stat { background: var(--bg); padding: 16px; text-align: center; }
+  .stat .val { font-size: 28px; font-weight: 700; }
+  .stat .lbl { font-size: 10px; color: var(--ink-faint); margin-top: 4px; }
+  .stat .val.hot { color: var(--hot); }
+  .stat .val.warm { color: var(--warm); }
+  .stat .val.cold { color: var(--cold); }
+  .stat .val.total { color: var(--phos); }
+  .stat .val.chat { color: #8affa0; }
+  .stat .val.form { color: var(--ink-dim); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 700; color: var(--ink-dim); background: var(--bg-2); border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
+  th:hover { color: var(--phos); }
+  th .sort-dir { font-size: 10px; margin-left: 4px; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg-2); }
+
+  .score { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+  .score .bar { width: 60px; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .score .bar-inner { height: 100%; border-radius: 2px; transition: width .3s; }
+  .score .bar-inner.hot { background: var(--hot); }
+  .score .bar-inner.warm { background: var(--warm); }
+  .score .bar-inner.cold { background: var(--cold); }
+
+  .badge { display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 700; }
+  .badge.qualified { background: var(--phos); color: #000; }
+  .badge.contacted { background: var(--warm); color: #000; }
+  .badge.new { background: var(--ink-faint); color: var(--ink); }
+
+  .source-badge { font-size: 10px; color: var(--ink-faint); }
+  .source-badge.chat { color: #8affa0; }
+  .source-badge.form { color: var(--cold); }
+
+  .summary-cell { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-dim); font-size: 11px; }
+
+  .timestamp { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+
+  .empty { text-align: center; padding: 48px; color: var(--ink-faint); font-size: 14px; }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+    background: var(--phos); color: #000; font-size: 12px; font-weight: 500;
+    display: none; z-index: 999;
+  }
+  .toast.error { background: var(--hot); }
+  .toast.show { display: block; animation: fadeIn .2s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    .stats { grid-template-columns: repeat(3, 1fr); }
+    .controls { flex-direction: column; align-items: stretch; }
+    .controls input, .controls select { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>>_ FocusRunner · Lead Dashboard</h1>
+    <div class="sub">Real-time pipeline — updated on load</div>
+  </div>
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="search name, phone, email..." oninput="filterTable()">
+    <select id="statusFilter" onchange="filterTable()">
+      <option value="all">All</option>
+      <option value="new">New</option>
+      <option value="contacted">Contacted</option>
+      <option value="qualified">Qualified</option>
+    </select>
+    <select id="scoreFilter" onchange="filterTable()">
+      <option value="all">Any Score</option>
+      <option value="hot">Hot (70+)</option>
+      <option value="warm">Warm (40-69)</option>
+      <option value="cold">Cold (0-39)</option>
+    </select>
+    <button class="btn" onclick="loadLeads()">↻ Refresh</button>
+  </div>
+</div>
+
+<div class="stats" id="statsRow">
+  <div class="stat"><div class="val total" id="statTotal">—</div><div class="lbl">Total Leads</div></div>
+  <div class="stat"><div class="val hot" id="statHot">0</div><div class="lbl">Hot (70+)</div></div>
+  <div class="stat"><div class="val warm" id="statWarm">0</div><div class="lbl">Warm (40-69)</div></div>
+  <div class="stat"><div class="val cold" id="statCold">0</div><div class="lbl">Cold (0-39)</div></div>
+  <div class="stat"><div class="val chat" id="statChat">0</div><div class="lbl">From Chat</div></div>
+  <div class="stat"><div class="val form" id="statForm">0</div><div class="lbl">From Form</div></div>
+</div>
+
+<div class="table-wrap" id="tableWrap">
+  <table>
+    <thead>
+      <tr>
+        <th onclick="sortBy('name')">Name <span class="sort-dir" id="s-name"></span></th>
+        <th onclick="sortBy('score')">Score <span class="sort-dir" id="s-score"></span></th>
+        <th onclick="sortBy('phone')">Phone <span class="sort-dir" id="s-phone"></span></th>
+        <th onclick="sortBy('email')">Email <span class="sort-dir" id="s-email"></span></th>
+        <th onclick="sortBy('practice')">Practice <span class="sort-dir" id="s-practice"></span></th>
+        <th onclick="sortBy('source')">Source <span class="sort-dir" id="s-source"></span></th>
+        <th>Service</th>
+        <th onclick="sortBy('timeline')">Timeline <span class="sort-dir" id="s-timeline"></span></th>
+        <th>Summary</th>
+        <th onclick="sortBy('created_at')">Captured <span class="sort-dir" id="s-created_at"></span></th>
+      </tr>
+    </thead>
+    <tbody id="leadsBody"></tbody>
+  </table>
+</div>
+<div class="empty" id="emptyState" style="display:none;">No leads yet. Chat widget is active — leads will appear here.</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// --- Auth ---
+function getToken() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('token') || localStorage.getItem('fr_admin_token') || '';
+}
+
+function setToken(t) {
+  localStorage.setItem('fr_admin_token', t);
+}
+
+// --- State ---
+let leads = [];
+let sortField = 'created_at';
+let sortDir = -1;
+
+function scoreClass(s) {
+  if (s >= 70) return 'hot';
+  if (s >= 40) return 'warm';
+  return 'cold';
+}
+
+function timeAgo(iso) {
+  const ms = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  return days + 'd ago';
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || '') + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// --- Load ---
+async function loadLeads() {
+  const token = getToken();
+  if (!token) {
+    const input = prompt('Enter admin token:');
+    if (!input) { showToast('Token required', 'error'); return; }
+    setToken(input);
+    return loadLeads();
+  }
+
+  try {
+    const res = await fetch('/api/leads?token=' + encodeURIComponent(token));
+    if (res.status === 401) {
+      localStorage.removeItem('fr_admin_token');
+      showToast('Unauthorized — re-enter token', 'error');
+      return loadLeads();
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    leads = data.leads || [];
+    renderStats(data.stats);
+    renderTable();
+  } catch (e) {
+    showToast('Load failed: ' + e.message, 'error');
+  }
+}
+
+// --- Stats ---
+function renderStats(stats) {
+  if (!stats) {
+    const s = { total: leads.length, qualified: 0, warm: 0, cold: 0, chat_sourced: 0, form_sourced: 0 };
+    leads.forEach(l => {
+      const sc = l.qualification_score || 0;
+      if (sc >= 70) s.qualified++;
+      else if (sc >= 40) s.warm++;
+      else s.cold++;
+      if ((l.source || '').includes('chat')) s.chat_sourced++;
+      if ((l.source || '').includes('form')) s.form_sourced++;
+    });
+    stats = s;
+  }
+  document.getElementById('statTotal').textContent = stats.total || 0;
+  document.getElementById('statHot').textContent = stats.qualified || 0;
+  document.getElementById('statWarm').textContent = stats.warm || 0;
+  document.getElementById('statCold').textContent = stats.cold || 0;
+  document.getElementById('statChat').textContent = stats.chat_sourced || 0;
+  document.getElementById('statForm').textContent = stats.form_sourced || 0;
+}
+
+// --- Filter + Sort ---
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  const score = document.getElementById('scoreFilter').value;
+
+  let filtered = leads.filter(l => {
+    if (q && !(l.name||'').toLowerCase().includes(q) && !(l.phone||'').includes(q) && !(l.email||'').toLowerCase().includes(q)) return false;
+    if (status !== 'all' && (l.status||'new') !== status) return false;
+    const sc = l.qualification_score || 0;
+    if (score === 'hot' && sc < 70) return false;
+    if (score === 'warm' && (sc < 40 || sc >= 70)) return false;
+    if (score === 'cold' && sc >= 40) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    let va = a[sortField] || '';
+    let vb = b[sortField] || '';
+    if (sortField === 'score') { va = a.qualification_score || 0; vb = b.qualification_score || 0; }
+    if (sortField === 'created_at') { va = new Date(a.created_at||0).getTime(); vb = new Date(b.created_at||0).getTime(); }
+    if (typeof va === 'string') return sortDir * va.localeCompare(vb);
+    return sortDir * (va - vb);
+  });
+
+  renderRows(filtered);
+}
+
+function sortBy(field) {
+  if (field === sortField) sortDir *= -1;
+  else { sortField = field; sortDir = -1; }
+  document.querySelectorAll('.sort-dir').forEach(el => el.textContent = '');
+  const el = document.getElementById('s-' + field);
+  if (el) el.textContent = sortDir === -1 ? '▼' : '▲';
+  filterTable();
+}
+
+// --- Render ---
+function renderTable() {
+  sortBy(sortField);
+}
+
+function renderRows(rows) {
+  const tbody = document.getElementById('leadsBody');
+  const empty = document.getElementById('emptyState');
+
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = rows.map(l => {
+    const sc = l.qualification_score || 0;
+    const cls = scoreClass(sc);
+    const src = (l.source || '').toLowerCase();
+    const srcClass = src.includes('chat') ? 'chat' : src.includes('form') ? 'form' : '';
+    const srcLabel = src.includes('chat') ? 'chatbot' : src.includes('form') ? 'form' : l.source || '—';
+
+    return `<tr>
+      <td style="font-weight:500">${esc(l.name) || '—'}</td>
+      <td>
+        <div class="score">
+          <span style="color:var(--${cls})">${sc}</span>
+          <div class="bar"><div class="bar-inner ${cls}" style="width:${sc}%"></div></div>
+        </div>
+      </td>
+      <td style="font-size:11px;color:var(--ink-dim)">${esc(l.phone) || '—'}</td>
+      <td style="font-size:11px;color:var(--ink-dim)">${esc(l.email) || '—'}</td>
+      <td>${esc(l.practice) || '—'}</td>
+      <td><span class="source-badge${srcClass ? ' ' + srcClass : ''}">${srcLabel}</span></td>
+      <td style="font-size:11px;color:var(--ink-dim)">${esc(l.service_interest) || '—'}</td>
+      <td style="font-size:11px">${esc(timelineLabel(l.timeline))}</td>
+      <td class="summary-cell" title="${esc(l.summary||'')}">${esc(l.summary) || '—'}</td>
+      <td class="timestamp" title="${formatDate(l.created_at)}">${timeAgo(l.created_at)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function timelineLabel(t) {
+  if (!t) return '—';
+  const m = { immediate: 'now', within_month: '30d', exploring: 'looking' };
+  return m[t] || t;
+}
+
+// --- Init ---
+loadLeads();
+setInterval(loadLeads, 60000); // auto-refresh every 60s
+</script>
+</body>
+</html>
