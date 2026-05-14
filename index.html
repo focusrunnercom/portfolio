@@ -381,7 +381,7 @@
     <div class="section-intro"><h2>The Offer Stack</h2><p>Everything you need to fill your patient pipeline. One price. No surprises.</p></div>
     <div class="stack-grid">
       <div class="stack-card"><h3>Free Audit</h3><div class="price">$0</div><div class="desc">See how many patients you're leaving on the table.</div><ul class="features"><li>Market analysis</li><li>Competitor breakdown</li><li>Lead gap report</li><li>30-min strategy call</li></ul></div>
-      <div class="stack-card featured"><div class="tag">RECOMMENDED</div><h3>AI Patient Acquisition System</h3><div class="price">$2,500 <span>setup</span></div><div class="price" style="font-size:24px;">+ $1,500 <span>/mo</span></div><div class="desc">Complete patient acquisition stack.</div><ul class="features"><li>High-converting landing page</li><li>AI Chatbot — lead qualification 24/7</li><li>SMS + Email follow-up sequences</li><li>CRM pipeline with booking tracking</li><li>Monthly optimization</li><li>30-day guarantee</li></ul></div>
+      <div class="stack-card featured"><div class="tag">RECOMMENDED</div><h3>AI Patient Acquisition System</h3><div class="price">$2,500 <span>setup</span></div><div class="price" style="font-size:24px;">+ $1,500 <span>/mo</span></div><div class="desc">Complete patient acquisition stack. 15 qualified leads in 30 days or it's free.</div><ul class="features"><li>High-converting landing page</li><li>AI Chatbot — lead qualification 24/7</li><li>SMS + Email follow-up sequences</li><li>CRM pipeline with booking tracking</li><li>Monthly optimization &amp; reporting</li><li>15 leads in 30 days guarantee</li></ul></div>
       <div class="stack-card"><h3>Ads Management</h3><div class="price">+$1,000 <span>/mo</span></div><div class="desc">Google + Meta ads on top of core system.</div><ul class="features"><li>Ad creative &amp; copy</li><li>Audience targeting</li><li>Weekly optimization</li><li>ROAS reporting</li></ul></div>
     </div>
   </div>
@@ -680,6 +680,21 @@ function toggleCase(id) {
 if (window.location.hash === '#case-techstyle') {
   setTimeout(function() { toggleCase('case-card-techstyle'); }, 300);
 }
+
+// ===== PAGE VISIT TRACKING =====
+(function() {
+  var ref = document.referrer || 'direct';
+  var src = ref.includes('google.') ? 'google' : ref.includes('facebook.') || ref.includes('meta.') ? 'meta' : ref.includes('instagram.') ? 'instagram' : ref ? 'referral' : 'direct';
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon('/api/webhook', JSON.stringify({
+      event: 'page_visit',
+      source: src,
+      referrer: ref,
+      url: window.location.href,
+      ts: new Date().toISOString()
+    }));
+  }
+})();
 
 // Mobile menu toggle
 function toggleMenu() {
