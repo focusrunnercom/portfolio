@@ -257,6 +257,37 @@
   </div>
 
   <script>
+    // ─── Session ID ──────────────────────────
+    function getSessionId() {
+      var sid = localStorage.getItem('fr_session_id');
+      if (!sid) {
+        sid = crypto.randomUUID();
+        localStorage.setItem('fr_session_id', sid);
+      }
+      return sid;
+    }
+
+    // ─── UTM Auto-Tracking (fire-and-forget) ──
+    (function trackVisit() {
+      var params = new URLSearchParams(window.location.search);
+      var payload = {
+        page: window.location.pathname,
+        referer: document.referrer || '',
+        utm_source: params.get('utm_source') || params.get('source') || 'direct',
+        utm_medium: params.get('utm_medium') || '',
+        utm_campaign: params.get('utm_campaign') || '',
+        utm_content: params.get('utm_content') || '',
+        utm_term: params.get('utm_term') || '',
+        session_id: getSessionId()
+      };
+      fetch('http://127.0.0.1:5000/api/track', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      }).catch(function(){});
+    })();
+
+    // ─── Lead Capture ──────────────────────────
     function submitForm() {
       var name = document.getElementById('name').value.trim();
       var email = document.getElementById('email').value.trim();
@@ -276,9 +307,8 @@
       btn.textContent = 'Sending...';
       status.className = 'status';
 
-      // POST to Cloudflare tunnel -> Flask backend — Vercel API dependency killed
-      var api_url = 'https://density-absent-inflation-arthur.trycloudflare.com/api/lead';
-      fetch(api_url, {
+      // POST directly to Flask backend — no Cloudflare tunnel
+      fetch('http://127.0.0.1:5000/api/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -288,6 +318,10 @@
           practice: practice,
           volume: volume,
           source: 'lead_capture_standalone',
+          utm_source: new URLSearchParams(window.location.search).get('utm_source') || '',
+          utm_medium: new URLSearchParams(window.location.search).get('utm_medium') || '',
+          utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign') || '',
+          session_id: getSessionId(),
           timestamp: new Date().toISOString()
         })
       })
