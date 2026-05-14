@@ -10,7 +10,7 @@ CLI: python3 app.py --send-sms "+1555..." --body "..."
      python3 app.py --list-leads
 """
 
-import json, os, uuid, hmac, sqlite3, csv, io, datetime, logging, sys
+import json, os, uuid, hmac, hashlib, sqlite3, csv, io, datetime, logging, sys
 from pathlib import Path
 from datetime import datetime, timezone
 from flask import Flask, jsonify, request, render_template_string, make_response
@@ -24,10 +24,13 @@ DB_PATH = BASE_DIR / "leads.db"
 logging.basicConfig(level=logging.INFO, format="[%(name)s] %(message)s")
 logger = logging.getLogger("fr")
 
-ADMIN_TOKEN = os.environ.get("ADMIN_API_KEY") or os.environ.get("LEAD_DASHBOARD_ADMIN_TOKEN") or "focusrunner-admin-2026"
+ADMIN_TOKEN = os.environ.get("ADMIN_API_KEY", "")
 
 def _check_admin():
-    token = request.headers.get("X-Admin-Key", "") or request.headers.get("X-Admin-Token", "") or request.args.get("token", "")
+    token = (request.headers.get("X-Admin-Key", "")
+             or request.headers.get("Authorization", "").replace("Bearer ", "")
+             or request.headers.get("X-Admin-Token", "")
+             or request.args.get("token", ""))
     return bool(token) and hmac.compare_digest(token, ADMIN_TOKEN)
 
 def req_auth_html(f):
@@ -65,6 +68,24 @@ def req_auth_json(f):
 # ── DB ──────────────────────────────────────────────────────────
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS tenants (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    subdomain TEXT UNIQUE DEFAULT '',
+    api_key TEXT UNIQUE DEFAULT '',
+    api_key_hash TEXT DEFAULT '',
+    api_key_prefix TEXT DEFAULT '',
+    settings_json TEXT DEFAULT '{}',
+    ghl_api_key TEXT DEFAULT '',
+    ghl_location_id TEXT DEFAULT '',
+    sms_webhook_url TEXT DEFAULT '',
+    telegram_chat_id TEXT DEFAULT '',
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_tenants_api_key ON tenants(api_key);
+CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
 CREATE TABLE IF NOT EXISTS leads (
     id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL DEFAULT 'default',
     name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '',
@@ -84,6 +105,21 @@ CREATE TABLE IF NOT EXISTS notifications (
     status TEXT NOT NULL DEFAULT 'pending', message TEXT DEFAULT '',
     error TEXT DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')),
     sent_at TEXT
+);
+CREATE TABLE IF NOT EXISTS tenants (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    subdomain TEXT UNIQUE,
+    api_key_hash TEXT NOT NULL,
+    api_key_prefix TEXT NOT NULL,
+    settings_json TEXT DEFAULT '{}',
+    ghl_api_key TEXT DEFAULT '',
+    ghl_location_id TEXT DEFAULT '',
+    sms_webhook_url TEXT DEFAULT '',
+    telegram_chat_id TEXT DEFAULT '',
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 """
 
@@ -414,8 +450,9 @@ def health():
     try:
         c = conn()
         cnt = c.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
+        ghl_ok = bool(os.environ.get("GHL_API_KEY", ""))
         c.close()
-        return jsonify({"status": "ok", "leads_count": cnt, "twilio_configured": TW_OK})
+        return jsonify({"status": "ok", "leads_count": cnt, "telegram_configured": bool(TG_TOKEN), "twilio_configured": TW_OK, "ghl_configured": ghl_ok})
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
@@ -443,7 +480,212 @@ def static_file(filename):
     if fp.is_file(): return fp.read_text()
     return "Not found", 404
 
+# ── Tenant Auth ─────────────────────────────────────────────────
+
+TENANT_HEADER = "X-Tenant-Key"
+
+
+def _resolve_tenant():
+    """Resolve tenant via X-Tenant-Key header. Returns (ok: bool, tenant_id: str|None)."""
+    import hashlib
+    api_key = request.headers.get(TENANT_HEADER, "")
+    if not api_key:
+        return False, None
+    key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+    try:
+        c = conn()
+        t = c.execute(
+            "SELECT id, name FROM tenants WHERE api_key_hash = ? AND is_active = 1",
+            (key_hash,),
+        ).fetchone()
+        c.close()
+        if t:
+            return True, t["id"]
+        return False, None
+    except Exception:
+        return False, None
+
+
+# ── Tenant API Routes ─────────────────────────────────────────
+
+
+@app.route("/api/tenants", methods=["GET"])
+@req_auth_json
+def list_tenants():
+    c = conn()
+    rows = c.execute(
+        "SELECT id, name, subdomain, api_key_prefix, is_active, created_at FROM tenants ORDER BY created_at DESC"
+    ).fetchall()
+    c.close()
+    return jsonify({"tenants": [dict(r) for r in rows]})
+
+
+@app.route("/api/tenants", methods=["POST"])
+@req_auth_json
+def create_tenant():
+    import hashlib
+    data = request.get_json(silent=True) or {}
+    name = data.get("name", "").strip()
+    subdomain = data.get("subdomain", "").strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    tid = "tenant_" + str(uuid.uuid4())[:8]
+    raw_key = f"fr_{uuid.uuid4().hex[:24]}"
+    key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+    key_prefix = raw_key[:8]
+    try:
+        c = conn()
+        c.execute(
+            "INSERT INTO tenants (id, name, subdomain, api_key_hash, api_key_prefix) VALUES (?, ?, ?, ?, ?)",
+            (tid, name, subdomain or None, key_hash, key_prefix),
+        )
+        c.commit()
+        c.close()
+        logger.info(f"Tenant created: {tid} - {name}")
+        return jsonify({"id": tid, "name": name, "subdomain": subdomain, "api_key": raw_key}), 201
+    except Exception as e:
+        return jsonify({"error": f"Duplicate or DB error: {e}"}), 409
+
+
+@app.route("/api/tenants/<tid>", methods=["GET"])
+@req_auth_json
+def tenant_get(tid):
+    c = conn()
+    t = c.execute(
+        "SELECT id, name, subdomain, api_key_prefix, is_active, created_at FROM tenants WHERE id = ?",
+        (tid,),
+    ).fetchone()
+    c.close()
+    if not t:
+        return jsonify({"error": "Tenant not found"}), 404
+    return jsonify(dict(t))
+
+
+
+@app.route("/api/tenants/<tid>", methods=["GET"])
+
+@req_auth_json
+
+def get_tenant(tid):
+
+    c = conn()
+
+    t = c.execute("SELECT * FROM tenants WHERE id = ?", (tid,)).fetchone()
+
+    c.close()
+
+    if not t:
+
+        return jsonify({"error": "Tenant not found"}), 404
+
+    return jsonify(dict(t))
+
+
+
+@app.route("/api/tenants/<tid>/stats", methods=["GET"])
+
+@req_auth_json
+
+def tenant_stats(tid):
+
+    c = conn()
+
+    # Verify tenant exists
+
+    t = c.execute("SELECT id, name FROM tenants WHERE id = ?", (tid,)).fetchone()
+
+    if not t:
+
+        c.close()
+
+        return jsonify({"error": "Tenant not found"}), 404
+
+    # Get lead stats for this tenant
+
+    rows = c.execute("SELECT * FROM leads WHERE tenant_id = ? ORDER BY created_at DESC", (tid,)).fetchall()
+
+    cols = [d[1] for d in c.execute("PRAGMA table_info(leads)").fetchall()]
+
+    c.close()
+
+    leads = [dict(zip(cols, r)) for r in rows]
+
+    total = len(leads)
+
+    now_dt = datetime.now(timezone.utc)
+
+    funnel = {"captured": total, "scored": 0, "qualified": 0, "hot": 0}
+
+    bucket = {"unscored": 0, "cold_0_24": 0, "warm_25_49": 0, "qualified_50_74": 0, "hot_75_100": 0}
+
+    for l in leads:
+
+        st = l.get("score", "unscored")
+
+        if st != "unscored":
+
+            funnel["scored"] += 1
+
+            try: sc = int(st.split("_")[-1])
+
+            except: sc = 0
+
+            if sc >= 50: funnel["qualified"] += 1
+
+            if sc >= 75: funnel["hot"] += 1
+
+            if sc < 25: bucket["cold_0_24"] += 1
+
+            elif sc < 50: bucket["warm_25_49"] += 1
+
+            elif sc < 75: bucket["qualified_50_74"] += 1
+
+            else: bucket["hot_75_100"] += 1
+
+        else:
+
+            bucket["unscored"] += 1
+
+    return jsonify({
+
+        "tenant": dict(t),
+
+        "total_leads": total,
+
+        "funnel": funnel,
+
+        "score_distribution": bucket,
+
+    })
+
+
+
+@app.route("/api/v2/leads", methods=["GET"])
+
+def list_leads_v2():
+
+    """Multi-tenant lead list. Requires X-Tenant-Key header."""
+
+    ok, tenant_id = _resolve_tenant()
+
+    if not ok:
+
+        return jsonify({"error": "Invalid or missing X-Tenant-Key", "status": 401}), 401
+
+    c = conn()
+
+    rows = c.execute("SELECT * FROM leads WHERE tenant_id = ? ORDER BY created_at DESC", (tenant_id,)).fetchall()
+
+    names = [d[1] for d in c.execute("PRAGMA table_info(leads)").fetchall()]
+
+    c.close()
+
+    return jsonify({"tenant_id": tenant_id, "leads": [dict(zip(names, r)) for r in rows]})
+
+
+
 # ── CLI ─────────────────────────────────────────────────────────
+
 
 def cli():
     import argparse
