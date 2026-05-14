@@ -8,7 +8,7 @@
  *
  * Features:
  * - Per-client AI config (model, temperature, max_tokens) via KV
- * - AbortController timeout (15s) for DeepSeek API calls
+ * - AbortController timeout (8s) for DeepSeek API calls
  * - Multi-strategy JSON extraction (fenced block, bare JSON, multi-line fragment)
  * - Returns 504 on timeout instead of generic 502
  * - Validates required fields (name, phone) — returns 400 if missing
@@ -330,7 +330,7 @@ async function handler(request) {
   } catch (err) {
     // Timeout or network error → serve cached fallback
     if (err.name === 'AbortError') {
-      console.error('[chat] AI API timeout after 15s — serving fallback response');
+      console.error('[chat] AI API timeout — serving fallback response');
     } else {
       console.error(`[chat] AI API error: ${err.message} — serving fallback response`);
     }

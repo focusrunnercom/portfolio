@@ -176,7 +176,7 @@ function jsonResponse(data, status) {
 // Handler
 // =============================================================================
 
-export default async function handler(request) {
+async function handler(request) {
   // CORS preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -245,3 +245,5 @@ export default async function handler(request) {
       : 'Lead received but GHL forwarding failed',
   }, httpStatus);
 }
+
+module.exports = handler;

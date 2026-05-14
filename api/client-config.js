@@ -29,7 +29,7 @@
  *   }
  */
 
-const { kvGet, kvSet, kvDel } = require('./kv');
+const { kvGet, kvSet, kvDel } = require('./kv.js');
 
 // =============================================================================
 // Constants
@@ -57,12 +57,12 @@ function validateClientId(clientId) {
   return null;
 }
 
-function requireAdminKey(request) {
+function requireAdminKey(req) {
   if (!ADMIN_KEY) {
     console.warn('[client-config] ADMIN_API_KEY not set — admin endpoints disabled');
     return { allowed: false, reason: 'Admin API not configured' };
   }
-  const clientKey = request.headers.get('x-admin-key') || '';
+  const clientKey = req.headers['x-admin-key'] || '';
   if (clientKey !== ADMIN_KEY) {
     return { allowed: false, reason: 'Invalid or missing X-Admin-Key' };
   }
@@ -78,10 +78,19 @@ function corsHeaders() {
   };
 }
 
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: corsHeaders(),
+// =============================================================================
+// Body parser for CJS (req stream)
+// =============================================================================
+
+function parseBody(req) {
+  return new Promise(function(resolve, reject) {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', function() {
+      try { resolve(JSON.parse(body)); }
+      catch(e) { reject(e); }
+    });
+    req.on('error', reject);
   });
 }
 
@@ -93,27 +102,34 @@ function jsonResponse(data, status = 200) {
  * GET /api/client-config?clientId=client_miami
  * Returns the client config, or 404 if not found.
  */
-async function handleGet(request) {
-  const url = request.url.startsWith('http') ? new URL(request.url) : new URL(request.url, 'https://focusrunner.io');
+async function handleGet(req, res) {
+  const url = new URL(req.url, 'https://focusrunner.io');
   const clientId = url.searchParams.get('clientId');
 
   const err = validateClientId(clientId);
-  if (err) return jsonResponse({ error: err }, 400);
+  if (err) {
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: err }));
+    return;
+  }
 
   const key = `${KV_PREFIX}${clientId}`;
   const config = await kvGet(key);
 
   if (!config) {
-    return jsonResponse({
+    res.writeHead(404, corsHeaders());
+    res.end(JSON.stringify({
       error: 'Client not found',
       clientId,
-    }, 404);
+    }));
+    return;
   }
 
-  return jsonResponse({
+  res.writeHead(200, corsHeaders());
+  res.end(JSON.stringify({
     clientId,
     config,
-  });
+  }));
 }
 
 /**
@@ -121,29 +137,39 @@ async function handleGet(request) {
  * Body: { clientId, config }
  * Creates or updates a client config.
  */
-async function handlePost(request) {
+async function handlePost(req, res) {
   // Check admin auth
-  const auth = requireAdminKey(request);
+  const auth = requireAdminKey(req);
   if (!auth.allowed) {
-    return jsonResponse({ error: auth.reason }, 401);
+    res.writeHead(401, corsHeaders());
+    res.end(JSON.stringify({ error: auth.reason }));
+    return;
   }
 
   let body;
   try {
-    body = await request.json();
+    body = await parseBody(req);
   } catch (e) {
-    return jsonResponse({ error: 'Invalid JSON body' }, 400);
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+    return;
   }
 
   const { clientId, config } = body || {};
 
   // Validate clientId
   const idErr = validateClientId(clientId);
-  if (idErr) return jsonResponse({ error: idErr }, 400);
+  if (idErr) {
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: idErr }));
+    return;
+  }
 
   // Validate config
   if (!config || typeof config !== 'object') {
-    return jsonResponse({ error: 'config must be a JSON object' }, 400);
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: 'config must be a JSON object' }));
+    return;
   }
 
   // Normalize config with defaults
@@ -164,17 +190,23 @@ async function handlePost(request) {
 
   // Ensure at least one of webhook_url or api_key is present if crm is configured
   if (config.crm && !normalized.crm.webhook_url && !normalized.crm.api_key) {
-    return jsonResponse({
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({
       error: 'At least one of crm.webhook_url or crm.api_key is required',
-    }, 400);
+    }));
+    return;
   }
 
   // Validate AI params
   if (normalized.ai.temperature < 0 || normalized.ai.temperature > 2) {
-    return jsonResponse({ error: 'ai.temperature must be between 0 and 2' }, 400);
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: 'ai.temperature must be between 0 and 2' }));
+    return;
   }
   if (normalized.ai.max_tokens < 10 || normalized.ai.max_tokens > 10000) {
-    return jsonResponse({ error: 'ai.max_tokens must be between 10 and 10000' }, 400);
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: 'ai.max_tokens must be between 10 and 10000' }));
+    return;
   }
 
   const key = `${KV_PREFIX}${clientId}`;
@@ -182,85 +214,95 @@ async function handlePost(request) {
 
   console.log(`[client-config] Saved config for ${clientId}: name=${normalized.name}`);
 
-  return jsonResponse({
+  res.writeHead(200, corsHeaders());
+  res.end(JSON.stringify({
     success: true,
     clientId,
     config: normalized,
-  });
+  }));
 }
 
 /**
  * DELETE /api/client-config?clientId=client_miami
  * Deletes a client config.
  */
-async function handleDelete(request) {
-  const auth = requireAdminKey(request);
+async function handleDelete(req, res) {
+  const auth = requireAdminKey(req);
   if (!auth.allowed) {
-    return jsonResponse({ error: auth.reason }, 401);
+    res.writeHead(401, corsHeaders());
+    res.end(JSON.stringify({ error: auth.reason }));
+    return;
   }
 
-  const url = request.url.startsWith('http') ? new URL(request.url) : new URL(request.url, 'https://focusrunner.io');
+  const url = new URL(req.url, 'https://focusrunner.io');
   const clientId = url.searchParams.get('clientId');
 
   const err = validateClientId(clientId);
-  if (err) return jsonResponse({ error: err }, 400);
+  if (err) {
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: err }));
+    return;
+  }
 
   const key = `${KV_PREFIX}${clientId}`;
   const existing = await kvGet(key);
 
   if (!existing) {
-    return jsonResponse({
+    res.writeHead(404, corsHeaders());
+    res.end(JSON.stringify({
       error: 'Client not found',
       clientId,
-    }, 404);
+    }));
+    return;
   }
 
   await kvDel(key);
   console.log(`[client-config] Deleted config for ${clientId}`);
 
-  return jsonResponse({
+  res.writeHead(200, corsHeaders());
+  res.end(JSON.stringify({
     success: true,
     clientId,
     deleted: true,
-  });
+  }));
 }
 
 // =============================================================================
 // Main handler
 // =============================================================================
 
-async function handler(request) {
+module.exports = async function handler(req, res) {
   // CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders(),
-    });
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, corsHeaders());
+    res.end();
+    return;
   }
 
   // Health check
-  if (request.method === 'GET') {
-    const reqUrl = request.url.startsWith('http') ? new URL(request.url) : new URL(request.url, 'https://focusrunner.io');
+  if (req.method === 'GET') {
+    const reqUrl = new URL(req.url, 'https://focusrunner.io');
     if (!reqUrl.searchParams.has('clientId')) {
-      return jsonResponse({
+      res.writeHead(200, corsHeaders());
+      res.end(JSON.stringify({
         status: 'ok',
         endpoint: '/api/client-config',
         version: '1.0.0',
         kv_configured: !!process.env.KV_REST_API_URL,
-      });
+      }));
+      return;
     }
   }
 
-  switch (request.method) {
+  switch (req.method) {
     case 'GET':
-      return handleGet(request);
+      return handleGet(req, res);
     case 'POST':
-      return handlePost(request);
+      return handlePost(req, res);
     case 'DELETE':
-      return handleDelete(request);
+      return handleDelete(req, res);
     default:
-      return jsonResponse({ error: 'Method not allowed' }, 405);
+      res.writeHead(405, corsHeaders());
+      res.end(JSON.stringify({ error: 'Method not allowed' }));
   }
-}
-
-module.exports = handler;
+};

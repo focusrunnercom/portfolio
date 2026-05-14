@@ -1,5 +1,5 @@
 /**
- * Vercel Edge Function: /api/notify-status
+ * Vercel Serverless Function: /api/notify-status
  *
  * Diagnostic endpoint to verify notification configuration without triggering a real lead.
  * Checks RESEND_API_KEY presence and attempts a test email to the configured recipient.
@@ -24,45 +24,62 @@ function corsHeaders() {
   };
 }
 
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: corsHeaders(),
+// =============================================================================
+// Body parser for CJS (req stream)
+// =============================================================================
+
+function parseBody(req) {
+  return new Promise(function(resolve, reject) {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', function() {
+      try { resolve(JSON.parse(body)); }
+      catch(e) { reject(e); }
+    });
+    req.on('error', reject);
   });
 }
 
-async function handler(request) {
+module.exports = async function handler(req, res) {
   // CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, corsHeaders());
+    res.end();
+    return;
   }
 
   const apiKey = process.env.RESEND_API_KEY;
   const recipient = process.env.NOTIFY_EMAIL || DEFAULT_RECIPIENT;
 
-  if (request.method === 'GET') {
-    return jsonResponse({
+  if (req.method === 'GET') {
+    res.writeHead(200, corsHeaders());
+    res.end(JSON.stringify({
       resend_key: apiKey ? 'configured' : 'missing',
       resend_key_prefix: apiKey ? apiKey.slice(0, 8) + '...' : null,
       recipient,
       notification_email: process.env.NOTIFY_EMAIL || 'not set (using default)',
       classification_filter: ['hot', 'warm', 'qualified'],
       timestamp: new Date().toISOString(),
-    });
+    }));
+    return;
   }
 
-  if (request.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
+  if (req.method !== 'POST') {
+    res.writeHead(405, corsHeaders());
+    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
   }
 
   if (!apiKey) {
-    return jsonResponse({ error: 'RESEND_API_KEY not configured' }, 500);
+    res.writeHead(500, corsHeaders());
+    res.end(JSON.stringify({ error: 'RESEND_API_KEY not configured' }));
+    return;
   }
 
   // Send a test email
   const testLead = {
     name: 'Test Lead',
-    phone: '+15551234567',
+    phone: '+155****4567',
     email: 'test@example.com',
     practice: 'FocusRunner Test Practice',
     niche: 'Med Spa',
@@ -78,7 +95,7 @@ async function handler(request) {
   const timestamp = new Date().toISOString();
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
+    const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -131,21 +148,23 @@ async function handler(request) {
       }),
     });
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '(no body)');
-      return jsonResponse({ error: `Resend API error ${res.status}: ${errText}` }, 502);
+    if (!resendRes.ok) {
+      const errText = await resendRes.text().catch(() => '(no body)');
+      res.writeHead(502, corsHeaders());
+      res.end(JSON.stringify({ error: `Resend API error ${resendRes.status}: ${errText}` }));
+      return;
     }
 
-    const data = await res.json();
-    return jsonResponse({
+    const data = await resendRes.json();
+    res.writeHead(200, corsHeaders());
+    res.end(JSON.stringify({
       status: 'test_email_sent',
       email_id: data.id,
       recipient,
       timestamp,
-    });
+    }));
   } catch (err) {
-    return jsonResponse({ error: `Failed to send test email: ${err.message}` }, 502);
+    res.writeHead(502, corsHeaders());
+    res.end(JSON.stringify({ error: `Failed to send test email: ${err.message}` }));
   }
-}
-
-module.exports = handler;
+};

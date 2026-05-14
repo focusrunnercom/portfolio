@@ -1,52 +1,63 @@
 /**
- * Vercel Edge Function: /api/lead-notify
+ * Vercel Serverless Function: /api/lead-notify
  * Standalone lead notification endpoint — accepts POST with lead data,
  * sends email alert via Resend, returns 200 OK.
- *
- * No local ESM imports — fully self-contained for Vercel Edge Runtime.
- * Pure fetch() — no NPM dependencies.
  *
  * Env vars:
  *   RESEND_API_KEY  — required, Resend API key
  *   NOTIFY_EMAIL    — optional, recipient override (default: hello@focusrunner.com)
  */
 
-const config = {
-  runtime: 'edge',
-};
-
 const DEFAULT_RECIPIENT = 'hello@focusrunner.com';
 const FROM_EMAIL = 'FocusRunner Leads <leads@focusrunner.io>';
 
-async function handler(request) {
-  // CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
+// =============================================================================
+// Body parser for CJS (req stream)
+// =============================================================================
+
+function parseBody(req) {
+  return new Promise(function(resolve, reject) {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', function() {
+      try { resolve(JSON.parse(body)); }
+      catch(e) { reject(e); }
     });
+    req.on('error', reject);
+  });
+}
+
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
+  };
+}
+
+module.exports = async function handler(req, res) {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200, corsHeaders());
+    res.end();
+    return;
   }
 
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+  if (req.method !== 'POST') {
+    res.writeHead(405, corsHeaders());
+    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
   }
 
   // Parse body
   let body;
   try {
-    body = await request.json();
+    body = await parseBody(req);
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+    return;
   }
 
   const lead = body.lead || body;
@@ -54,19 +65,17 @@ async function handler(request) {
 
   // Validate: we need at least a name or phone
   if (!lead.name && !lead.phone) {
-    return new Response(JSON.stringify({ error: 'At least lead.name or lead.phone required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: 'At least lead.name or lead.phone required' }));
+    return;
   }
 
   // Check Resend API key
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    res.writeHead(500, corsHeaders());
+    res.end(JSON.stringify({ error: 'RESEND_API_KEY not configured' }));
+    return;
   }
 
   // Build notification data
@@ -161,7 +170,7 @@ async function handler(request) {
 
   // Send via Resend API
   try {
-    const res = await fetch('https://api.resend.com/emails', {
+    const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -175,37 +184,29 @@ async function handler(request) {
       }),
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = await resendRes.json().catch(() => ({}));
 
-    if (!res.ok) {
-      return new Response(JSON.stringify({
-        error: `Resend error ${res.status}`,
+    if (!resendRes.ok) {
+      res.writeHead(502, corsHeaders());
+      res.end(JSON.stringify({
+        error: `Resend error ${resendRes.status}`,
         detail: data,
-      }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
+      }));
+      return;
     }
 
-    return new Response(JSON.stringify({
+    res.writeHead(200, corsHeaders());
+    res.end(JSON.stringify({
       status: 'sent',
       lead: lead.name || 'anonymous',
       email_id: data.id,
       recipient,
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    }));
   } catch (err) {
-    return new Response(JSON.stringify({ error: `Notification failed: ${err.message}` }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    res.writeHead(502, corsHeaders());
+    res.end(JSON.stringify({ error: `Notification failed: ${err.message}` }));
   }
-}
-
-module.exports = handler;
-module.exports.config = config;
+};
 
 function escapeHtml(str) {
   if (typeof str !== 'string') return String(str || '');
@@ -213,6 +214,6 @@ function escapeHtml(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/\"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }

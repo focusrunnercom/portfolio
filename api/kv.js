@@ -9,7 +9,7 @@
  * Zero Node.js built-in imports — works in both Serverless and Edge Runtime.
  *
  * Usage:
- *   import { kvGet, kvSet, kvDel, kvKeys } from './kv.js';
+ *   const { kvGet, kvSet, kvDel, kvKeys } = require('./kv');
  *   const config = await kvGet('client:client_miami');
  *   await kvSet('client:client_miami', { name: '...' });
  */
@@ -42,7 +42,7 @@ async function kvExec(command, ...args) {
   return data.result !== undefined ? data.result : data;
 }
 
-export async function kvGet(key) {
+async function kvGet(key) {
   if (KV_ENABLED) {
     try {
       const raw = await kvExec('GET', key);
@@ -58,7 +58,7 @@ export async function kvGet(key) {
   return memoryStore.get(key) || null;
 }
 
-export async function kvSet(key, value, opts = {}) {
+async function kvSet(key, value, opts = {}) {
   const serialized = typeof value === 'string' ? value : JSON.stringify(value);
   memoryStore.set(key, value);
   if (KV_ENABLED) {
@@ -74,7 +74,7 @@ export async function kvSet(key, value, opts = {}) {
   return true;
 }
 
-export async function kvDel(key) {
+async function kvDel(key) {
   memoryStore.delete(key);
   if (KV_ENABLED) {
     try {
@@ -87,7 +87,7 @@ export async function kvDel(key) {
   return true;
 }
 
-export async function kvKeys(pattern) {
+async function kvKeys(pattern) {
   if (KV_ENABLED) {
     try {
       const result = await kvExec('KEYS', pattern);
@@ -96,6 +96,8 @@ export async function kvKeys(pattern) {
       console.error(`[kv] KEYS ${pattern} failed:`, err.message);
     }
   }
-  const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+  const regex = new RegExp('^' + pattern.replace(/\\*/g, '.*') + '$');
   return Array.from(memoryStore.keys()).filter(k => regex.test(k));
 }
+
+module.exports = { kvGet, kvSet, kvDel, kvKeys };

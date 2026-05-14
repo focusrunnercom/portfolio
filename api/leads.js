@@ -2,15 +2,13 @@
  * Vercel Serverless Function: /api/leads
  * GET — returns file-based lead storage content (newest first).
  * POST — purge/reset leads (requires admin auth).
- *
- * This is the visibility layer for the file-based fallback (FOC-238).
- * Works immediately with no external API keys.
+ * CJS-style for Vercel Hobby Node 18.x compatibility.
  */
-import { readLeads } from './lib/lead-store.js';
-import { writeFileSync } from 'fs';
+
+const { readLeads } = require('./lib/lead-store.js');
+const { writeFileSync } = require('fs');
 
 const STORAGE_PATH = '/tmp/leads.json';
-
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -18,70 +16,63 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
-export default async function handler(request) {
+module.exports = async function handler(req, res) {
+  function json(data, status) {
+    status = status || 200;
+    res.writeHead(status, headers);
+    res.end(JSON.stringify(data));
+  }
+
   // CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, headers);
+    return res.end();
   }
 
   // Health check
-  if (request.method === 'GET') {
+  if (req.method === 'GET') {
     const leads = readLeads();
-    // Newest first
-    leads.reverse();
+    leads.reverse(); // newest first
 
     const adminKey = process.env.ADMIN_API_KEY || '';
-    const authHeader = request.headers.get('authorization') || '';
+    const authHeader = (req.headers['authorization'] || '').trim();
 
-    if (authHeader === `Bearer ${adminKey}`) {
+    if (authHeader === 'Bearer ' + adminKey) {
       // Admin: full data
-      return new Response(JSON.stringify({ leads, count: leads.length }), {
-        status: 200,
-        headers,
-      });
+      return json({ leads: leads, count: leads.length });
     }
 
     // Public: clean summary (no internal fields)
-    const summary = leads.map(l => ({
-      id: l.id,
-      name: l.name,
-      phone: l.phone,
-      email: l.email,
-      practice: l.practice || '',
-      classification: l.qualification?.classification || 'unknown',
-      score: l.qualification?.score || 0,
-      source: l.source,
-      timestamp: l.timestamp,
-    }));
-
-    return new Response(JSON.stringify({ leads: summary, count: summary.length }), {
-      status: 200,
-      headers,
+    const summary = leads.map(function(l) {
+      var q = l.qualification || {};
+      return {
+        id: l.id,
+        name: l.name,
+        phone: l.phone,
+        email: l.email,
+        practice: l.practice || '',
+        classification: q.classification || 'unknown',
+        score: q.score || 0,
+        source: l.source,
+        timestamp: l.timestamp,
+      };
     });
+
+    return json({ leads: summary, count: summary.length });
   }
 
   // Admin: purge all leads
-  if (request.method === 'POST') {
+  if (req.method === 'POST') {
     const adminKey = process.env.ADMIN_API_KEY || '';
-    const authHeader = request.headers.get('authorization') || '';
+    const authHeader = (req.headers['authorization'] || '').trim();
 
-    if (authHeader !== `Bearer ${adminKey}`) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers,
-      });
+    if (authHeader !== 'Bearer ' + adminKey) {
+      return json({ error: 'Unauthorized' }, 401);
     }
 
-    const { writeFileSync } = await import('fs');
-    writeFileSync('/tmp/leads.json', JSON.stringify({ leads: [] }), 'utf-8');
-    return new Response(JSON.stringify({ success: true, message: 'Lead store purged' }), {
-      status: 200,
-      headers,
-    });
+    writeFileSync(STORAGE_PATH, JSON.stringify({ leads: [] }), 'utf-8');
+    return json({ success: true, message: 'Lead store purged' });
   }
 
-  return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-    status: 405,
-    headers,
-  });
-}
+  return json({ error: 'Method not allowed' }, 405);
+};

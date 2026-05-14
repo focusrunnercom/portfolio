@@ -8,8 +8,8 @@
  *   Lead: { id, name, phone, email, practice, qualification, source, referral_source, timestamp, notified }
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { randomUUID } from 'crypto';
+const { readFileSync, writeFileSync, existsSync } = require('fs');
+const { randomUUID } = require('crypto');
 
 const STORAGE_PATH = '/tmp/leads.json';
 const MAX_LEADS = 500;
@@ -17,7 +17,7 @@ const MAX_LEADS = 500;
 /**
  * Read all stored leads. Returns empty array on failure.
  */
-export function readLeads() {
+function readLeads() {
   try {
     if (!existsSync(STORAGE_PATH)) return [];
     const raw = readFileSync(STORAGE_PATH, 'utf-8');
@@ -36,7 +36,7 @@ export function readLeads() {
  * @param {object} leadData — { name, phone, email, practice, qualification, source, referral_source }
  * @returns {string|null}
  */
-export function appendLead(leadData) {
+function appendLead(leadData) {
   try {
     const lead = {
       id: randomUUID(),
@@ -72,7 +72,7 @@ export function appendLead(leadData) {
  * Mark a lead as notified.
  * @param {string} leadId
  */
-export function markNotified(leadId) {
+function markNotified(leadId) {
   try {
     const leads = readLeads();
     const idx = leads.findIndex(l => l.id === leadId);
@@ -83,3 +83,5 @@ export function markNotified(leadId) {
     console.warn('[lead-store] Failed to mark notified:', err.message);
   }
 }
+
+module.exports = { readLeads, appendLead, markNotified };
