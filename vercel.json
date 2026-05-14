@@ -5,18 +5,17 @@
   "installCommand": "npm install",
   "functions": {
     "api/**/*.js": {
-      "memory": 256,
       "maxDuration": 30
     }
   },
   "rewrites": [
-    { "src": "/api/chat", "dest": "/api/chat.js" },
-    { "src": "/api/leads", "dest": "/api/leads.js" },
-    { "src": "/api/lead", "dest": "/api/lead.py" },
-    { "src": "/api/webhook", "dest": "/api/webhook.js" },
-    { "src": "/api/kv", "dest": "/api/kv.js" },
-    { "src": "/api/client-config", "dest": "/api/client-config.js" },
-    { "src": "/api/notify-status", "dest": "/api/notify-status.js" },
-    { "src": "/api/(.*)", "dest": "/api/index.py" }
+    { "source": "/api/chat", "destination": "/api/chat.js" },
+    { "source": "/api/leads", "destination": "/api/leads.js" },
+    { "source": "/api/lead", "destination": "/api/lead.py" },
+    { "source": "/api/webhook", "destination": "/api/webhook.js" },
+    { "source": "/api/kv", "destination": "/api/kv.js" },
+    { "source": "/api/client-config", "destination": "/api/client-config.js" },
+    { "source": "/api/notify-status", "destination": "/api/notify-status.js" },
+    { "source": "/api/(.*)", "destination": "/api/index.py" }
   ]
 }
