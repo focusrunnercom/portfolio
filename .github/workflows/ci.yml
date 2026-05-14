@@ -1,0 +1,81 @@
+name: FocusRunner CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Syntax & Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check (api/*.js)
+        run: |
+          echo "Checking API files for syntax errors..."
+          for f in api/*.js; do
+            if [ -f "$f" ]; then
+              echo "  Checking $f..."
+              node -c "$f" && echo "    ✓ $f OK" || exit 1
+            fi
+          done
+
+      - name: Build project
+        run: npm run build
+
+      - name: Verify Vite build output
+        run: |
+          if [ -d "dist" ] && [ -f "dist/index.html" ]; then
+            echo "✓ Build output verified (dist/index.html exists)"
+          else
+            echo "✗ Build output missing"
+            exit 1
+          fi
+
+      - name: Check API endpoints exist
+        run: |
+          for f in api/chat.js api/webhook.js; do
+            if [ -f "$f" ]; then
+              echo "✓ $f exists"
+            else
+              echo "✗ $f missing"
+              exit 1
+            fi
+          done
+
+      - name: Smoke test — api/chat.js exports handler
+        run: |
+          node -e "
+            const mod = require('./api/chat.js');
+            if (typeof mod.default === 'function') {
+              console.log('✓ api/chat.js exports handler function');
+            } else {
+              console.error('✗ api/chat.js does not export default handler');
+              process.exit(1);
+            }
+          "
+
+      - name: Smoke test — api/webhook.js exports handler
+        run: |
+          node -e "
+            const mod = require('./api/webhook.js');
+            if (typeof mod.default === 'function') {
+              console.log('✓ api/webhook.js exports handler function');
+            } else {
+              console.error('✗ api/webhook.js does not export default handler');
+              process.exit(1);
+            }
+          "

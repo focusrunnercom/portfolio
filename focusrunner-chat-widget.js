@@ -15,7 +15,7 @@
   // ─── CONFIG ───────────────────────────────────────────
   var cfg = window.FR_CHAT_CONFIG || {};
   var PRIMARY = cfg.primaryColor || '#00D4AA';
-  var API_URL = cfg.apiUrl || 'http://localhost:8765/api/lead';
+  var API_URL = cfg.apiUrl || 'https://focusrunner.vercel.app/api/lead';
   var BRAND = cfg.brandName || 'FocusRunner';
 
   // ─── INJECT STYLES ────────────────────────────────────
