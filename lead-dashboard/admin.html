@@ -1,96 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FocusRunner — Lead Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{background:#0a0a0a;color:#e0e0e0;font-family:'Inter',sans-serif;min-height:100vh}
-    .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:#0d0d0d;border-right:1px solid #1a1a1a;padding:24px;display:flex;flex-direction:column}
-    .logo{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#6eff8a;margin-bottom:32px;letter-spacing:-0.5px}
-    .logo span{color:#555}
-    .nav{display:flex;flex-direction:column;gap:4px}
-    .nav a{font-size:13px;color:#666;text-decoration:none;padding:8px 12px;border-radius:6px;transition:all .15s}
-    .nav a:hover{color:#e0e0e0;background:#141414}
-    .nav a.active{color:#6eff8a;background:rgba(110,255,138,0.08);font-weight:500}
-    .nav a .count{float:right;color:#444;font-size:11px;font-family:'JetBrains Mono',monospace}
-    .main{margin-left:220px;padding:32px 40px}
-    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
-    .header h1{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:600;color:#fff;letter-spacing:-0.5px}
-    .header .meta{color:#555;font-size:12px}
-    .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
-    .card{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:10px;padding:20px}
-    .card .label{font-size:11px;text-transform:uppercase;color:#555;letter-spacing:0.5px;margin-bottom:8px}
-    .card .value{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600}
-    .card .sub{font-size:12px;color:#444;margin-top:4px}
-    .card.hot .value{color:#ef4444}
-    .card.warm .value{color:#f59e0b}
-    .card.cold .value{color:#6b7280}
-    .card.total .value{color:#6eff8a}
-    .card.visitors .value{color:#6a9bff}
-    .filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
-    .filters button{background:transparent;border:1px solid #1a1a1a;color:#666;padding:6px 16px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
-    .filters button:hover{border-color:#333;color:#e0e0e0}
-    .filters button.active{background:rgba(110,255,138,0.08);border-color:#6eff8a;color:#6eff8a}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th{text-align:left;padding:10px 12px;border-bottom:1px solid #1a1a1a;color:#555;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;font-family:'JetBrains Mono',monospace}
-    td{padding:10px 12px;border-bottom:1px solid #111;vertical-align:top;font-size:12px}
-    tr:hover td{background:rgba(110,255,138,0.02)}
-    .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
-    .badge-hot{background:rgba(239,68,68,0.1);color:#ef4444}
-    .badge-warm{background:rgba(245,158,11,0.1);color:#f59e0b}
-    .badge-cold{background:rgba(107,114,128,0.1);color:#9ca3af}
-    .time{color:#555;font-size:11px;font-family:'JetBrains Mono',monospace}
-    .email{color:#6a9bff}
-    .phone{color:#888}
-    .status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px}
-    .status-dot.online{background:#6eff8a}
-    .status-dot.offline{background:#ef4444}
-    .loading{text-align:center;padding:60px;color:#555;font-size:14px}
-    .error{text-align:center;padding:60px;color:#ef4444;font-size:14px}
-    .refresh-btn{background:transparent;border:1px solid #1a1a1a;color:#555;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
-    .refresh-btn:hover{border-color:#6eff8a;color:#6eff8a}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FocusRunner — Telemetry Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0e0e0;font-family:'Inter',sans-serif;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:#0d0d0d;border-right:1px solid #1a1a1a;padding:24px;display:flex;flex-direction:column}
+.logo{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#6eff8a;margin-bottom:32px;letter-spacing:-0.5px}
+.logo span{color:#555}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav a{font-size:13px;color:#666;text-decoration:none;padding:8px 12px;border-radius:6px;transition:all .15s;cursor:pointer}
+.nav a:hover{color:#e0e0e0;background:#141414}
+.nav a.active{color:#6eff8a;background:rgba(110,255,138,0.08);font-weight:500}
+.main{margin-left:220px;padding:32px 40px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
+.header h1{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:600;color:#fff;letter-spacing:-0.5px}
+.header .meta{color:#555;font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+.card{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:10px;padding:20px}
+.card .label{font-size:11px;text-transform:uppercase;color:#555;letter-spacing:0.5px;margin-bottom:8px}
+.card .value{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600}
+.card .sub{font-size:12px;color:#444;margin-top:4px}
+.card.hot .value{color:#ef4444}
+.card.warm .value{color:#f59e0b}
+.card.cold .value{color:#6b7280}
+.card.total .value{color:#6eff8a}
+.card.qualified .value{color:#6a9bff}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+.row.three{grid-template-columns:1fr 1fr 1fr}
+.panel{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:10px;padding:20px}
+.panel h3{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px}
+.bar-chart{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:flex;align-items:center;gap:10px}
+.bar-label{width:80px;font-size:11px;color:#666;text-align:right;flex-shrink:0}
+.bar-track{flex:1;height:22px;background:#141414;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s ease;position:relative}
+.bar-fill span{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.bar-val{width:36px;font-size:11px;font-family:'JetBrains Mono',monospace;color:#444;flex-shrink:0}
+svg.chart{width:100%;height:160px}
+.line-chart path{fill:none;stroke-width:2}
+.line-chart .grid line{stroke:#1a1a1a;stroke-width:1}
+.line-chart .label{fill:#444;font-size:10px;font-family:'JetBrains Mono',monospace}
+.legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:#666}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.filters button{background:transparent;border:1px solid #1a1a1a;color:#666;padding:6px 16px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+.filters button:hover{border-color:#333;color:#e0e0e0}
+.filters button.active{background:rgba(110,255,138,0.08);border-color:#6eff8a;color:#6eff8a}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;border-bottom:1px solid #1a1a1a;color:#555;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;font-family:'JetBrains Mono',monospace}
+td{padding:10px 12px;border-bottom:1px solid #111;vertical-align:top;font-size:12px}
+tr:hover td{background:rgba(110,255,138,0.02)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.badge-hot{background:rgba(239,68,68,0.1);color:#ef4444}
+.badge-warm{background:rgba(245,158,11,0.1);color:#f59e0b}
+.badge-cold{background:rgba(107,114,128,0.1);color:#9ca3af}
+.time{color:#555;font-size:11px;font-family:'JetBrains Mono',monospace}
+.email{color:#6a9bff}
+.phone{color:#888}
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px}
+.status-dot.online{background:#6eff8a}
+.status-dot.offline{background:#ef4444}
+.status-dot.warn{background:#f59e0b}
+.loading{text-align:center;padding:60px;color:#555;font-size:14px}
+.error{text-align:center;padding:60px;color:#ef4444;font-size:14px}
+.refresh-btn{background:transparent;border:1px solid #1a1a1a;color:#555;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+.refresh-btn:hover{border-color:#6eff8a;color:#6eff8a}
+.health-row{display:flex;gap:12px;margin-top:8px}
+.health-tag{font-size:10px;padding:2px 8px;border-radius:3px;font-family:'JetBrains Mono',monospace;background:#141414;border:1px solid #1a1a1a}
+.health-tag.ok{color:#6eff8a;border-color:rgba(110,255,138,0.2)}
+.health-tag.miss{color:#ef4444;border-color:rgba(239,68,68,0.2)}
+</style>
 </head>
 <body>
-  <div class="sidebar">
-    <div class="logo">fr<span>//</span>leads</div>
-    <div class="nav">
-      <a href="#" class="active" onclick="return false">All Leads</a>
-      <a href="#" onclick="return false">🔥 Hot</a>
-      <a href="#" onclick="return false">⭐ Warm</a>
-      <a href="#" onclick="return false">❄️ Cold</a>
-      <a href="#" onclick="return false">📊 Analytics</a>
-      <a href="#" onclick="return false">⚙️ Settings</a>
-    </div>
-    <div style="margin-top:auto;font-size:11px;color:#333;padding-top:20px;border-top:1px solid #1a1a1a">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-        <span class="status-dot online"></span>
-        <span style="color:#555">Flask :5000</span>
-      </div>
-      <div style="font-family:'JetBrains Mono',monospace;color:#333" id="refreshTime">—</div>
-    </div>
-  </div>
 
-  <div class="main">
+<div class="sidebar">
+  <div class="logo">fr<span>//</span>telemetry</div>
+  <div class="nav">
+    <a class="active" onclick="showTab('overview')" id="tab-overview">📊 Overview</a>
+    <a onclick="showTab('leads')" id="tab-leads">📋 Leads</a>
+    <a onclick="showTab('analytics')" id="tab-analytics">📈 Analytics</a>
+    <a onclick="showTab('system')" id="tab-system">⚙️ System</a>
+  </div>
+  <div style="margin-top:auto;font-size:11px;color:#333;padding-top:20px;border-top:1px solid #1a1a1a">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <span class="status-dot online" id="statusDot"></span>
+      <span style="color:#555">Flask :5000</span>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;color:#333" id="refreshTime">—</div>
+    <div id="healthTags" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Overview Tab -->
+  <div id="tab-overview-content">
     <div class="header">
       <div>
-        <h1>Lead Dashboard</h1>
+        <h1>Telemetry Dashboard</h1>
         <div class="meta" id="headerMeta">loading...</div>
       </div>
-      <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+      <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
     </div>
 
     <div class="cards" id="cards">
-      <div class="card total"><div class="label">Total Leads</div><div class="value">—</div></div>
-      <div class="card hot"><div class="label">🔥 Hot</div><div class="value">—</div></div>
-      <div class="card warm"><div class="label">⭐ Warm</div><div class="value">—</div></div>
-      <div class="card cold"><div class="label">❄️ Cold</div><div class="value">—</div></div>
+      <div class="card total"><div class="label">Total Leads</div><div class="value">—</div><div class="sub">all time</div></div>
+      <div class="card qualified"><div class="label">🎯 Qualified</div><div class="value">—</div><div class="sub">score ≥ 50</div></div>
+      <div class="card hot"><div class="label">🔥 Hot</div><div class="value">—</div><div class="sub">score ≥ 85</div></div>
+      <div class="card warm"><div class="label">⭐ Warm</div><div class="value">—</div><div class="sub">score 50-84</div></div>
     </div>
 
+    <div class="row">
+      <div class="panel">
+        <h3>Score Distribution</h3>
+        <div class="bar-chart" id="scoreChart"></div>
+      </div>
+      <div class="panel">
+        <h3>Funnel Conversion</h3>
+        <div class="bar-chart" id="funnelChart"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="panel">
+        <h3>Lead Sources</h3>
+        <div class="bar-chart" id="sourceChart"></div>
+      </div>
+      <div class="panel">
+        <h3>30-Day Trend</h3>
+        <svg class="chart line-chart" id="trendChart" viewBox="0 0 500 160"></svg>
+        <div class="legend" id="trendLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leads Tab -->
+  <div id="tab-leads-content" style="display:none">
+    <div class="header">
+      <div>
+        <h1>All Leads</h1>
+        <div class="meta" id="leadsMeta">loading...</div>
+      </div>
+      <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+    </div>
     <div class="filters" id="filters">
       <button class="active" data-filter="all">All</button>
       <button data-filter="hot">🔥 Hot</button>
@@ -98,141 +156,371 @@
       <button data-filter="cold">❄️ Cold</button>
       <button data-filter="today">📅 Today</button>
     </div>
+    <div id="tableContainer"><div class="loading">Loading leads...</div></div>
+  </div>
 
-    <div id="tableContainer">
-      <div class="loading">Loading leads...</div>
+  <!-- Analytics Tab -->
+  <div id="tab-analytics-content" style="display:none">
+    <div class="header">
+      <div>
+        <h1>Analytics</h1>
+        <div class="meta" id="analyticsMeta">loading...</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="panel">
+        <h3>Funnel Rates</h3>
+        <div class="bar-chart" id="funnelRateChart"></div>
+      </div>
+      <div class="panel">
+        <h3>Source Performance</h3>
+        <div id="sourceTable" class="loading">loading...</div>
+      </div>
     </div>
   </div>
 
-  <script>
-    var TOKEN = new URLSearchParams(window.location.search).get('token') || '';
-    var ALL_LEADS = [];
-    var ACTIVE_FILTER = 'all';
+  <!-- System Tab -->
+  <div id="tab-system-content" style="display:none">
+    <div class="header">
+      <div>
+        <h1>System</h1>
+        <div class="meta">Service health and configuration</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="panel">
+        <h3>Service Status</h3>
+        <div id="systemStatus"></div>
+      </div>
+      <div class="panel">
+        <h3>Configuration</h3>
+        <div id="systemConfig"></div>
+      </div>
+    </div>
+  </div>
 
-    function getToken() {
-      if (TOKEN) return TOKEN;
-      // Try to get from localStorage
-      TOKEN = localStorage.getItem('fr_admin_token') || '';
-      return TOKEN;
-    }
+</div>
 
-    function setToken(t) {
-      TOKEN = t;
-      if (t) localStorage.setItem('fr_admin_token', t);
-    }
+<script>
+var TOKEN = '';
+var LEADS = [];
+var ANALYTICS = null;
+var HEALTH = null;
+var ACTIVE_FILTER = 'all';
 
-    function apiUrl(path) {
-      var sep = path.indexOf('?') > -1 ? '&' : '?';
-      return path + sep + 'token=' + encodeURIComponent(getToken());
-    }
+(function init() {
+  TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+  if (!TOKEN) TOKEN = localStorage.getItem('fr_admin_token') || '';
+  if (TOKEN) localStorage.setItem('fr_admin_token', TOKEN);
+  loadAll();
+  setInterval(loadAll, 15000);
+})();
 
-    function formatTime(iso) {
-      if (!iso) return '—';
-      var d = new Date(iso);
-      var now = new Date();
-      var diff = Math.floor((now - d) / 1000);
-      if (diff < 60) return 'just now';
-      if (diff < 3600) return Math.floor(diff/60) + 'm ago';
-      if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
-      return d.toLocaleDateString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
-    }
+function api(path) {
+  return fetch(path + (path.indexOf('?') > -1 ? '&' : '?') + 'token=' + encodeURIComponent(TOKEN));
+}
 
-    function scoreBadge(score) {
-      if (!score) return '<span class="badge badge-cold">unscored</span>';
-      if (score.startsWith('hot')) return '<span class="badge badge-hot">' + score + '</span>';
-      if (score.startsWith('warm')) return '<span class="badge badge-warm">' + score + '</span>';
-      return '<span class="badge badge-cold">' + score + '</span>';
-    }
+function loadAll() {
+  var start = Date.now();
+  Promise.all([
+    api('/api/leads?limit=500').then(r => r.ok ? r.json() : {leads:[]}),
+    api('/api/analytics').then(r => r.ok ? r.json() : null),
+    api('/api/health').then(r => r.ok ? r.json() : null),
+    api('/api/visitors').then(r => r.ok ? r.json() : null),
+  ]).then(function(results) {
+    var leadsData = results[0];
+    ANALYTICS = results[1];
+    HEALTH = results[2];
+    var visitors = results[3];
+    LEADS = leadsData.leads || [];
+    var elapsed = Date.now() - start;
+    document.getElementById('refreshTime').textContent = new Date().toLocaleTimeString() + ' (' + elapsed + 'ms)';
+    renderCards();
+    renderScoreChart();
+    renderFunnelChart();
+    renderSourceChart();
+    renderTrendChart();
+    renderLeadsTable();
+    renderFunnelRates();
+    renderSourceTable();
+    renderSystem();
+    renderHealthTags();
+    document.getElementById('headerMeta').textContent = LEADS.length + ' leads · ' + (ANALYTICS ? ANALYTICS.summary.total_leads : '?') + ' total';
+  });
+}
 
-    function loadData() {
-      // Load leads
-      fetch(apiUrl('/api/leads?limit=200'))
-        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function(data) {
-          ALL_LEADS = data.leads || [];
-          renderAll();
-        })
-        .catch(function(err) {
-          document.getElementById('tableContainer').innerHTML = '<div class="error">Failed to load: ' + err.message + '</div>';
-        });
+function esc(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;') : ''; }
+function formatTime(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  var now = new Date();
+  var diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+function scoreBadge(s) {
+  if (!s) return '<span class="badge badge-cold">—</span>';
+  if (s.startsWith('hot')) return '<span class="badge badge-hot">' + esc(s) + '</span>';
+  if (s.startsWith('warm')) return '<span class="badge badge-warm">' + esc(s) + '</span>';
+  return '<span class="badge badge-cold">' + esc(s) + '</span>';
+}
 
-      // Load visitor stats
-      fetch(apiUrl('/api/visitors'))
-        .then(function(r) { return r.json(); })
-        .then(function(v) {
-          var el = document.querySelector('.card.visitors .value');
-          if (el) el.textContent = v.total_visits || 0;
-        })
-        .catch(function() {});
+function filterScore(s) {
+  if (!s) return 'cold';
+  if (s.startsWith('hot')) return 'hot';
+  if (s.startsWith('warm')) return 'warm';
+  return 'cold';
+}
+function scoreVal(s) {
+  if (!s || s === 'unscored') return 0;
+  var parts = s.split('_');
+  return parseInt(parts[parts.length-1]) || 0;
+}
 
-      document.getElementById('refreshTime').textContent = new Date().toLocaleTimeString();
-    }
+function bar(label, val, max, color, suffix) {
+  var pct = max > 0 ? (val / max * 100) : 0;
+  return '<div class="bar-row"><div class="bar-label">' + label + '</div><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + color + '"><span>' + val + '</span></div></div></div>';
+}
 
-    function renderAll() {
-      var leads = ALL_LEADS;
-      var total = leads.length;
-      var hot = leads.filter(function(l) { return l.score && l.score.startsWith('hot'); }).length;
-      var warm = leads.filter(function(l) { return l.score && l.score.startsWith('warm'); }).length;
-      var cold = leads.filter(function(l) { return l.score && l.score.startsWith('cold'); }).length;
+// ─── Cards ───
+function renderCards() {
+  var a = ANALYTICS;
+  if (!a) return;
+  var f = a.summary.funnel;
+  document.querySelector('.card.total .value').textContent = f.captured;
+  document.querySelector('.card.qualified .value').textContent = f.qualified;
+  document.querySelector('.card.hot .value').textContent = f.hot;
+  document.querySelector('.card.warm .value').textContent = (f.qualified - f.hot);
+}
 
-      // Update cards
-      document.querySelector('.card.total .value').textContent = total;
-      document.querySelector('.card.hot .value').textContent = hot;
-      document.querySelector('.card.warm .value').textContent = warm;
-      document.querySelector('.card.cold .value').textContent = cold;
-      document.getElementById('headerMeta').textContent = total + ' leads · last updated ' + formatTime(new Date().toISOString());
+// ─── Score Distribution Bar Chart ───
+function renderScoreChart() {
+  var a = ANALYTICS;
+  if (!a) { document.getElementById('scoreChart').innerHTML = '<div class="loading">no data</div>'; return; }
+  var sd = a.score_distribution;
+  var colors = {'hot_75_100':'#ef4444','qualified_50_74':'#f59e0b','warm_25_49':'#6a9bff','cold_0_24':'#6b7280','unscored':'#444'};
+  var labels = {'hot_75_100':'Hot 75+','qualified_50_74':'Warm 50-74','warm_25_49':'Warm 25-49','cold_0_24':'Cold 0-24','unscored':'Unscored'};
+  var max = Math.max.apply(null, Object.values(sd));
+  var html = '';
+  Object.keys(colors).forEach(function(k) {
+    html += bar(labels[k], sd[k] || 0, max, colors[k]);
+  });
+  document.getElementById('scoreChart').innerHTML = html;
+}
 
-      // Apply filter
-      var filtered = leads;
-      if (ACTIVE_FILTER === 'hot') filtered = leads.filter(function(l) { return l.score && l.score.startsWith('hot'); });
-      else if (ACTIVE_FILTER === 'warm') filtered = leads.filter(function(l) { return l.score && l.score.startsWith('warm'); });
-      else if (ACTIVE_FILTER === 'cold') filtered = leads.filter(function(l) { return l.score && l.score.startsWith('cold'); });
-      else if (ACTIVE_FILTER === 'today') {
-        var today = new Date().toISOString().slice(0, 10);
-        filtered = leads.filter(function(l) { return l.created_at && l.created_at.slice(0, 10) === today; });
-      }
+// ─── Funnel Conversion Chart ───
+function renderFunnelChart() {
+  var a = ANALYTICS;
+  if (!a) { document.getElementById('funnelChart').innerHTML = '<div class="loading">no data</div>'; return; }
+  var f = a.summary.funnel;
+  var items = [['Captured', f.captured, '#6eff8a'], ['Scored', f.scored, '#6a9bff'], ['Qualified', f.qualified, '#f59e0b'], ['Hot', f.hot, '#ef4444']];
+  var max = Math.max.apply(null, items.map(function(i){return i[1]}));
+  var html = '';
+  items.forEach(function(i) { html += bar(i[0], i[1], max, i[2]); });
+  document.getElementById('funnelChart').innerHTML = html;
+}
 
-      // Render table
-      if (filtered.length === 0) {
-        document.getElementById('tableContainer').innerHTML = '<div class="loading">No leads match this filter.</div>';
-        return;
-      }
+// ─── Source Bar Chart ───
+function renderSourceChart() {
+  var a = ANALYTICS;
+  if (!a || !a.by_source) { document.getElementById('sourceChart').innerHTML = '<div class="loading">no data</div>'; return; }
+  var srcs = a.by_source.slice(0, 8);
+  var max = srcs.length > 0 ? srcs[0].count : 1;
+  var colors = ['#6eff8a','#6a9bff','#f59e0b','#ef4444','#a78bfa','#34d399','#f472b6','#888'];
+  var html = '';
+  srcs.forEach(function(s, i) {
+    html += bar(s.source, s.count, max, colors[i % colors.length], s.info_rate + '%');
+  });
+  document.getElementById('sourceChart').innerHTML = html;
+}
 
-      var html = '<table><thead><tr><th>Time</th><th>Name</th><th>Contact</th><th>Practice</th><th>Volume</th><th>Spend</th><th>Score</th><th>Source</th></tr></thead><tbody>';
-      filtered.forEach(function(l) {
-        html += '<tr>' +
-          '<td class="time">' + formatTime(l.created_at) + '</td>' +
-          '<td><strong>' + esc(l.name) + '</strong></td>' +
-          '<td><div class="email">' + esc(l.email) + '</div><div class="phone">' + esc(l.phone || '') + '</div></td>' +
-          '<td>' + esc(l.practice || '') + '</td>' +
-          '<td>' + esc(l.volume || '') + '</td>' +
-          '<td>' + esc(l.spend || '') + '</td>' +
-          '<td>' + scoreBadge(l.score) + '</td>' +
-          '<td style="color:#555;font-size:11px">' + esc(l.source || '') + '</td>' +
-          '</tr>';
-      });
-      html += '</tbody></table>';
-      document.getElementById('tableContainer').innerHTML = html;
-    }
+// ─── 30-Day Trend (SVG line chart) ───
+function renderTrendChart() {
+  var svg = document.getElementById('trendChart');
+  var a = ANALYTICS;
+  if (!a || !a.by_day) { return; }
+  var days = a.by_day;
+  if (days.length < 2) { return; }
+  var W = 500, H = 140;
+  var pad = {t:10, r:10, b:25, l:35};
+  var w = W - pad.l - pad.r;
+  var h = H - pad.t - pad.b;
 
-    function esc(s) {
-      if (!s) return '';
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+  var max = 0;
+  days.forEach(function(d) { max = Math.max(max, d.captured, d.scored, d.qualified); });
+  max = Math.max(max, 1);
 
-    // Filter buttons
-    document.getElementById('filters').addEventListener('click', function(e) {
-      if (e.target.tagName === 'BUTTON') {
-        document.querySelectorAll('#filters button').forEach(function(b) { b.classList.remove('active'); });
-        e.target.classList.add('active');
-        ACTIVE_FILTER = e.target.getAttribute('data-filter') || 'all';
-        renderAll();
-      }
+  var html = '';
+  // Grid lines
+  var gridSteps = 4;
+  for (var i = 0; i <= gridSteps; i++) {
+    var y = pad.t + (h / gridSteps) * i;
+    html += '<line x1="' + pad.l + '" y1="' + y + '" x2="' + (pad.l + w) + '" y2="' + y + '" class="grid"/>';
+    html += '<text x="' + (pad.l - 4) + '" y="' + (y + 3) + '" class="label" text-anchor="end">' + Math.round(max - (max / gridSteps) * i) + '</text>';
+  }
+
+  function linePoints(data, accessor) {
+    var pts = [];
+    data.forEach(function(d, i) {
+      var x = pad.l + (w / (data.length - 1)) * i;
+      var y = pad.t + h - (accessor(d) / max * h);
+      pts.push(x + ',' + y);
     });
+    return pts.join(' ');
+  }
 
-    // Auto-refresh every 30s
-    loadData();
-    setInterval(loadData, 30000);
-  </script>
+  var lines = [
+    {key:'captured', color:'#6eff8a', label:'Captured'},
+    {key:'scored', color:'#6a9bff', label:'Scored'},
+    {key:'qualified', color:'#f59e0b', label:'Qualified'},
+  ];
+
+  lines.forEach(function(l) {
+    html += '<polyline points="' + linePoints(days, function(d){return d[l.key];}) + '" stroke="' + l.color + '" stroke-width="2" fill="none"/>';
+  });
+
+  // X labels (show every Nth day)
+  var step = Math.max(1, Math.floor(days.length / 6));
+  days.forEach(function(d, i) {
+    if (i % step === 0) {
+      var x = pad.l + (w / (days.length - 1)) * i;
+      html += '<text x="' + x + '" y="' + (pad.t + h + 16) + '" class="label" text-anchor="middle">' + d.date.slice(5) + '</text>';
+    }
+  });
+
+  svg.innerHTML = html;
+
+  // Legend
+  document.getElementById('trendLegend').innerHTML = lines.map(function(l) {
+    return '<span class="legend-item"><span class="legend-dot" style="background:' + l.color + '"></span>' + l.label + '</span>';
+  }).join('');
+}
+
+// ─── Leads Table ───
+function renderLeadsTable() {
+  var leads = LEADS;
+  var total = leads.length;
+  var hot = leads.filter(function(l){return filterScore(l.score)==='hot'}).length;
+  var warm = leads.filter(function(l){return filterScore(l.score)==='warm'}).length;
+  var cold = leads.filter(function(l){return filterScore(l.score)==='cold'}).length;
+  document.querySelector('.card.total .value').textContent = total;
+  document.querySelector('.card.hot .value').textContent = hot;
+  document.querySelector('.card.warm .value').textContent = warm;
+
+  var filtered = leads;
+  if (ACTIVE_FILTER === 'hot') filtered = leads.filter(function(l){return filterScore(l.score)==='hot'});
+  else if (ACTIVE_FILTER === 'warm') filtered = leads.filter(function(l){return filterScore(l.score)==='warm'});
+  else if (ACTIVE_FILTER === 'cold') filtered = leads.filter(function(l){return filterScore(l.score)==='cold'});
+  else if (ACTIVE_FILTER === 'today') {
+    var today = new Date().toISOString().slice(0,10);
+    filtered = leads.filter(function(l){return l.created_at && l.created_at.slice(0,10)===today});
+  }
+  document.getElementById('leadsMeta').textContent = filtered.length + ' leads';
+
+  if (filtered.length === 0) {
+    document.getElementById('tableContainer').innerHTML = '<div class="loading">No leads match this filter.</div>';
+    return;
+  }
+
+  var html = '<table><thead><tr><th>Time</th><th>Name</th><th>Contact</th><th>Practice</th><th>Score</th><th>Source</th></tr></thead><tbody>';
+  filtered.forEach(function(l) {
+    html += '<tr><td class="time">' + formatTime(l.created_at) + '</td><td><strong>' + esc(l.name) + '</strong></td>' +
+      '<td><div class="email">' + esc(l.email) + '</div><div class="phone">' + esc(l.phone||'') + '</div></td>' +
+      '<td>' + esc(l.practice||'') + '</td><td>' + scoreBadge(l.score) + '</td>' +
+      '<td style="color:#555;font-size:11px">' + esc(l.source||'') + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tableContainer').innerHTML = html;
+}
+
+// ─── Funnel Rates ───
+function renderFunnelRates() {
+  var a = ANALYTICS;
+  if (!a) return;
+  var r = a.summary.funnel_rate;
+  var items = [
+    ['Scored', r.scored, '#6a9bff'],
+    ['Qualified', r.qualified, '#f59e0b'],
+    ['Hot', r.hot, '#ef4444'],
+  ];
+  var max = 100;
+  var html = '';
+  items.forEach(function(i) { html += bar(i[0], i[1] + '%', max, i[2]); });
+  document.getElementById('funnelRateChart').innerHTML = html;
+}
+
+// ─── Source Performance Table ───
+function renderSourceTable() {
+  var a = ANALYTICS;
+  if (!a || !a.by_source) { document.getElementById('sourceTable').innerHTML = '<div class="loading">no data</div>'; return; }
+  var html = '<table><thead><tr><th>Source</th><th>Leads</th><th>Scored</th><th>Avg</th><th>Qualified</th><th>Hot</th><th>Info%</th></tr></thead><tbody>';
+  a.by_source.forEach(function(s) {
+    html += '<tr><td>' + esc(s.source) + '</td><td>' + s.count + '</td><td>' + s.scored + '</td><td>' + (s.avg_score || '—') + '</td><td>' + s.qualified + '</td><td>' + s.hot + '</td><td>' + s.info_rate + '%</td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('sourceTable').innerHTML = html;
+  document.getElementById('analyticsMeta').textContent = a.by_source.length + ' sources · last 30 days';
+}
+
+// ─── System Status ───
+function renderSystem() {
+  var h = HEALTH;
+  if (!h) { document.getElementById('systemStatus').innerHTML = '<div class="error">No health data</div>'; return; }
+  document.getElementById('systemStatus').innerHTML =
+    '<table><tbody>' +
+    '<tr><td style="color:#888">Status</td><td><span style="color:#6eff8a">● operational</span></td></tr>' +
+    '<tr><td style="color:#888">Leads in DB</td><td>' + h.leads_count + '</td></tr>' +
+    '<tr><td style="color:#888">Telegram</td><td>' + (h.telegram_configured ? '<span style="color:#6eff8a">configured</span>' : '<span style="color:#ef4444">missing</span>') + '</td></tr>' +
+    '<tr><td style="color:#888">Twilio SMS</td><td>' + (h.twilio_configured ? '<span style="color:#6eff8a">configured</span>' : '<span style="color:#ef4444">missing</span>') + '</td></tr>' +
+    '<tr><td style="color:#888">GHL Sync</td><td>' + (h.ghl_configured ? '<span style="color:#6eff8a">configured</span>' : '<span style="color:#ef4444">missing</span>') + '</td></tr>' +
+    '</tbody></table>';
+
+  document.getElementById('systemConfig').innerHTML =
+    '<table><tbody>' +
+    '<tr><td style="color:#888">Flask Port</td><td>5000</td></tr>' +
+    '<tr><td style="color:#888">Database</td><td style="font-family:\'JetBrains Mono\',monospace;font-size:11px">leads.db</td></tr>' +
+    '<tr><td style="color:#888">DB Mode</td><td>WAL</td></tr>' +
+    '<tr><td style="color:#888">Leads Table</td><td>' + h.leads_count + ' rows</td></tr>' +
+    '<tr><td style="color:#888">Auto-refresh</td><td>15s</td></tr>' +
+    '</tbody></table>';
+}
+
+function renderHealthTags() {
+  var h = HEALTH;
+  if (!h) return;
+  var tags = '';
+  var checks = [
+    ['TG', h.telegram_configured],
+    ['SMS', h.twilio_configured],
+    ['GHL', h.ghl_configured],
+  ];
+  checks.forEach(function(c) {
+    tags += '<span class="health-tag ' + (c[1] ? 'ok' : 'miss') + '">' + c[0] + '</span> ';
+  });
+  document.getElementById('healthTags').innerHTML = tags;
+  document.getElementById('statusDot').className = 'status-dot ' + (h.status === 'ok' ? 'online' : 'warn');
+}
+
+// ─── Tab Switching ───
+function showTab(name) {
+  document.querySelectorAll('.main > div').forEach(function(d) { d.style.display = 'none'; });
+  document.getElementById('tab-' + name + '-content').style.display = 'block';
+  document.querySelectorAll('.nav a').forEach(function(a) { a.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'leads') renderLeadsTable();
+}
+
+// ─── Filter Buttons ───
+document.addEventListener('click', function(e) {
+  if (e.target.tagName === 'BUTTON' && e.target.parentElement.id === 'filters') {
+    document.querySelectorAll('#filters button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    ACTIVE_FILTER = e.target.getAttribute('data-filter') || 'all';
+    renderLeadsTable();
+  }
+});
+</script>
 </body>
 </html>
