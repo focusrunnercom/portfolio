@@ -28,7 +28,9 @@
     return (script && script.getAttribute(name)) || fallback;
   };
 
-  var CLIENT_ID = attrs('data-client-id', 'default');
+  var CLIENT_ID = script
+    ? script.getAttribute('data-client-id') || script.getAttribute('data-client') || 'default'
+    : 'default';
   var PRIMARY = attrs('data-primary', '#6eff8a');
   var BG = attrs('data-bg', '#0d120f');
   var API_BASE = attrs('data-api-base', window.location.origin);
