@@ -68,24 +68,15 @@ def req_auth_json(f):
 # ── DB ──────────────────────────────────────────────────────────
 
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS tenants (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    subdomain TEXT UNIQUE DEFAULT '',
-    api_key TEXT UNIQUE DEFAULT '',
-    api_key_hash TEXT DEFAULT '',
-    api_key_prefix TEXT DEFAULT '',
-    settings_json TEXT DEFAULT '{}',
-    ghl_api_key TEXT DEFAULT '',
-    ghl_location_id TEXT DEFAULT '',
-    sms_webhook_url TEXT DEFAULT '',
-    telegram_chat_id TEXT DEFAULT '',
-    is_active INTEGER DEFAULT 1,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_tenants_api_key ON tenants(api_key);
+CREATE INDEX IF NOT EXISTS idx_tenants_api_key ON tenants(api_key_hash);
 CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
+CREATE INDEX IF NOT EXISTS idx_leads_tenant_score ON leads(tenant_id, score, created_at);
+CREATE INDEX IF NOT EXISTS idx_leads_tenant_created ON leads(tenant_id, created_at);
+CREATE TABLE IF NOT EXISTS leads (
+CREATE INDEX IF NOT EXISTS idx_tenants_api_key ON tenants(api_key_hash);
+CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
+CREATE INDEX IF NOT EXISTS idx_leads_tenant_score ON leads(tenant_id, score, created_at);
+CREATE INDEX IF NOT EXISTS idx_leads_tenant_created ON leads(tenant_id, created_at);
 CREATE TABLE IF NOT EXISTS leads (
     id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL DEFAULT 'default',
     name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '',
@@ -106,21 +97,23 @@ CREATE TABLE IF NOT EXISTS notifications (
     error TEXT DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')),
     sent_at TEXT
 );
-CREATE TABLE IF NOT EXISTS tenants (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    subdomain TEXT UNIQUE,
-    api_key_hash TEXT NOT NULL,
-    api_key_prefix TEXT NOT NULL,
-    settings_json TEXT DEFAULT '{}',
-    ghl_api_key TEXT DEFAULT '',
-    ghl_location_id TEXT DEFAULT '',
-    sms_webhook_url TEXT DEFAULT '',
-    telegram_chat_id TEXT DEFAULT '',
-    is_active INTEGER DEFAULT 1,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+CREATE TABLE IF NOT EXISTS visits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    page TEXT NOT NULL DEFAULT '',
+    session_id TEXT NOT NULL DEFAULT '',
+    utm_source TEXT DEFAULT '',
+    utm_medium TEXT DEFAULT '',
+    utm_campaign TEXT DEFAULT '',
+    referer TEXT DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE INDEX IF NOT EXISTS idx_visits_date ON visits(created_at);
+CREATE INDEX IF NOT EXISTS idx_visits_session ON visits(session_id);
+CREATE INDEX IF NOT EXISTS idx_tenants_api_key ON tenants(api_key_hash);
+CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
+CREATE INDEX IF NOT EXISTS idx_leads_tenant_score ON leads(tenant_id, score, created_at);
+CREATE INDEX IF NOT EXISTS idx_leads_tenant_created ON leads(tenant_id, created_at);
+CREATE TABLE IF NOT EXISTS leads (
 """
 
 def init_db():
@@ -418,31 +411,41 @@ def analytics():
 
 @app.route("/api/track", methods=["POST"])
 def track_visit():
-    """Track page visit with UTM params. Fire-and-forget, no lead created."""
+    """Track page visit with UTM params. Writes to visits table for visitor counter."""
     data = request.get_json(silent=True) or {}
     session_id = data.get("session_id", "")
     page = data.get("page", "/")
     utm_source = data.get("utm_source", "direct")
     utm_medium = data.get("utm_medium", "")
     utm_campaign = data.get("utm_campaign", "")
-    utm_content = data.get("utm_content", "")
-    utm_term = data.get("utm_term", "")
     referer = data.get("referer", "")
     logger.info(f"Visit: {page} utm_source={utm_source} session={session_id[:16]}")
     try:
         c = conn()
-        c.execute("""INSERT INTO notifications (type, lead_id, recipient, status, message)
-            VALUES ('visit', ?, 'internal', 'tracked', ?)""",
-            (session_id or "anon", json.dumps({
-                "page": page, "referer": referer,
-                "utm_source": utm_source, "utm_medium": utm_medium,
-                "utm_campaign": utm_campaign, "utm_content": utm_content,
-                "utm_term": utm_term,
-            })[:500]))
-        c.commit(); c.close()
+        c.execute(
+            "INSERT INTO visits (page, session_id, utm_source, utm_medium, utm_campaign, referer) VALUES (?,?,?,?,?,?)",
+            (page, session_id, utm_source, utm_medium, utm_campaign, referer),
+        )
+        c.commit()
+        c.close()
     except Exception as e:
         logger.debug(f"Visit log non-critical fail: {e}")
     return jsonify({"ok": True}), 200
+
+
+@app.route("/api/visitor-count", methods=["GET"])
+def visitor_count():
+    """Return total unique visitors (by session) and today's unique visitors."""
+    try:
+        c = conn()
+        total = c.execute("SELECT COUNT(DISTINCT session_id) FROM visits WHERE session_id != ''").fetchone()[0]
+        today = c.execute(
+            "SELECT COUNT(DISTINCT session_id) FROM visits WHERE session_id != '' AND date(created_at) = date('now')"
+        ).fetchone()[0]
+        c.close()
+        return jsonify({"total_visitors": total, "today_visitors": today}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/health", methods=["GET"])
 @app.route("/health", methods=["GET"])
@@ -536,15 +539,17 @@ def create_tenant():
     try:
         c = conn()
         c.execute(
-            "INSERT INTO tenants (id, name, subdomain, api_key_hash, api_key_prefix) VALUES (?, ?, ?, ?, ?)",
-            (tid, name, subdomain or None, key_hash, key_prefix),
+            "INSERT INTO tenants (id, name, subdomain, api_key, api_key_hash, api_key_prefix) VALUES (?, ?, ?, ?, ?)",
+            (tid, name, subdomain or "", raw_key, key_hash, key_prefix),
         )
         c.commit()
         c.close()
         logger.info(f"Tenant created: {tid} - {name}")
         return jsonify({"id": tid, "name": name, "subdomain": subdomain, "api_key": raw_key}), 201
+    except sqlite3.IntegrityError as e:
+        return jsonify({"error": f"Duplicate: {e}"}), 409
     except Exception as e:
-        return jsonify({"error": f"Duplicate or DB error: {e}"}), 409
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/tenants/<tid>", methods=["GET"])

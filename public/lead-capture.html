@@ -206,7 +206,7 @@
     <p class="pain-line">IDENTIFIED → Your response system costs you patients you already paid for.</p>
     <p class="subtitle">Every dollar you spend on ads buys leads. But if nobody responds within 5 minutes, 70% vanish. We'll text you a personalized audit in 24 hours — your exact leak rate, your cost per patient, and the fix. No call. No pitch.</p>
 
-    <div class="stats-line">47 patients in 90 days · $187 → $41 CPA · 48-hour deployment</div>
+    <div class="stats-line" id="visitorStats">47 patients in 90 days · $187 → $41 CPA · 48-hour deployment</div>
 
     <div id="formFields">
       <div class="form-group">
@@ -285,6 +285,20 @@
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
       }).catch(function(){});
+    })();
+
+    // ─── Visitor Counter ──────────────────────
+    (function loadVisitorCount() {
+      fetch('http://127.0.0.1:5000/api/visitor-count')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var el = document.getElementById('visitorStats');
+          if (data.today_visitors > 0) {
+            el.innerHTML = '👀 ' + data.today_visitors + ' people checked their rates today · '
+              + data.total_visitors + ' total visits · 48-hour deployment';
+          }
+        })
+        .catch(function(){});
     })();
 
     // ─── Lead Capture ──────────────────────────
