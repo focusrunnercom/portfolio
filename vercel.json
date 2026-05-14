@@ -1,9 +1,12 @@
 {
   "builds": [
     {
-      "src": "api/**/*.js",
-      "use": "@vercel/node@2",
-      "config": { "includeFiles": [] }
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/lib/*.js",
+      "use": "@vercel/node"
     },
     {
       "src": "package.json",
@@ -21,8 +24,6 @@
     { "src": "/api/kv", "dest": "/api/kv.js" },
     { "src": "/api/client-config", "dest": "/api/client-config.js" },
     { "src": "/api/notify-status", "dest": "/api/notify-status.js" },
-    { "src": "/api/direct-qualify", "dest": "/api/direct-qualify.js" },
-    { "src": "/api/health", "dest": "/api/health.js" },
     { "src": "/api/test", "dest": "/api/test.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
