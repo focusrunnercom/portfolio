@@ -2,8 +2,7 @@
   "builds": [
     {
       "src": "api/**/*.js",
-      "use": "@vercel/node@2",
-      "config": { "includeFiles": [] }
+      "use": "@vercel/node"
     },
     {
       "src": "package.json",
