@@ -1,10 +1,6 @@
 {
   "builds": [
     {
-      "src": "api/**/*.js",
-      "use": "@vercel/node@2"
-    },
-    {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -12,6 +8,9 @@
       }
     }
   ],
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs18.x" }
+  },
   "routes": [
     { "src": "/api/leads/export", "dest": "/api/leads.js" },
     { "src": "/api/leads", "dest": "/api/leads.js" },
