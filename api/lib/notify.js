@@ -29,139 +29,131 @@ const TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_ENTRIES = 10000;
 
-/** @typedef {{ id: string, name: string, phone: string, email: string, practice?: string, niche?: string, source: string, qualification?: { classification: string, score: number, summary?: string }, status: 'unread'|'read'|'contacted', created_at: string, expires_at: number }} LeadRecord */
+/** @typedef {{ id: string, data: object, createdAt: string, status: string }} LeadRecord */
 
-/** @returns {string} short hash from simple seed */
-function shorthash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0; // Convert to 32bit int
+// =============================================================================
+// Helpers
+// =============================================================================
+
+function nanoId(length = 12) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return Math.abs(hash).toString(36).slice(0, 6);
+  return result;
 }
 
-// =============================================================================
-// Periodic cleanup
-// =============================================================================
-
-function maybeCleanup() {
+/**
+ * Clean expired entries from the store.
+ */
+function cleanup() {
   const now = Date.now();
-  const lastCleanup = globalThis.__leadsStoreLastCleanup || 0;
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
-
-  globalThis.__leadsStoreLastCleanup = now;
   for (const [key, record] of store) {
-    if (now > record.expires_at) {
+    if (now - new Date(record.createdAt).getTime() > TTL_MS) {
       store.delete(key);
     }
   }
-
-  // Enforce max entries — evict oldest first if over limit
+  // Enforce soft limit
   if (store.size > MAX_ENTRIES) {
-    const sorted = [...store.entries()].sort((a, b) =>
-      new Date(a[1].created_at).getTime() - new Date(b[1].created_at).getTime()
-    );
+    const entries = [...store.entries()]
+      .sort((a, b) => new Date(a[1].createdAt).getTime() - new Date(b[1].createdAt).getTime());
     const toRemove = store.size - MAX_ENTRIES;
-    for (let i = 0; i < toRemove && i < sorted.length; i++) {
-      store.delete(sorted[i][0]);
+    for (let i = 0; i < toRemove; i++) {
+      store.delete(entries[i][0]);
     }
   }
 }
 
 // =============================================================================
-// API
+// Exports
 // =============================================================================
 
-/** Record a new lead in the in-memory store */
-export function record(lead) {
-  maybeCleanup();
-
-  const now = new Date();
-  const timestamp = now.toISOString().replace(/[:\-TZ]/g, '').slice(0, 12); // YYYYMMDDHHmm
-  const hashInput = `${lead.name || ''}${lead.phone || ''}${lead.email || ''}${now.getTime()}`;
-  const id = `lead_${timestamp}_${shorthash(hashInput)}`;
-
-  const record = {
+/**
+ * Record a lead in the in-memory store.
+ * @param {object} data — lead data
+ * @returns {{ id: string }}
+ */
+export function record(data) {
+  const now = Date.now();
+  const id = `lead_${now}_${nanoId()}`;
+  store.set(id, {
     id,
-    name: lead.name || '',
-    phone: lead.phone || '',
-    email: lead.email || '',
-    practice: lead.practice || '',
-    niche: lead.niche || '',
-    source: lead.source || 'unknown',
-    qualification: lead.qualification || null,
+    data,
+    createdAt: new Date(now).toISOString(),
     status: 'unread',
-    created_at: now.toISOString(),
-    expires_at: now.getTime() + TTL_MS,
-  };
+  });
 
-  store.set(id, record);
-  return record;
-}
-
-/** List all leads, optionally filtered */
-export function listLeads(options = {}) {
-  maybeCleanup();
-
-  const statusFilter = options.status;
-  const limit = Math.min(options.limit || 50, 200);
-  const offset = options.offset || 0;
-
-  let entries = [...store.values()];
-
-  if (statusFilter) {
-    entries = entries.filter(r => r.status === statusFilter);
+  // Periodic cleanup (every ~5 min)
+  const elapsed = now - (globalThis.__leadsStoreCleanupAt || 0);
+  if (elapsed > CLEANUP_INTERVAL_MS || store.size > MAX_ENTRIES * 0.9) {
+    cleanup();
+    globalThis.__leadsStoreCleanupAt = now;
   }
 
-  // Sort newest first
-  entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-  const total = entries.length;
-  const unread = [...store.values()].filter(r => r.status === 'unread').length;
-  const results = entries.slice(offset, offset + limit);
-
-  return { leads: results, total, unread };
+  return { id };
 }
 
-/** Mark a lead as read by id */
-export function markRead(id) {
+/**
+ * List recent leads from the in-memory store.
+ * @param {number} limit — max entries (default 50)
+ * @param {number} offset — page offset (default 0)
+ * @returns {{ total: number, leads: LeadRecord[] }}
+ */
+export function listLeads(limit = 50, offset = 0) {
+  const entries = [...store.values()]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return {
+    total: entries.length,
+    leads: entries.slice(offset, offset + limit),
+  };
+}
+
+/**
+ * Mark a lead as read/contacted.
+ * @param {string} id — lead ID
+ * @param {string} status — new status
+ * @returns {boolean}
+ */
+export function markRead(id, status = 'read') {
   const record = store.get(id);
   if (!record) return false;
-  record.status = 'read';
+  record.status = status;
   return true;
 }
 
-/** Export all leads as CSV */
+/**
+ * Export all leads as CSV string.
+ * @returns {string}
+ */
 export function exportCsv() {
-  maybeCleanup();
-
-  const records = [...store.values()].sort((a, b) =>
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  const entries = [...store.values()].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  const header = 'id,name,phone,email,practice,niche,source,qualification_score,qualification_class,status,created_at';
-  const rows = records.map(r => [
-    escapeCsv(r.id),
-    escapeCsv(r.name),
-    escapeCsv(r.phone),
-    escapeCsv(r.email),
-    escapeCsv(r.practice),
-    escapeCsv(r.niche),
-    escapeCsv(r.source),
-    r.qualification?.score ?? '',
-    r.qualification?.classification ?? '',
-    r.status,
-    r.created_at,
-  ].join(','));
+  const headers = ['id', 'createdAt', 'status', 'name', 'phone', 'email', 'practice', 'niche', 'score', 'classification'];
+  const rows = entries.map((r) => {
+    const d = r.data || {};
+    const q = d.qualification || {};
+    return [
+      r.id,
+      r.createdAt,
+      r.status,
+      escapeCsv(d.name || ''),
+      escapeCsv(d.phone || ''),
+      escapeCsv(d.email || ''),
+      escapeCsv(d.practice || ''),
+      escapeCsv(d.niche || ''),
+      q.score ?? '',
+      q.classification || '',
+    ].join(',');
+  });
 
-  return [header, ...rows].join('\n');
+  return [headers.join(','), ...rows].join('\n');
 }
 
-function escapeCsv(val) {
-  if (!val) return '';
-  const s = String(val);
+function escapeCsv(str) {
+  const s = String(str || '');
   if (s.includes(',') || s.includes('"') || s.includes('\n')) {
     return `"${s.replace(/"/g, '""')}"`;
   }

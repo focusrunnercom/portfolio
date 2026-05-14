@@ -16,6 +16,8 @@
  */
 
 import { kvGet } from './kv.js';
+import { record as storeLead } from './lib/notify.js';
+import { notifyLead } from './lib/lead-notify.js';
 
 // =============================================================================
 // Retry helper
@@ -408,6 +410,9 @@ export default async function handler(request) {
     console.error('[webhook] GHL forward failed:', err.message);
   }
 
+  // --- Store to in-memory store ---
+  storeLead(leadData);
+
   // --- Send email notification ---
   let emailResult = null;
   try {
@@ -415,6 +420,9 @@ export default async function handler(request) {
   } catch (err) {
     console.error('[webhook] Email notification failed:', err.message);
   }
+
+  // --- Store in in-memory lead store (fallback notification) ---
+  storeLead(leadData);
 
   // --- SMS followup ---
   if (qualification && qualification.classification !== 'cold' && qualification.classification !== 'not_a_fit') {

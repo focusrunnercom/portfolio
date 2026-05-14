@@ -2,7 +2,7 @@
  * Vercel Serverless Function: /api/chat
  * Lead qualification endpoint — called by the focusrunner-chat-widget.js
  *
- * Input:  POST { name, email, phone, time, page_url }
+ * Input:  POST { name, email, phone, time, page_url, practice, niche, volume }
  *         Header: X-Client-Id — optional, resolves per-client AI config
  * Output: { reply, qualification, booking_link }
  *
@@ -12,15 +12,18 @@
  * - Multi-strategy JSON extraction (fenced block, bare JSON, multi-line fragment)
  * - Returns 504 on timeout instead of generic 502
  * - Validates required fields (name, phone) — returns 400 if missing
+ * - Real-time email notification on hot/warm leads via Resend
  */
 // =============================================================================
 // Configuration
 // =============================================================================
 import { kvGet } from './kv.js';
-import { notifyLead } from './lib/notify.js';
+import { notifyLead } from './lib/lead-notify.js';
+import { record as storeLead } from './lib/notify.js';
 
 const AI_TIMEOUT_MS = 15000;
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+
 /**
  * Resolve AI configuration for a client.
  * Falls back to env vars if no client config found.
@@ -58,58 +61,61 @@ async function resolveAIConfig(clientId) {
   return config;
 }
 
-  return `You are a business development consultant for FocusRunner, an AI marketing agency serving MED SPA OWNERS. Your only job: determine if this med spa owner is a fit for our $2,500 setup / $2,500/mo AI Patient Acquisition System.
+// =============================================================================
+// Helpers
+// =============================================================================
 
-YOU ARE TALKING TO MED SPA OWNERS — NOT PATIENTS, NOT DOCTORS, NOT GENERAL BUSINESS OWNERS. This person owns or operates a med spa. They have a specific problem: they spend $3K-$10K/mo on Meta ads and 85% of those leads go cold. They want more booked appointments, not more leads.
+/**
+ * Fetch with an AbortController timeout.
+ * Throws on timeout — caller catches and returns 504.
+ */
+async function fetchWithTimeout(url, options, timeoutMs = AI_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-EVERY MESSAGE must speak to the med spa owner reality:
-- They book patients for Botox, filler, laser, body contouring, IV therapy
-- Their average patient lifetime value is $2K-$5K
-- They lose leads because no one follows up at 2AM on a Saturday
-- They care about booking rate, not lead volume
+/**
+ * Build the system prompt for lead qualification.
+ */
+function buildSystemPrompt(leadData) {
+  const name = leadData.name || 'there';
+  const phone = leadData.phone || 'unknown';
+  const email = leadData.email || 'unknown';
+  const time = leadData.time || 'unknown';
+  const pageUrl = leadData.page_url || 'unknown';
 
-KEY QUALIFICATION (score each 1-100):
-1. Ad Spend: $3K-$5K=20pts, $5K-$10K=30pts, $10K+=35pts, under $3K=5pts
-2. Booking Rate: under 10%=35pts, 10-15%=25pts, 15-20%=10pts, 20%+=5pts
-3. Timeline: ASAP=30pts, this quarter=20pts, exploring=5pts
+  return `You are a lead qualification assistant for FocusRunner, an AI marketing agency. Your job: analyze a new lead and determine their potential.
 
-CONVERSATION FLOW:
-1. "What services does your spa specialize in?"
-2. "What are you spending monthly on ads?"
-3. "What is your current booking rate — out of 100 leads, how many book?"
-4. "What is your timeline to start a new system?"
-5. Score them, then ask for contact info
+LEAD INFORMATION:
+- Name: ${name}
+- Phone: ${phone}
+- Email: ${email}
+- Preferred contact time: ${time}
+- Source page: ${pageUrl}
 
-TONE: Direct, minimal, outcome-focused. Like a consultant who has seen 100 med spas with the same problem. Never pitchy. Speak numbers and outcomes.
-
-CRITICAL: Med spa owners are ad-fatigued. Do NOT use marketing language. Lead with the problem: "85% of your ad leads go cold — here is what that costs you."
-
-At the END, output JSON:
+At the end of your reply, output a JSON block with your assessment:
 \`\`\`json
 {
-  "score": <0-100>,
-  "classification": "qualified|warm|cold",
-  "ad_spend_tier": "premium|mid|low",
-  "service_focus": "<main service from conversation>",
-  "timeline": "immediate|this_quarter|exploring",
-  "summary": "<1-sentence summary for sales team>",
-  "booking_link": "https://focusrunner.com/book-demo"
+  "score": 0-100,
+  "classification": "hot|warm|cold",
+  "summary": "<1-sentence lead summary for sales team>"
 }
 \`\`\`
 
-Known about this practice owner:
-- Name: ${name}
-- Phone: ${phone}
-- Practice: ${practice}
-- Niche: ${niche}
-- Current patients/mo: ${volume}
-
-CRITICAL: This is a MED SPA OWNER evaluating a vendor. Ask about ad spend, booking rates, lost leads, and timeline. Show them the math. "What is a booked patient worth to you? If we can fix your booking rate, what is that worth per month?"`;
+Rules:
+1. Keep your reply friendly and under 2 sentences — this is shown to the lead.
+2. Always include the JSON block at the end.
+3. Classification: hot = has name + phone + clear interest; warm = has name + email; cold = partial info only.`;
 }
 
 /**
  * Multi-strategy JSON qualification extraction from AI response.
- * Strategy 1: \`\`\`json ... \`\`\` fenced block
+ * Strategy 1: ```json ... ``` fenced block
  * Strategy 2: Bare JSON object with "score" field
  * Strategy 3: Multi-line brace-balanced fragment
  */
@@ -192,8 +198,7 @@ export default async function handler(request) {
 
   // Health check
   if (request.method === 'GET') {
-    const url = request.url.startsWith('http') ? new URL(request.url) : new URL(request.url, 'https://focusrunner.io');
-    const clientId = url.searchParams.get('clientId') || '';
+    const clientId = new URL(request.url).searchParams.get('clientId') || '';
     return jsonResponse({
       status: 'ok',
       endpoint: '/api/chat',
@@ -301,21 +306,22 @@ export default async function handler(request) {
   // Truncate to keep response tight
   if (reply.length > 300) reply = reply.slice(0, 297) + '...';
 
-  const bookingLink = qualification?.classification === 'qualified'
+  const bookingLink = qualification?.classification === 'hot'
     ? (aiConfig.bookingUrl || process.env.BOOKING_URL || 'https://focusrunner.io')
     : null;
 
   console.log(`[chat] Lead qualified: ${name} score=${qualification?.score ?? 'N/A'} class=${qualification?.classification ?? 'N/A'}`);
 
   // === EMAIL NOTIFICATION: alert the team in real-time ===
+  // Only send for hot/warm/qualified leads (skips cold/unknown)
   if (qualification && qualification.classification !== 'cold') {
     const leadPayload = {
       name: name || 'Anonymous',
       email: email || '',
       phone: phone || '',
-      practice: body.practice || '',
-      niche: body.niche || '',
-      volume: body.volume || '',
+      practice: practice || '',
+      niche: niche || '',
+      volume: volume || '',
       qualification,
       source: 'chat_widget',
     };
@@ -323,6 +329,18 @@ export default async function handler(request) {
       console.error('[chat] Email notification failed:', err.message)
     );
   }
+
+  // === IN-MEMORY STORE: always store for live dashboard ===
+  storeLead({
+    name: name || 'Anonymous',
+    email: email || '',
+    phone: phone || '',
+    practice: practice || '',
+    niche: niche || '',
+    volume: volume || '',
+    qualification,
+    source: 'chat_widget',
+  });
 
   return jsonResponse({
     reply,
