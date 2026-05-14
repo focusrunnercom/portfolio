@@ -1,12 +1,21 @@
 /**
  * Vercel Serverless Function: /api/chat
- * SINGLE-FILE — zero imports. CJS for Vercel Node 18.x Hobby compat.
+ * SINGLE-FILE — zero imports. CJS for Vercel Node 18.x/24.x Hobby compat.
  * Lead qualification — rules-based scoring. Stores leads. Email notif on hot/warm.
  */
 
 var fs = require('fs');
 var crypto = require('crypto');
 var STORE = '/tmp/leads.json';
+
+var MSGS = {
+  greeting: 'Hey, I see you are checking out FocusRunner. Quick 3 questions.',
+  ask_practice: 'What is your practice name?',
+  ask_volume: 'How many new patients per month?',
+  hot: 'Great fit! Our team will reach out within 24h.',
+  warm: 'Solid prospect. We will send case studies.',
+  cold: 'Thanks. Reach out anytime at hello@focusrunner.com.'
+};
 
 function readAll() {
   try {
@@ -52,11 +61,11 @@ function sendNotif(d, cls, score) {
   var name = d.name || '';
   var phone = d.phone || '';
   var practice = d.practice || '';
-  var html = '<div style="background:#0f172a;padding:24px;color:#fff;border-radius:12px">' +
-    '<h1>New Lead</h1>' +
-    '<p style="display:inline-block;padding:4px 12px;border-radius:20px;background:' + bc + '">' +
+  var html = '<div style="background:#0f172a;padding:24px;color:#fff;border-radius:12px;font-family:sans-serif">' +
+    '<h1 style="font-size:20px;margin:0 0 12px">New Lead</h1>' +
+    '<p style="display:inline-block;padding:4px 12px;border-radius:20px;background:' + bc + ';font-size:12px;font-weight:700">' +
     cls.toUpperCase() + ' ' + score + '/100</p>' +
-    '<p><b>' + name + '</b> ' + phone + ' ' + practice + '</p></div>';
+    '<p style="margin:12px 0 0;font-size:15px"><b>' + name + '</b> &middot; ' + phone + ' &middot; ' + practice + '</p></div>';
   fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + k, 'Content-Type': 'application/json' },
@@ -68,16 +77,6 @@ function sendNotif(d, cls, score) {
     })
   }).catch(function() {});
 }
-
-var MSGS = {
-  greeting: 'Hey, I see you are checking out FocusRunner. Quick 3 questions.',
-  ask_practice: 'What is your practice name?',
-  ask_volume: 'How many new patients per month?',
-  ask_spend: 'What is your monthly ad spend?',
-  hot: 'Great fit! Our team will reach out within 24h.',
-  warm: 'Solid prospect. We will send case studies.',
-  cold: 'Thanks. Reach out anytime at hello@focusrunner.com.'
-};
 
 function cors() {
   return {
@@ -101,23 +100,32 @@ module.exports = function(req, res) {
 
     var name = d.name || '', email = d.email || '', phone = d.phone || '';
     var practice = d.practice || '', volume = d.volume || '', spend = d.spend || '';
-    var state = d.state || {}, step = state.step || 'greeting';
+    var state = d.state || {}, step = state.step || '';
 
+    // Conversation mode: step-based flow
+    if (step) {
+      if (step === 'done') {
+        var q = qualify({ practice: state.practice || '', volume: state.volume || '' });
+        var qo = { score: q.score, classification: q.classification, next_action: q.next_action };
+        var id = store({ name: state.name, email: state.email, phone: state.phone, practice: state.practice, source: 'chat', qualification: qo });
+        if (q.classification !== 'cold') sendNotif({ name: state.name, phone: state.phone, practice: state.practice }, q.classification, q.score);
+        return res.end(JSON.stringify({ response: MSGS[q.classification], qualification: qo, lead_id: id, next_step: 'complete' }));
+      }
+      return res.end(JSON.stringify({ response: MSGS[step] }));
+    }
+
+    // Quick qualify mode: has practice + volume
     if (practice && volume) {
       var q = qualify({ practice: practice, volume: volume, spend: spend });
       var qo = { score: q.score, classification: q.classification, next_action: q.next_action };
       var id = store({ name: name, email: email, phone: phone, practice: practice, source: 'chat', qualification: qo });
       if (q.classification !== 'cold') sendNotif({ name: name, phone: phone, practice: practice }, q.classification, q.score);
-      return res.end(JSON.stringify({ response: MSGS[q.classification], score: q.classification, next_action: q.next_action, qualification: qo, lead_id: id }));
+      return res.end(JSON.stringify({ response: MSGS[q.classification], qualification: qo, lead_id: id }));
     }
 
-    if (step === 'greeting') return res.end(JSON.stringify({ response: MSGS.greeting + '\n\n' + MSGS.ask_practice, next_step: 'ask_volume', requires_input: true, field: 'practice' }));
-    if (step === 'ask_volume') return res.end(JSON.stringify({ response: MSGS.ask_volume, next_step: 'ask_spend', requires_input: true, field: 'volume' }));
-    if (step === 'ask_spend') return res.end(JSON.stringify({ response: MSGS.ask_spend, next_step: 'done', requires_input: true, field: 'spend' }));
-    if (step === 'done') {
-      var q = qualify({ practice: state.practice || '', volume: state.volume || '' });
-      return res.end(JSON.stringify({ response: MSGS[q.classification], score: q.classification, next_action: q.next_action, next_step: 'complete' }));
-    }
+    // Need more info — prompt for practice first
+    if (!practice) return res.end(JSON.stringify({ response: MSGS.greeting + '\n\n' + MSGS.ask_practice, next_step: 'ask_volume', requires_input: true, field: 'practice' }));
+    if (!volume) return res.end(JSON.stringify({ response: MSGS.ask_volume, next_step: 'done', requires_input: true, field: 'volume' }));
     res.end(JSON.stringify({ response: MSGS.greeting, next_step: 'ask_volume', requires_input: true, field: 'practice' }));
   });
 };

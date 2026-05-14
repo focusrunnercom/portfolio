@@ -171,10 +171,10 @@ function jsonResponse(res, data, status) {
 }
 
 // =============================================================================
-// Handler
+// Handler — Node.js Serverless Runtime (req, res)
 // =============================================================================
 
-async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, corsHeaders());
@@ -196,7 +196,7 @@ async function handler(req, res) {
     return;
   }
 
-  // Parse body
+  // Parse body — Vercel serverless functions use raw streaming
   var body = '';
   req.on('data', function(chunk) { body += chunk; });
   req.on('end', async function() {
@@ -206,45 +206,44 @@ async function handler(req, res) {
       return;
     }
 
-  // Validate
-  var validation = validateLeadBody(data);
-  if (!validation.valid) {
-    jsonResponse(res, { error: 'Validation failed', details: validation.errors }, 400);
-    return;
-  }
+    // Validate
+    var validation = validateLeadBody(data);
+    if (!validation.valid) {
+      jsonResponse(res, { error: 'Validation failed', details: validation.errors }, 400);
+      return;
+    }
 
-  var leadData = {
-    name: data.name,
-    phone: data.phone,
-    email: data.email || '',
-    practice: data.practice || '',
-    volume: data.volume || '',
-    source: data.source || 'lead_capture',
-  };
+    var leadData = {
+      name: data.name,
+      phone: data.phone,
+      email: data.email || '',
+      practice: data.practice || '',
+      volume: data.volume || '',
+      source: data.source || 'lead_capture',
+    };
 
-  console.log('[webhook] Received lead: name=' + leadData.name + ' phone=' + leadData.phone + ' source=' + leadData.source);
+    console.log('[webhook] Received lead: name=' + leadData.name + ' phone=' + leadData.phone + ' source=' + leadData.source);
 
-  // Store in memory
-  appendLead(leadData);
+    // Store in memory
+    appendLead(leadData);
 
-  // Forward to GHL
-  var ghlResult = null;
-  try {
-    ghlResult = await createGHLContact(leadData);
-  } catch (err) {
-    console.error('[webhook] GHL forward failed:', err.message);
-  }
+    // Forward to GHL
+    var ghlResult = null;
+    try {
+      ghlResult = await createGHLContact(leadData);
+    } catch (err) {
+      console.error('[webhook] GHL forward failed:', err.message);
+    }
 
-  var ghlSuccess = ghlResult !== null;
-  var httpStatus = ghlSuccess ? 200 : 202;
+    var ghlSuccess = ghlResult !== null;
+    var httpStatus = ghlSuccess ? 200 : 202;
 
-  jsonResponse(res, {
-    success: ghlSuccess,
-    lead_id: ghlResult?.contact?.id || ghlResult?.id || null,
-    message: ghlSuccess
-      ? 'Lead received and forwarded'
-      : 'Lead received but GHL forwarding failed',
-  }, httpStatus);
+    jsonResponse(res, {
+      success: ghlSuccess,
+      lead_id: ghlResult?.contact?.id || ghlResult?.id || null,
+      message: ghlSuccess
+        ? 'Lead received and forwarded'
+        : 'Lead received but GHL forwarding failed',
+    }, httpStatus);
   });
 };
-module.exports = handler;

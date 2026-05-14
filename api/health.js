@@ -5,39 +5,32 @@
  * GET /api/health          → { status, timestamp, env checks }
  * GET /api/health?test=deepseek → also attempts DeepSeek API call
  *
- * No dependencies — pure Edge Runtime (no NPM).
+ * Node.js Serverless Runtime — uses (req, res) callback style.
  */
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  };
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json',
+};
+
+function sendJson(res, data, status = 200) {
+  res.writeHead(status, headers);
+  return res.end(JSON.stringify(data, null, 2));
 }
 
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data, null, 2), {
-    status,
-    headers: corsHeaders(),
-  });
-}
-
-async function handler(request) {
+module.exports = async function handler(req, res) {
   // CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, headers);
+    return res.end();
   }
 
-  if (request.method !== 'GET') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
+  if (req.method !== 'GET') {
+    return sendJson(res, { error: 'Method not allowed' }, 405);
   }
-
-  const url = request.url.startsWith('http')
-    ? new URL(request.url)
-    : new URL(request.url, 'https://focusrunner.io');
 
   const env = {
     hasDeepSeekKey: DEEPSEEK_API_KEY.length > 0,
@@ -59,13 +52,13 @@ async function handler(request) {
   };
 
   // DeepSeek connectivity test
-  if (url.searchParams.get('test') === 'deepseek') {
+  if (req.url && req.url.includes('test=deepseek')) {
     if (!DEEPSEEK_API_KEY) {
       result.deepseek = {
         reachable: false,
         reason: 'DEEPSEEK_API_KEY not configured in Vercel env',
       };
-      return jsonResponse(result);
+      return sendJson(res, result);
     }
 
     const start = Date.now();
@@ -85,11 +78,8 @@ async function handler(request) {
 
       const latencyMs = Date.now() - start;
       let body = null;
-      try {
-        body = await dsRes.json();
-      } catch (e) {
-        body = { error: 'Failed to parse response body' };
-      }
+      try { body = await dsRes.json(); }
+      catch (e) { body = { error: 'Failed to parse response body' }; }
 
       result.deepseek = {
         reachable: dsRes.ok,
@@ -111,7 +101,5 @@ async function handler(request) {
     }
   }
 
-  return jsonResponse(result);
-}
-
-module.exports = handler;
+  return sendJson(res, result);
+};

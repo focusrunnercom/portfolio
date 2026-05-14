@@ -1,122 +1,287 @@
-# Lead Pipeline & Admin Dashboard — Architecture
+# FocusRunner Platform Architecture
 
-## Current State
+**Last Updated:** 2026-05-14
+**Author:** Senior Engineer
 
-### Pipeline
+---
+
+## 1. Deployment Architecture
+
 ```
-lead-capture.html ──POST──→ /api/webhook ──→ /tmp/leads.json
-                                        └──→ GHL (if API key set)
-                                        └──→ Email (if Resend key set)
-                                        └──→ SMS (if Twilio key set)
+┌──────────────────────────────────────────────────────────────┐
+│                    Vercel (Hobby Plan)                        │
+│  ┌──────────┐  ┌────────────────────┐  ┌──────────────────┐  │
+│  │   SPA    │  │  API Functions     │  │  Static Assets   │  │
+│  │  React   │  │  (Node 18 CJS)     │  │  /admin/leads    │  │
+│  │  /dist   │  │  /api/*.js        │  │  /lead-form      │  │
+│  └────┬─────┘  └────────┬───────────┘  └──────────────────┘  │
+│       │                 │                                     │
+│       └──────┬──────────┘                                     │
+│              │                                                │
+│         ┌────▼─────┐                                         │
+│         │ vercel.json (rewrites)                              │
+│         │ /api/* → /api/*.js                                  │
+│         │ /*     → /index.html (SPA catch-all)                │
+│         └─────────────────────────────────────────────────────┘
 ```
 
-### Visibility
-```
-GET /api/leads ──→ /tmp/leads.json (auth-gated: full vs anonymized)
-GET /admin/leads ──→ Standalone dashboard SPA (FOC-312)
-```
+### 1.1 Vercel Hobby Plan Constraints
 
-### Lead Schema (in /tmp/leads.json)
-```
+| Constraint | Value | Impact |
+|---|---|---|
+| Node version | 18.x (max on Hobby) | No ESM, no `@vercel/node` builder |
+| Deploys/day | 100 | ~24h lockout when exhausted |
+| Function timeout | 10s (free) / 30s (pro) | Configure `maxDuration: 30` |
+| Concurrent functions | 2 (free) | Acceptable for single-user lead flow |
+| Runtime auto-detect | Partially broken on Hobby | Requires `functions.runtime` explicit config |
+
+### 1.2 vercel.json — Current (Working) Config
+
+```json
 {
-  leads: [
-    {
-      id: "uuid",
-      name, phone, email, practice,
-      qualification: { score, classification, summary },
-      source, timestamp, notified
-    }
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs18.x", "maxDuration": 30 }
+  },
+  "rewrites": [
+    { "source": "/api/health",     "destination": "/api/health.js" },
+    { "source": "/api/leads",     "destination": "/api/leads.js" },
+    { "source": "/api/chat",      "destination": "/api/chat.js" },
+    { "source": "/api/webhook",   "destination": "/api/webhook.js" },
+    { "source": "/api/direct-qualify", "destination": "/api/direct-qualify.js" },
+    { "source": "/api/kv",        "destination": "/api/kv.js" },
+    { "source": "/api/client-config", "destination": "/api/client-config.js" },
+    { "source": "/api/notify-status", "destination": "/api/notify-status.js" },
+    { "source": "/api/lead-notify",   "destination": "/api/lead-notify.js" },
+    { "source": "/api/leads/export",  "destination": "/api/leads.js" },
+    { "source": "/admin/leads",       "destination": "/admin/leads.html" },
+    { "source": "/admin/leads/:path*","destination": "/admin/leads.html" },
+    { "source": "/(.*)",              "destination": "/index.html" }
   ]
 }
 ```
 
-## FOC-303 — Leads API (DONE)
+**Critical rule:** API rewrites MUST be listed before the SPA catch-all `/(.*)`.
 
-**Status**: Deployed but non-functional. Root cause: Vercel Hobby does not support Node >18.x for Serverless Functions. The production deployment (dpl_AQvwFx4FU1iZX583TiLKCthBxLZC) uses minimal vercel.json without explicit `runtime: nodejs18.x`, causing Vercel to default to the package.json `engines.node` value which is 24.x.
+### 1.3 Deployment Flow
 
-**Fix applied** (committed to main, awaiting deploy):
-- vercel.json: `"api/**/*.js": { "runtime": "nodejs18.x", "maxDuration": 30 }` with explicit rewrites for all API routes
-- package.json: `"engines": { "node": "18.x" }`
-- Blocked by Vercel Hobby 100 deploys/day limit (resets 2026-05-15 14:44 UTC)
-
-## FOC-312 — Admin Dashboard (IN PROGRESS)
-
-### Architecture
 ```
-/admin/leads.html (standalone HTML, no build)
-  │
-  ├── on load: GET /api/leads (with Admin auth header)
-  │
-  ├── Render: table with Name, Phone, Email, Practice, Score, Source, Timestamp
-  ├── Filters: score (hot/warm/cold), source, date range
-  ├── Dark theme, #6eff8a accent, JetBrains Mono
-  └── Stored in repo at public/admin/leads.html
-```
-
-Filesystem: `/home/ai13/focusrunnercom/portfolio/public/admin/leads.html`
-
-### Why standalone HTML
-- No React, no build step, no dependencies
-- Deploys as a static asset via Vercel SPA catch-all
-- `/admin/leads` rewrites to `/admin/leads.html` via the existing `/(.*)` → `/index.html` rule... **Wait** — the catch-all rewrites to `/index.html`, not `public/admin/leads.html`. Need to add an explicit rewrite.
-
-**vercel.json update needed**: Add `/admin/leads` route before the catch-all.
-
-### Auth
-- Dashboard calls GET /api/leads with `Authorization: Bearer <ADMIN_API_KEY>`
-- ADMIN_API_KEY set in Vercel env (from .env.local)
-- Public calls get anonymized data (phone masked, email empty)
-
-## FOC-181 — Lead Notification
-
-### Current State
-- `api/lead-notify.js` — standalone POST endpoint, calls Resend API. Exists in repo.
-- `api/lib/lead-notify.js` — shared notification library. Exists in repo.
-- `api/webhook.js` — appends to leads.json + calls Resend inline + attempts GHL + SMS
-- RESEND_API_KEY: empty (no env var set)
-- Notifications are wired but non-functional until a valid Resend API key is set
-
-### Architecture
-```
-Lead captured → webhook.js → appendLead() to /tmp/leads.json
-                           → createGHLContact() (if key set)
-                           → notifyLeadEmail() via Resend (if key set)
-                           → smsFollowup() via Twilio (if key set)
-                           → [future] POST /api/lead-notify for decoupled notification
+git push origin main  →  GitHub
+                          ↓
+vercel deploy --prod   →  Vercel Pipeline
+                          ↓
+                   Build Phase:
+                   - SPA: vite build → dist/
+                   - API: auto-detect api/*.js → serverless functions
+                          ↓
+                   Deploy Phase:
+                   - Upload assets to Vercel CDN
+                   - Register serverless functions with rewrites
+                          ↓
+                   Validation:
+                   - curl /api/health → JSON { status: "ok" }
+                   - curl / → HTML SPA
+                   - curl /admin/leads → HTML dashboard
 ```
 
-The Resend key must be set in Vercel env before notifications work.
+## 2. API Layer
 
-## Deployment Constraints
+### 2.1 API Functions — All CJS for Node 18 Hobby Compatibility
 
-| Constraint | Detail |
-|-----------|--------|
-| Vercel Hobby | Node 18.x only for serverless functions |
-| Deploy limit | 100/day, resets 14:44 UTC daily |
-| /tmp storage | Ephemeral per warm instance — lost on cold start |
-| Git integration | Not enabled (sourceless project) — deploy via Vercel API only |
+| Endpoint | File | Method(s) | Description |
+|---|---|---|---|
+| `/api/health` | `health.js` | GET | Health check + env diagnostics |
+| `/api/leads` | `leads.js` | GET, POST | Lead CRUD (file-based) |
+| `/api/chat` | `chat.js` | POST | AI lead qualification (DeepSeek) |
+| `/api/webhook` | `webhook.js` | POST | Lead ingestion from forms + GHL sync |
+| `/api/direct-qualify` | `direct-qualify.js` | POST | Rules-based qualification (no AI) |
+| `/api/kv` | `kv.js` | GET, POST, DELETE | Vercel KV abstraction with memory fallback |
+| `/api/client-config` | `client-config.js` | GET, POST, DELETE | Per-client CRM/AI config |
+| `/api/notify-status` | `notify-status.js` | GET, POST | Notification pipeline diagnostics |
+| `/api/lead-notify` | `lead-notify.js` | POST | Email notification via Resend |
 
-## File Layout
+### 2.2 Shared Libraries (`/api/lib/`)
+
+| Library | File | Purpose |
+|---|---|---|
+| KV client | `kv.js` | Vercel KV REST API wrapper with in-memory fallback |
+| Lead store | `lead-store.js` | File-based /tmp/leads.json persistence |
+| Notify | `notify.js` | Email notification via Resend API |
+
+### 2.3 CJS Compatibility Notes
+
+All API files must:
+- Use `require()` not `import`/`from`
+- Use `module.exports` not `export default`
+- Avoid top-level `await`
+- Avoid ESM-only packages
+- Use `process.env` for config (not compile-time injection)
+
+## 3. Data Layer
+
+### 3.1 Lead Storage (File-Based, Zero Infra)
+
 ```
-public/
-  lead-capture.html     — Standalone lead capture form (posts to /api/webhook)
-  admin/
-    leads.html          — NEW: Admin dashboard SPA (FOC-312)
-api/
-  leads.js              — GET /api/leads (FOC-303)
-  webhook.js            — POST /api/webhook — lead ingest + forwarding
-  lead-notify.js        — Standalone notification endpoint
-  direct-qualify.js     — DeepSeek-independent qualification
-  health.js             — Health check endpoint
-  lib/
-    lead-store.js       — File-based lead CRUD
-    lead-notify.js      — Email notification library
-    notify.js           — (from git history, not in HEAD)
+File: /tmp/leads.json
+Schema:
+[
+  {
+    "id": "uuid",
+    "name": "string",
+    "phone": "string",
+    "email": "string",
+    "practice": "string",
+    "source": "web|chat|manual|api",
+    "qualification": "hot|warm|cold|null",
+    "score": 0-100,
+    "timestamp": "ISO-8601"
+  }
+]
 ```
 
-## Next Steps
-1. Deploy after Vercel limit reset (14:44 UTC May 15) — vercel.json + package.json fix
-2. Test: `curl https://focusrunner.io/api/leads` returns lead data
-3. Test: Open `/admin/leads` — table renders with test leads
-4. Set RESEND_API_KEY in Vercel env to activate email notifications
-5. Wire lead-capture.html → webhook → leads.json pipeline end-to-end
+Atomic writes via `/tmp/leads.json.tmp` + `os.replace()`. Survives warm instance restarts.
+
+### 3.2 Vercel KV (Upstash) — When Configured
+
+Used for: client-specific AI configs, session state, analytics counters.
+Falls back to in-memory Map when KV env vars are unset.
+
+### 3.3 GoHighLevel Integration
+
+Webhook payload shape for GHL:
+```json
+{
+  "name": "string",
+  "phone": "string",
+  "email": "string",
+  "practice": "string",
+  "source": "web",
+  "qualification": "hot",
+  "score": 85,
+  "gclid": "string or null"
+}
+```
+
+## 4. Frontend Layer
+
+### 4.1 Lead Capture (`/lead-capture.html`)
+
+- Standalone static HTML (no build step)
+- Three fields: name, phone, email
+- POSTs to `/api/webhook`
+- Schwartz framework copy for med spa owners
+- Works with or without SPA React app
+
+### 4.2 Lead Dashboard (`/admin/leads.html`)
+
+- Dark theme with `#6eff8a` accent, JetBrains Mono
+- Fetches from `/api/leads`
+- Filters: qualification (hot/warm/cold), source, date
+- Auto-refresh every 30s
+- Full data with auth, anonymized without
+
+### 4.3 Chat Widget (`focusrunner-chat-widget.js`)
+
+- External .js file — one `<script>` tag embed
+- Posts to `/api/chat`
+- 3-question lead qualification: practice → volume → interest
+- Returns hot/warm/cold with score
+
+## 5. Notification Pipeline
+
+```
+Lead Captured
+      │
+      ▼
+/api/webhook
+      │
+      ├───► Save to /tmp/leads.json
+      │
+      ├───► Send to GoHighLevel (if configured)
+      │
+      ├───► /api/lead-notify → Resend email
+      │         (if RESEND_API_KEY set)
+      │
+      └───► SMS followup (via Make.com webhook)
+                (planned — FOC-187)
+```
+
+### 5.1 Required Environment Variables
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `DEEPSEEK_API_KEY` | Yes | AI lead qualification |
+| `ADMIN_API_KEY` | Yes | Dashboard + API admin auth |
+| `RESEND_API_KEY` | No (fallback degrades) | Email notifications |
+| `NOTIFY_EMAIL` | No (defaults) | Notification recipient |
+| `KV_URL` | No (in-memory fallback) | Upstash KV |
+| `KV_REST_API_TOKEN` | No (in-memory fallback) | Upstash KV token |
+| `GHL_API_KEY` | No | GoHighLevel CRM sync |
+
+## 6. Known Issues & Technical Debt
+
+### 6.1 Vercel Hobby Deploy Rate Limit
+
+- **Problem:** 100 deploys/day cap, easily exhausted during iteration
+- **Impact:** Cannot deploy urgent fixes for ~24h after hitting limit
+- **Workaround:** Local Flask fallback server (see §6.3)
+- **Fix:** Upgrade to Vercel Pro ($20/mo) for unlimited deploys
+
+### 6.2 API Functions Return SPA HTML
+
+- **Root cause:** Last successful deploy had no `@vercel/node` or `functions.runtime` config. Vercel Hobby auto-detection doesn't compile api/*.js without explicit build instructions.
+- **Fix deployed in:** Commit `5136174` (uses `functions.runtime: nodejs18.x`)
+- **Status:** Staged, blocked by rate limit
+
+### 6.3 Fallback Architecture — Local Flask Server
+
+When Vercel is down or rate-limited:
+```
+lead-capture.html ──► POST ──► focusrunner.io/api/webhook (Vercel, if up)
+                               └──► localhost:5000/api/webhook (Flask fallback)
+                                         │
+                                         ▼
+                                   /tmp/leads.json
+                                         │
+                                         ▼
+                              localhost:5000/admin (Flask dashboard)
+```
+
+### 6.4 Notification Pipeline (Resend)
+
+- `RESEND_API_KEY` and `NOTIFY_EMAIL` exist in Vercel env as **empty strings**
+- Trigger: any lead qualification (hot/warm)
+- Fallback: logged + stored, no loss of data
+
+## 7. Future Architecture
+
+### 7.1 Multi-Tenant Analytics Schema
+
+```
+Goal: Cross-client aggregate queries
+Approach: Vercel KV with structured keys
+  analytics:{clientId}:{date}:{metric}
+Schema in api/lib/analytics-lib.js
+```
+
+### 7.2 SMS Followup Pipeline
+
+See `api/lib/sms-followup-ARCHITECTURE.md`
+
+### 7.3 Make.com Integration
+
+```
+/api/webhook ──► fire webhook to Make.com
+                     │
+                     ├──► Email notification
+                     ├──► SMS followup (Twilio)
+                     └──► CRM update (GHL/Airtable)
+```
+
+### 7.4 Recommended Upgrades
+
+| Priority | Item | Cost | Impact |
+|---|---|---|---|
+| P0 | Vercel Pro | $20/mo | Unlimited deploys, 300s timeout |
+| P1 | Vercel KV (Upstash) | $0-25/mo | Persistent cross-region state |
+| P2 | Twilio SMS | Pay-per-use | SMS followup pipeline |
+| P3 | Resend Pro | $0-10/mo | Reliable email notifications |
