@@ -147,6 +147,7 @@
   .org-tree .commander { color: var(--phos); font-weight: 700; }
   .org-tree .ceo { color: var(--amber); font-weight: 700; }
   .org-tree .pi { color: var(--phos); }
+  .org-tree .td { color: var(--amber); font-weight: 600; }
   .org-tree .label { color: var(--ink-faint); font-size: 11px; margin-left: 8px; }
   .agent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
   .agent-card { background: var(--bg-panel); padding: 28px 20px; }
@@ -394,11 +395,11 @@
     <div class="org-tree">
       <div class="node"><span class="commander">&gt; Hermes Agent</span> <span class="label">// commander-in-chief</span></div>
       <div class="branch">
+        <div class="node"><span class="td">Technical Director</span> <span class="label">// deputy — Paperclip ops & monitoring</span></div>
         <div class="node"><span class="ceo">CEO Agent</span> <span class="label">// strategy & revenue — Rumelt framework</span></div>
         <div class="branch">
-          <div class="node"><span style="color:var(--phos);">CTO Agent</span> <span class="label">// Pi Coding Agent — team lead</span></div>
+          <div class="node"><span style="color:var(--phos);">CTO Agent</span> <span class="label">// Pi Coding Agent — engineering lead</span></div>
           <div class="branch">
-            <div class="node"><span class="pi">Pi Agent</span> <span class="label">// lead coding agent</span></div>
             <div class="node"><span class="pi">Senior Engineer</span> <span class="label">// implementation lead</span></div>
             <div class="node"><span class="pi">Engineer</span> <span class="label">// implementation</span></div>
           </div>
@@ -414,17 +415,17 @@
     </div>
 
     <div class="agent-grid">
-      <div class="agent-card"><div class="icon">│</div><h3>Hermes Agent</h3><div class="role">Commander-in-Chief</div><div class="desc">Controls all Paperclip operations. Issues strategic directives to CEO. Runs Pi Coding Agent directly via terminal.</div></div>
+      <div class="agent-card"><div class="icon">│</div><h3>Hermes Agent</h3><div class="role">Commander-in-Chief</div><div class="desc">Controls all Paperclip operations. Issues strategic directives to CEO. Technical Director reports directly to Hermes as deputy.</div></div>
+      <div class="agent-card"><div class="icon">🛡️</div><h3>Technical Director</h3><div class="role">Deputy — Paperclip Operations</div><div class="desc">Monitors all agents 24/7. Diagnoses issues, proposes fixes. Reports directly to Hermes. Manages Paperclip infrastructure.</div></div>
       <div class="agent-card"><div class="icon">🧑‍💼</div><h3>CEO Agent</h3><div class="role">Strategy & Revenue</div><div class="desc">Defines niche, builds offers, sets pricing. Takes direction from Hermes. Controls CTO and CMO. Framework: Rumelt.</div></div>
-      <div class="agent-card"><div class="icon">🧑‍💻</div><h3>CTO Agent</h3><div class="role">Pi Coding Agent — Lead</div><div class="desc">Designs AI pipelines. Leads Pi Coding Agent engineering team. Reports to CEO. Framework: Blank + Ford. Model: deepseek-v4-pro.</div></div>
-      <div class="agent-card"><div class="icon">│</div><h3>Pi Agent</h3><div class="role">Pi Coding Agent — Coding Lead</div><div class="desc">Primary coding agent. Executes implementation, debugging, architecture. Reports to CTO. Model: deepseek-v4-pro.</div></div>
-      <div class="agent-card"><div class="icon">🔧</div><h3>Senior Engineer</h3><div class="role">Pi Coding Agent — Sr Engineer</div><div class="desc">Builds workflows, deploys solutions. Reports to CTO. Model: deepseek-v4-pro.</div></div>
-      <div class="agent-card"><div class="icon">🔧</div><h3>Engineer</h3><div class="role">Pi Coding Agent — Engineer</div><div class="desc">Builds and tests AI components. Debugs production systems. Reports to CTO. Model: deepseek-v4-pro.</div></div>
+      <div class="agent-card"><div class="icon">🧑‍💻</div><h3>CTO Agent</h3><div class="role">Pi Coding Agent — CTO</div><div class="desc">Designs AI pipelines. Leads Pi Coding Agent engineering team (Engineer, Sr Engineer). Reports to CEO. Framework: Blank + Ford. Model: deepseek-chat.</div></div>
+      <div class="agent-card"><div class="icon">🔧</div><h3>Senior Engineer</h3><div class="role">Pi Coding Agent — Sr Engineer</div><div class="desc">Builds workflows, deploys solutions. Reports to CTO. Model: deepseek-chat.</div></div>
+      <div class="agent-card"><div class="icon">🔧</div><h3>Engineer</h3><div class="role">Pi Coding Agent — Engineer</div><div class="desc">Builds and tests AI components. Debugs production systems. Reports to CTO. Model: deepseek-chat.</div></div>
       <div class="agent-card"><div class="icon">📈</div><h3>CMO Agent</h3><div class="role">Growth & Demand Gen</div><div class="desc">Generates leads through content, funnels, paid acquisition. Reports to CEO. Framework: Godin.</div></div>
       <div class="agent-card"><div class="icon">✍️</div><h3>Copywriter Agent</h3><div class="role">Conversion Copy</div><div class="desc">Writes landing pages, ads, email sequences. Reports to CMO. Framework: Schwartz.</div></div>
       <div class="agent-card"><div class="icon">💰</div><h3>Sales Agent</h3><div class="role">Lead Conversion</div><div class="desc">Crafts outreach scripts, handles objections, closes deals. Reports to CMO. Framework: SPIN + Challenger.</div></div>
     </div>
-    <p style="color:var(--ink-faint);margin-top:32px;font-size:12px;text-align:center;">// All agents run on Paperclip. Pi Coding Agents on deepseek-v4-pro. Elastically scalable.</p>
+    <p style="color:var(--ink-faint);margin-top:32px;font-size:12px;text-align:center;">// All agents run on Paperclip. Pi Coding Agents on deepseek-chat. Elastically scalable.</p>
   </div>
 </section>
 
