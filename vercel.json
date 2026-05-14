@@ -1,45 +1,131 @@
 {
-  "functions": {
-    "api/**/*.js": { "runtime": "nodejs20.x", "maxDuration": 30 },
-    "api/**/*.py": { "runtime": "python3.12", "maxDuration": 30 }
-  },
   "rewrites": [
-    { "source": "/api/leads/export", "destination": "/api/leads.js" },
-    { "source": "/api/leads", "destination": "/api/leads.js" },
-    { "source": "/api/chat", "destination": "/api/chat.js" },
-    { "source": "/api/webhook", "destination": "/api/webhook.js" },
-    { "source": "/api/kv", "destination": "/api/kv.js" },
-    { "source": "/api/client-config", "destination": "/api/client-config.js" },
-    { "source": "/api/notify-status", "destination": "/api/notify-status.js" },
-    { "source": "/api/lead-notify", "destination": "/api/lead-notify.js" },
-    { "source": "/api/direct-qualify", "destination": "/api/direct-qualify.js" },
-    { "source": "/api/analytics", "destination": "/api/analytics.js" },
-    { "source": "/api/health", "destination": "/api/health.js" },
-    { "source": "/api/send-outreach", "destination": "/api/send-outreach.js" },
-    { "source": "/api/credentials", "destination": "/api/credentials.js" },
-    { "source": "/api/ping", "destination": "/api/ping.js" },
-    { "source": "/admin/credentials", "destination": "/admin/credentials.html" },
-    { "source": "/admin/leads/:path*", "destination": "/admin/leads.html" },
-    { "source": "/admin/leads", "destination": "/admin/leads.html" },
-    { "source": "/lead-capture-ai", "destination": "/lead-capture-ai.html" },
-    { "source": "/lead-capture-ai.html", "destination": "/lead-capture-ai.html" },
-    { "source": "/blog", "destination": "/blog/index.html" },
-    { "source": "/blog/", "destination": "/blog/index.html" },
-    { "source": "/blog/:slug", "destination": "/blog/:slug" },
-    { "source": "/blog/SAME-HOUR-LEAD-RESPONSE-MATTERS", "destination": "/blog/SAME-HOUR-LEAD-RESPONSE-MATTERS" },
-    { "source": "/blog/HOW-MED-SPAS-LOSE-70-PERCENT-LEADS", "destination": "/blog/HOW-MED-SPAS-LOSE-70-PERCENT-LEADS" },
-    { "source": "/blog/MIAMI-MED-SPA-TRIPLED-CONSULTATIONS", "destination": "/blog/MIAMI-MED-SPA-TRIPLED-CONSULTATIONS" },
-    { "source": "/blog/5-AI-TOOLS-DOUBLED-LEAD-CAPTURE-MED-SPAS", "destination": "/blog/5-AI-TOOLS-DOUBLED-LEAD-CAPTURE-MED-SPAS" },
-    { "source": "/blog/MED-SPA-LOST-REVENUE-LEAD-RESPONSE", "destination": "/blog/MED-SPA-LOST-REVENUE-LEAD-RESPONSE" },
-    { "source": "/(.*)\\.html", "destination": "/$1.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/leads/export",
+      "destination": "/api/leads.js"
+    },
+    {
+      "source": "/api/leads",
+      "destination": "/api/leads.js"
+    },
+    {
+      "source": "/api/chat",
+      "destination": "/api/chat.js"
+    },
+    {
+      "source": "/api/webhook",
+      "destination": "/api/webhook.js"
+    },
+    {
+      "source": "/api/kv",
+      "destination": "/api/kv.js"
+    },
+    {
+      "source": "/api/client-config",
+      "destination": "/api/client-config.js"
+    },
+    {
+      "source": "/api/notify-status",
+      "destination": "/api/notify-status.js"
+    },
+    {
+      "source": "/api/lead-notify",
+      "destination": "/api/lead-notify.js"
+    },
+    {
+      "source": "/api/direct-qualify",
+      "destination": "/api/direct-qualify.js"
+    },
+    {
+      "source": "/api/analytics",
+      "destination": "/api/analytics.js"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health.js"
+    },
+    {
+      "source": "/api/send-outreach",
+      "destination": "/api/send-outreach.js"
+    },
+    {
+      "source": "/api/credentials",
+      "destination": "/api/credentials.js"
+    },
+    {
+      "source": "/api/ping",
+      "destination": "/api/ping.js"
+    },
+    {
+      "source": "/admin/credentials",
+      "destination": "/admin/credentials.html"
+    },
+    {
+      "source": "/admin/leads/:path*",
+      "destination": "/admin/leads.html"
+    },
+    {
+      "source": "/admin/leads",
+      "destination": "/admin/leads.html"
+    },
+    {
+      "source": "/lead-capture-ai",
+      "destination": "/lead-capture-ai.html"
+    },
+    {
+      "source": "/lead-capture-ai.html",
+      "destination": "/lead-capture-ai.html"
+    },
+    {
+      "source": "/blog",
+      "destination": "/blog/index.html"
+    },
+    {
+      "source": "/blog/",
+      "destination": "/blog/index.html"
+    },
+    {
+      "source": "/blog/:slug",
+      "destination": "/blog/:slug"
+    },
+    {
+      "source": "/blog/SAME-HOUR-LEAD-RESPONSE-MATTERS",
+      "destination": "/blog/SAME-HOUR-LEAD-RESPONSE-MATTERS"
+    },
+    {
+      "source": "/blog/HOW-MED-SPAS-LOSE-70-PERCENT-LEADS",
+      "destination": "/blog/HOW-MED-SPAS-LOSE-70-PERCENT-LEADS"
+    },
+    {
+      "source": "/blog/MIAMI-MED-SPA-TRIPLED-CONSULTATIONS",
+      "destination": "/blog/MIAMI-MED-SPA-TRIPLED-CONSULTATIONS"
+    },
+    {
+      "source": "/blog/5-AI-TOOLS-DOUBLED-LEAD-CAPTURE-MED-SPAS",
+      "destination": "/blog/5-AI-TOOLS-DOUBLED-LEAD-CAPTURE-MED-SPAS"
+    },
+    {
+      "source": "/blog/MED-SPA-LOST-REVENUE-LEAD-RESPONSE",
+      "destination": "/blog/MED-SPA-LOST-REVENUE-LEAD-RESPONSE"
+    },
+    {
+      "source": "/(.*)\\.html",
+      "destination": "/$1.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "redirects": [
     {
       "source": "/api/(.*)",
       "destination": "/api/$1",
       "has": [
-        { "type": "host", "value": "www.focusrunner.com" }
+        {
+          "type": "host",
+          "value": "www.focusrunner.com"
+        }
       ],
       "statusCode": 307
     },
@@ -47,7 +133,10 @@
       "source": "/(.*)",
       "destination": "https://focusrunner.com/$1",
       "has": [
-        { "type": "host", "value": "www.focusrunner.com" }
+        {
+          "type": "host",
+          "value": "www.focusrunner.com"
+        }
       ],
       "statusCode": 301
     }
