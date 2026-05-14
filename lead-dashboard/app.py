@@ -26,7 +26,7 @@ logger = logging.getLogger("fr")
 
 ADMIN_TOKEN = os.environ.get("ADMIN_API_KEY", "")
 if not ADMIN_TOKEN:
-    raise RuntimeError("ADMIN_API_KEY not set in environment — admin endpoints disabled. Export ADMIN_API_KEY=<key> before starting.")
+    raise RuntimeError("ADMIN_API_KEY not set in environment — admin endpoints disabled. Export ADMIN_API_KEY=*** before starting.")
 
 def _check_admin():
     token = (request.headers.get("X-Admin-Key", "")
@@ -70,6 +70,25 @@ def req_auth_json(f):
 # ── DB ──────────────────────────────────────────────────────────
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS tenants (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    subdomain TEXT DEFAULT '',
+    api_key TEXT DEFAULT '',
+    api_key_hash TEXT DEFAULT '',
+    api_key_prefix TEXT DEFAULT '',
+    settings_json TEXT DEFAULT '{}',
+    ghl_api_key TEXT DEFAULT '',
+    ghl_location_id TEXT DEFAULT '',
+    sms_webhook_url TEXT DEFAULT '',
+    telegram_chat_id TEXT DEFAULT '',
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_tenants_api_key ON tenants(api_key_hash);
+CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
+
 CREATE TABLE IF NOT EXISTS leads (
     id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL DEFAULT 'default',
     name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '',
@@ -282,7 +301,7 @@ def admin():
     if path.exists():
         token = request.args.get("token", ADMIN_TOKEN)
         html = path.read_text()
-        html = html.replace("TOKEN = new URLSearchParams", f"TOKEN = '{token}' || new URLSearchParams")
+        html = html.replace("TOKEN=*** URLSearchParams", f"TOKEN='***' || new URLSearchParams")
         return html, 200, {"Content-Type": "text/html; charset=utf-8"}
     # Fallback: inline dashboard (same data as admin.html)
     c = conn()
@@ -505,8 +524,8 @@ def make_webhook_lead():
     lead = norm(data)
     if not lead.get("name") or not (lead.get("phone") or lead.get("email")):
         return jsonify({"error": "name and (phone or email) required"}), 400
-    lead_id = store_lead(lead)
-    notify_all(lead)
+    lead_id = store(lead)
+    tg_send(lead)
     logger.info(f"Make webhook: lead {lead_id} - {lead['name']}")
     return jsonify({"ok": True, "id": lead_id}), 201
 
@@ -620,7 +639,7 @@ def create_tenant():
         c = conn()
         c.execute(
             "INSERT INTO tenants (id, name, subdomain, api_key_hash, api_key_prefix) VALUES (?, ?, ?, ?, ?)",
-            (tid, name, subdomain or "", raw_key, key_hash, key_prefix),
+            (tid, name, subdomain or "", key_hash, key_prefix),
         )
         c.commit()
         c.close()
@@ -644,15 +663,7 @@ def tenant_get(tid):
     if not t:
         return jsonify({"error": "Tenant not found"}), 404
     return jsonify(dict(t))
-@app.route("/api/tenants/<tid>", methods=["GET"])
-@req_auth_json
-def get_tenant(tid):
-    c = conn()
-    t = c.execute("SELECT * FROM tenants WHERE id = ?", (tid,)).fetchone()
-    c.close()
-    if not t:
-        return jsonify({"error": "Tenant not found"}), 404
-    return jsonify(dict(t))
+
 @app.route("/api/tenants/<tid>/stats", methods=["GET"])
 @req_auth_json
 def tenant_stats(tid):
@@ -702,6 +713,102 @@ def list_leads_v2():
     names = [d[1] for d in c.execute("PRAGMA table_info(leads)").fetchall()]
     c.close()
     return jsonify({"tenant_id": tenant_id, "leads": [dict(zip(names, r)) for r in rows]})
+
+# ── Credential Injection Endpoint ──────────────────────────────
+
+@app.route("/api/credentials", methods=["POST"])
+@req_auth_json
+def set_credentials():
+    """CEO injects API credentials at runtime. Writes .env and reloads globals."""
+    d = request.get_json(silent=True) or {}
+    env_path = BASE_DIR / ".env"
+    written = []
+    existing = {}
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if "=" in line and not line.startswith("#"):
+                k, v = line.split("=", 1)
+                existing[k.strip()] = v.strip()
+    for key, val in d.items():
+        key = key.upper().strip()
+        val = str(val).strip()
+        if not key or not val:
+            continue
+        existing[key] = val
+        os.environ[key] = val
+        written.append(key)
+    with open(env_path, "w") as f:
+        for k, v in sorted(existing.items()):
+            f.write(f"{k}={v}\n")
+    global TW_SID, TW_TOKEN, TW_FROM, TW_SALES, TW_OK
+    TW_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+    TW_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+    TW_FROM = os.environ.get("TWILIO_FROM_NUMBER", "")
+    TW_SALES = os.environ.get("SALES_TEAM_PHONE", "")
+    TW_OK = all([TW_SID, TW_TOKEN, TW_FROM, TW_SALES])
+    logger.info(f"Credentials updated: {', '.join(written)}")
+    return jsonify({"ok": True, "updated": written, "twilio_configured": TW_OK})
+
+# ── Send Outreach (SMS + Email) ───────────────────────────────
+
+@app.route("/api/send-outreach", methods=["POST"])
+@req_auth_json
+def send_outreach():
+    d = request.get_json(silent=True) or {}
+    lead_id = (d.get("lead_id") or "").strip()
+    if not lead_id:
+        return jsonify({"success": False, "error": "'lead_id' required"}), 400
+    channel = (d.get("channel") or "both").strip().lower()
+    if channel not in ("sms", "email", "both"):
+        return jsonify({"success": False, "error": "channel must be sms, email, or both"}), 400
+    c = conn()
+    lead = c.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
+    cols = [d[1] for d in c.execute("PRAGMA table_info(leads)").fetchall()]
+    c.close()
+    if not lead:
+        return jsonify({"success": False, "error": "Lead not found"}), 404
+    lead = dict(zip(cols, lead))
+    name, phone, email, practice = lead.get("name","Client"), lead.get("phone",""), lead.get("email",""), lead.get("practice","your med spa")
+    results, errors = {}, []
+    if channel in ("sms","both") and phone:
+        body = (d.get("sms_body") or "").strip() or f"Hi {name}, this is Sarah from FocusRunner. We noticed you've been exploring patient acquisition for {practice}. Free audit -- reply YES."
+        ok, det = send_sms(phone, body)
+        results["sms"] = {"to": phone, "sent": ok, "detail": det}
+        if not ok: errors.append(f"sms: {det}")
+        log_notif("sms", lead_id, phone, "sent" if ok else "failed", body, "" if ok else det)
+    elif channel in ("sms","both") and not phone:
+        results["sms"] = {"to": None, "sent": False, "error": "No phone"}
+        errors.append("sms: no phone")
+    if channel in ("email","both") and email:
+        subject = (d.get("email_subject") or "").strip() or "Your Free Patient Acquisition Audit"
+        html = (d.get("email_body") or "").strip() or f"<h1>Med Spa Growth</h1><p>Hi {name}, FocusRunner AI recovers 70%+ of your cold leads. Free audit -- <a href='https://focusrunner.io/lead-capture'>claim yours</a>.</p>"
+        rk = os.environ.get("RESEND_API_KEY", "")
+        if not rk:
+            results["email"] = {"to": email, "sent": False, "error": "RESEND_API_KEY not set"}
+            errors.append("email: no key")
+            log_notif("email", lead_id, email, "failed", subject, "RESEND_API_KEY not set")
+        else:
+            try:
+                import requests as req2
+                r2 = req2.post("https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {rk}", "Content-Type": "application/json"},
+                    json={"from": "FocusRunner <hello@focusrunner.io>", "to": [email], "subject": subject, "html": html}, timeout=15)
+                ok_e = r2.status_code in (200,201)
+                dt = r2.json().get("id","?") if ok_e else f"HTTP {r2.status_code}"
+                results["email"] = {"to": email, "sent": ok_e, "detail": dt}
+                if not ok_e: errors.append(f"email: {dt}")
+                log_notif("email", lead_id, email, "sent" if ok_e else "failed", subject, "" if ok_e else dt)
+            except Exception as e:
+                results["email"] = {"to": email, "sent": False, "error": str(e)}
+                errors.append(f"email: {e}")
+                log_notif("email", lead_id, email, "failed", subject, str(e))
+    elif channel in ("email","both") and not email:
+        results["email"] = {"to": None, "sent": False, "error": "No email"}
+        errors.append("email: no email")
+    overall = len(errors) == 0
+    return jsonify({"success": overall, "lead_id": lead_id, "lead_name": name, "channel": channel, "results": results, "errors": errors or None}), (200 if overall else 500)
+
 # ── CLI ─────────────────────────────────────────────────────────
 
 
