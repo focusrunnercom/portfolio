@@ -1,79 +1,187 @@
-# FocusRunner Lead Notification Architecture
+# FocusRunner Architecture
 
-## Problem
+**Author:** Sr Engineer
+**Last Updated:** 2026-05-14
 
-Chatbot and lead form capture leads on focusrunner.io, but the team is not notified in real time. Leads go cold in hours. Revenue is leaking.
+---
 
-## Solution: Email Notification Layer
+## System Overview
 
-A **non-blocking** email notification layer added to the existing `/api/webhook` endpoint. It fires after GHL CRM sync and analytics logging — zero impact on lead capture latency.
-
-### Email Provider: Resend
-
-- Simple REST API — `POST https://api.resend.com/emails`
-- Works on Vercel Edge Runtime (no NPM deps, just `fetch()`)
-- Free tier: 100 emails/day
-- Environment variable: `RESEND_API_KEY`
-
-### Data Flow
+FocusRunner's lead pipeline captures, qualifies, notifies, and routes leads from multiple sources (chatbot, web form, Instagram DM) through automation into GoHighLevel CRM — with real-time email alerts to the team.
 
 ```
-Lead Capture (chat.js / lead form)
+                    EXTERNAL TRAFFIC
+                           │
+              ┌────────────▼──────────────────┐
+              │  VERCEL EDGE (focusrunner.io)  │
+              │                                 │
+              │  /api/chat → OpenAI/DPS (qual) │
+              │  /api/webhook → GHL + Notify   │
+              │  /api/lead-notify → Resend     │
+              │  /api/leads → KV/demo data     │
+              │  /admin/* → Dashboard pages    │
+              └────────────┬────────────────────┘
+                           │
+              ┌────────────▼────────────────────┐
+              │  MAKE.COM (Automation Layer)     │
+              │  S1: Lead Ingest Pipeline        │
+              │  S2: Qual Lead → Notify Sales    │
+              │  S3: Inactive Lead Re-engagement │
+              │  S4: Weekly Pipeline Digest      │
+              └────────────┬─────────────────────┘
+                           │
+              ┌────────────▼────────────────────┐
+              │  GoHighLevel (CRM)              │
+              │  Pipeline + Automations + SMS   │
+              └─────────────────────────────────┘
+```
+
+---
+
+## API Endpoints
+
+| Endpoint | Method | Purpose | Dependencies |
+|----------|--------|---------|-------------|
+| `/api/chat` | POST | AI qualification via DeepSeek | DEEPSEEK_API_KEY |
+| `/api/webhook` | POST | Full pipeline: GHL + analytics + email | RESEND_API_KEY, GHL_API_KEY |
+| `/api/lead-notify` | POST | Standalone email notification | RESEND_API_KEY |
+| `/api/leads` | GET | Lead dashboard data (KV or demo) | ADMIN_API_KEY |
+| `/api/admin/client` | POST | Manage per-client KV config | ADMIN_API_KEY |
+
+---
+
+## Notification System
+
+### End-to-End Flow
+
+```
+Lead Captured (any source)
         │
         ▼
   /api/webhook.js
         │
-        ├──▶ 1. Forward to GoHighLevel CRM   (existing)
-        ├──▶ 2. Log analytics event          (existing)
-        └──▶ 3. Send email notification      (NEW)
-                 via api/lib/notify.js
-                 └──▶ hello@focusrunner.com
+        ├──▶ 1. Forward to GoHighLevel (if configured)
+        ├──▶ 2. Log analytics event to KV
+        └──▶ 3. Send email to hello@focusrunner.com via Resend
+                 └── notifyLead(body) in api/lib/notify.js
 ```
 
-### Email Template
+### Components
 
-Subject: `🚀 New Lead: {name} — {classification}`
-
-Body:
-```
-🚀 NEW LEAD CAPTURED
-━━━━━━━━━━━━━━━━━━━━━
-
-Name:          {name}
-Phone:         {phone}
-Email:         {email}
-Practice:      {practice}
-Classification: {classification}  (HOT / WARM / COLD)
-Score:         {score}/10
-Source:        {source}
-Timestamp:     {timestamp}
-
-━━━━━━━━━━━━━━━━━━━━━
-FocusRunner AI
-```
-
-### Implementation
-
-**File**: `api/lib/notify.js`
-- Function: `notifyLead(leadData)` → POST to Resend API
-- Fails silently (catch + console.error) — never blocks lead capture
-- HTML email with mobile-friendly layout
-
-**File**: `api/webhook.js`
-- Import `notifyLead`
-- Add one call after GHL forwarding, before response
+- **`api/lib/notify.js`** — shared email module, called by webhook.js
+- **`api/lead-notify.js`** — standalone endpoint for Make.com/Zapier to call directly
+- **Provider:** Resend API (`POST https://api.resend.com/emails`)
+- **Template:** Mobile-friendly HTML with qualification badge color
+- **Fail-safe:** `.catch(() => {})` — never blocks lead capture
 
 ### Env Vars
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `RESEND_API_KEY` | Yes | Resend API key |
-| `NOTIFY_EMAIL` | No | Override recipient (default: hello@focusrunner.com) |
+| `RESEND_API_KEY` | Yes | Resend API key for email sending |
+| `NOTIFY_EMAIL` | No | Recipient override (default: hello@focusrunner.com) |
+| `DEEPSEEK_API_KEY` | Yes | DeepSeek/OpenAI API key for chat |
+| `CHAT_MODEL` | No | Model name (default: deepseek-chat) |
+| `GHL_WEBHOOK_URL` | No | GoHighLevel webhook URL |
+| `GHL_API_KEY` | No | GoHighLevel API key |
+| `ADMIN_API_KEY` | No | Token for admin endpoints |
 
-### Rollout
+---
 
-1. Create `api/lib/notify.js`
-2. Update `api/webhook.js` to call `notifyLead()`
-3. Set `RESEND_API_KEY` env var on Vercel
-4. Commit + push → Vercel auto-deploys
-5. Test with a real lead submission
+## Multi-Tenant Design
+
+Each API endpoint supports an `X-Client-Id` header for per-client configuration stored in Vercel KV.
+
+### Config Resolution
+
+1. If `X-Client-Id` header provided → read config from KV key `client:{slug}`
+2. If KV not found or no header → fallback to env vars (backward compatible)
+
+### Client Config Structure (KV)
+
+```json
+{
+  "active": true,
+  "name": "Client Name",
+  "ai": {
+    "system_prompt": "...",
+    "model": "deepseek-chat",
+    "temperature": 0.7,
+    "max_tokens": 500
+  },
+  "crm": {
+    "webhook_url": "...",
+    "api_key": "...",
+    "custom_fields_map": {"score": "...", "classification": "..."}
+  },
+  "booking_url": "https://...",
+  "white_label_config": {
+    "logo_url": "...",
+    "primary_color": "#...",
+    "custom_domain": "..."
+  }
+}
+```
+
+---
+
+## Data Schema
+
+See INTEGRATION-SPEC.md for the full schema definition (leads, bookings, tenants tables) with indexes, constraints, and multi-tenant design.
+
+---
+
+## GoHighLevel Pipeline
+
+| Stage | Description | Automation |
+|-------|-------------|------------|
+| New Lead | Raw lead from any source | Auto-tag: new-lead |
+| Qualified | Score >= 70 (high-intent) | SMS booking link sent |
+| Booked | Discovery call scheduled | Calendar reminders |
+| Visited | Call completed | Post-visit sequence |
+| Nurture | Score 40-69 | 10-day email campaign |
+| Lost | No engagement 30 days | Monthly check-in SMS |
+
+---
+
+## Make.com Scenarios
+
+| Scenario | Trigger | Purpose |
+|----------|---------|---------|
+| S1: Lead Ingest | GHL contact created | Route by score, notify, assign tasks |
+| S2: Qual Lead | GHL stage → Qualified | Email + Slack alert for hot leads |
+| S3: Inactive | Cron every 6h | Re-engage leads inactive 48h |
+| S4: Weekly Digest | Cron Monday 9AM | Pipeline summary email |
+
+See INTEGRATION-SPEC.md for detailed scenario designs with error handling.
+
+---
+
+## Key Design Decisions
+
+### Why Resend over SendGrid?
+- Works on Vercel Edge Runtime naturally (pure REST, no NPM packages)
+- Free tier (100/day) sufficient for current volume
+- Simple API with no dependency on @sendgrid/mail
+
+### Why fire-and-forget for notifications?
+- Lead capture is the critical path — must not be slowed by email delivery
+- Email failures are non-critical (lead is already in CRM)
+- KV analytics provides a fallback audit trail
+
+### Why two notification endpoints?
+- `/api/webhook` is the full pipeline (GHL + analytics + email)
+- `/api/lead-notify` is a standalone endpoint for external automations that don't need the GHL/analytics pipeline (e.g., Make.com scenario 2)
+
+---
+
+## Deployment
+
+Vercel auto-deploys from `focusrunnercom/portfolio` on push. No build step — pure serverless functions.
+
+```bash
+git add -A
+git commit -m "description"
+git push
+# Vercel auto-deploys ~15s later
+```
