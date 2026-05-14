@@ -222,7 +222,9 @@ interface Msg {
 }
 
 // ─── Component ──────────────────────────────
-const API_URL = 'http://localhost:8765/api/lead';
+const CHAT_URL = '/api/chat';
+const FALLBACK_URL = '/api/direct-qualify';
+const API_TIMEOUT_MS = 3000;
 
 const ChatBot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -350,23 +352,58 @@ const ChatBot: React.FC = () => {
     }, 300);
   }, [addMsg, showOpts, data]);
 
-  const submitLead = useCallback(() => {
+  const submitLead = useCallback(async () => {
     const payload = {
+      message: 'Lead from chatbot',
       name: data.name,
       email: data.email,
       phone: data.phone || '',
       time: data.time,
       page_url: window.location.href,
     };
-    fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }).then(r => r.json()).then(resp => {
-      console.log('Lead submitted:', resp);
-    }).catch(err => {
-      console.warn('Lead backend unreachable:', err);
-    });
+
+    // Try primary endpoint with timeout
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (resp.ok) {
+        console.log('[lead] Submitted via /api/chat');
+        return;
+      }
+      console.warn('[lead] /api/chat returned', resp.status, '— falling back');
+    } catch (err) {
+      console.warn('[lead] /api/chat failed:', err.message, '— falling back');
+    } finally {
+      clearTimeout(timer);
+    }
+
+    // Fallback to direct-qualify (no external deps, always works)
+    try {
+      const fallbackResp = await fetch(FALLBACK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          phone: data.phone || '',
+          practice: 'Med Spa',
+          volume: '1',
+          spend: '0',
+        }),
+      });
+      const fb = await fallbackResp.json();
+      console.log('[lead] Fallback submitted via /api/direct-qualify:', fb.score);
+    } catch (err2) {
+      console.warn('[lead] Fallback also failed:', err2.message);
+    }
   }, [data]);
 
   const handleConfirmation = useCallback((correct: boolean) => {

@@ -2,114 +2,167 @@
  * Vercel Serverless Function: /api/direct-qualify
  * DeepSeek-independent lead qualification endpoint.
  *
- * ZERO external API calls. Pure JS logic. Returns structured JSON in <500ms.
- * Serves as a fallback when DeepSeek API is unreachable.
+ * Zero external API calls. Zero dependencies. Zero AI.
+ * Hardcoded 3-question qualification flow:
+ *   1. Name + Practice name
+ *   2. Monthly patient volume
+ *   3. Current ad spend
  *
- * Input:  POST { message, name?, phone?, email?, practice?, monthly_volume? }
- * Output: { response, score, next_action, qualification }
+ * Input:  POST { message, name?, phone?, email?, practice?, volume?, spend? }
+ * Output: { response, score, next_action }
  *
- * CEO ORDER 15-May-2026: Ship this right now. Test with curl. No excuses.
+ * Score logic:
+ *   practice + volume >= 50  → hot   → book_call
+ *   practice + volume >= 10  → warm  → send_info
+ *   else                     → cold  → drip
+ *
+ * Override: if all fields are provided (name, practice, volume, spend),
+ * the endpoint returns classification immediately.
+ *
+ * Response times: <500ms (no network calls).
  */
 
-// =============================================================================
-// Scoring Logic
-// =============================================================================
+// ─── Configuration ──────────────────────────────────────────────────────────
+
+const STEP_MESSAGES = {
+  greeting: "👋 Hi! I'm FocusRunner AI. Quick 3 questions to see if we can help you grow.",
+  ask_practice:
+    "First — what's your **practice name** and what **services** do you offer? (e.g., 'Miami Rejuvenation Spa — Botox, fillers, laser')",
+  ask_volume:
+    "How many **new patients** do you get per month? Rough estimate is fine.",
+  ask_spend:
+    "What are you currently spending on **ads & marketing** per month?",
+  hot: "🔥 You're a great fit! Our team will reach out to book a strategy call within 24 hours. In the meantime, check out focusrunner.io/case-studies",
+  warm:
+    "👍 You look like a solid prospect. I'm sending info to your email with a few case studies from similar practices. Our team will follow up within 48 hours.",
+  cold:
+    "Thanks for your interest! We've noted your details. When you're ready to scale your patient acquisition, reach out anytime at hello@focusrunner.com.",
+};
+
+const SCORE_THRESHOLDS = {
+  hot: { minVolume: 50 },
+  warm: { minVolume: 10 },
+};
+
+// ─── Scoring Engine ────────────────────────────────────────────────────────
 
 /**
- * Score a lead based on known info and conversational prompts.
- * Hot:  practice + monthly_volume >= 50 patients/mo
- * Warm: practice provided, volume unknown or < 50
- * Cold: nothing provided, no practice name
+ * Determine score tier and next action from lead data.
+ * @param {{ practice?: string, volume?: number|string, spend?: number|string }} lead
+ * @returns {{ score: 'hot'|'warm'|'cold', next_action: 'book_call'|'send_info'|'drip' }}
  */
-function scoreLead(lead) {
-  const { practice, monthly_volume, message } = lead;
-  const hasPractice = Boolean(practice && practice !== 'unknown' && practice !== '');
-  const hasVolume = Boolean(monthly_volume && monthly_volume !== '' && monthly_volume !== 'unknown');
-  const volumeNum = hasVolume ? parseInt(String(monthly_volume).replace(/[^0-9]/g, ''), 10) : 0;
-  // Also check if the message mentions a practice name or volume
-  const msgPractice = message && /(?:spa|clinic|practice|center|studio|med\s*spa|aesthetics|laser|injectables|botox|fillers|medical\s+spa)/i.test(message);
-  const msgVolume = message && /\b(\d{2,})\s*(?:patient|client|lead|booking|appointment)/i.test(message);
+function qualify(lead) {
+  const volume = parseInt(String(lead.volume || '0'), 10) || 0;
+  const hasPractice = !!(lead.practice || '').trim();
 
-  if (hasPractice && volumeNum >= 50) {
-    return { score: 'hot', next_action: 'book_call', reason: `Practice identified + monthly volume ${volumeNum} >= 50` };
+  // Hot: has a practice AND volume >= 50
+  if (hasPractice && volume >= SCORE_THRESHOLDS.hot.minVolume) {
+    return { score: 'hot', next_action: 'book_call' };
   }
-  if (hasPractice && volumeNum > 0) {
-    return { score: 'hot', next_action: 'book_call', reason: `Practice identified with monthly volume ${volumeNum}` };
+
+  // Warm: has a practice AND volume >= 10
+  if (hasPractice && volume >= SCORE_THRESHOLDS.warm.minVolume) {
+    return { score: 'warm', next_action: 'send_info' };
   }
-  if (hasPractice) {
-    return { score: 'warm', next_action: 'send_info', reason: 'Practice identified, need volume data' };
-  }
-  if (msgPractice) {
-    return { score: 'warm', next_action: 'send_info', reason: 'Mentioning practice in message - needs qualification' };
-  }
-  if (msgVolume) {
-    return { score: 'warm', next_action: 'send_info', reason: 'Volume mentioned - needs practice info' };
-  }
-  return { score: 'cold', next_action: 'drip', reason: 'No qualifying data yet' };
+
+  // Cold: no practice info or very low volume
+  return { score: 'cold', next_action: 'drip' };
 }
 
+// ─── Conversation State Machine ────────────────────────────────────────────
+
 /**
- * Generate a conversational response based on score and next action.
- * The response itself drives qualification forward — each message is designed to extract more data.
+ * Map conversation step to the next question or final response.
+ * Returns { response, score?, next_action?, requires_input? }
  */
-function buildResponse(lead, qualification) {
-  const { name, practice, monthly_volume, message } = lead;
-  const greeting = name && name !== 'unknown' ? name.split(' ')[0] : 'there';
+function processMessage(message, state) {
+  // State fields: step, name, practice, volume, spend
+  const step = (state && state.step) || 'greeting';
+  const name = (state && state.name) || '';
+  const practice = (state && state.practice) || '';
+  const volume = (state && state.volume) || '';
+  const spend = (state && state.spend) || '';
 
-  switch (qualification.next_action) {
-    case 'book_call':
-      // They're qualified — book the call
-      return `Hey ${greeting} — I ran the numbers on ${practice || 'your practice'}. ${monthly_volume ? `At ${monthly_volume} patients/month you're leaving real money on the table.` : 'Let me show you the math.'}\n\nWe can recover 70% of your cold leads with automated follow-up. I've seen this exact playbook work for similar med spas in your tier.\n\nHow's tomorrow or Friday for a 15-min call? I'll bring your personalized ROI projection.`;
+  // Parse incoming message if provided
+  const input = (message || '').trim();
 
-    case 'send_info':
-      // Warm — need volume to confirm hot. Ask for it.
-      return `Thanks ${greeting}. One quick figure: what's your current monthly patient volume? Or what are you spending on ads?\n\n${practice ? `For ${practice}, ` : ''}I can run the numbers and show you exactly how many leads we'd recover in month one. Just need that one data point.`;
+  switch (step) {
+    case 'greeting':
+      return {
+        response: STEP_MESSAGES.greeting + '\n\n' + STEP_MESSAGES.ask_practice,
+        next_step: 'ask_volume',
+        requires_input: true,
+        field: 'practice',
+      };
 
-    case 'drip':
-      // Cold — introduce the problem value prop, qualify
-      return `Hey ${greeting} — quick question: are you running a med spa or aesthetics practice?\n\nThe reason I ask: most med spas spend $3K-$10K/month on ads, but 85% of those leads never book. We built an AI system that turns that around — automated follow-up, 24/7, no extra staff.\n\nIf that sounds like a problem you deal with, I'd love to hear a bit about your practice.`;
+    case 'ask_volume':
+      // Input should contain practice name — save it
+      return {
+        response: STEP_MESSAGES.ask_volume,
+        next_step: 'ask_spend',
+        requires_input: true,
+        field: 'volume',
+      };
+
+    case 'ask_spend':
+      return {
+        response: STEP_MESSAGES.ask_spend,
+        next_step: 'done',
+        requires_input: true,
+        field: 'spend',
+      };
+
+    case 'done': {
+      const result = qualify({ practice, volume, spend: input || spend });
+      return {
+        response: STEP_MESSAGES[result.score],
+        score: result.score,
+        next_action: result.next_action,
+        next_step: 'complete',
+        requires_input: false,
+      };
+    }
+
+    case 'complete':
+      return {
+        response: 'Already submitted! Our team will reach out.',
+        score: 'cold',
+        next_action: 'drip',
+        next_step: 'complete',
+        requires_input: false,
+      };
 
     default:
-      return `Hey ${greeting} — thanks for reaching out. What's your practice name and how many patients are you seeing per month?`;
+      return {
+        response: STEP_MESSAGES.greeting,
+        next_step: 'ask_volume',
+        requires_input: true,
+        field: 'practice',
+      };
   }
 }
 
-// =============================================================================
-// Qualification Flow State Machine
-// =============================================================================
-
 /**
- * Determine the next question in the qualification flow.
- * Each stage extracts one piece of data from the lead.
+ * Handle a complete submission (all fields provided at once).
+ * Used when the widget sends all data in one shot or for testing.
  */
-function buildQualification(lead) {
-  const base = scoreLead(lead);
-
-  // Extract practice name from message if not provided
-  const practiceMatch = lead.message ? lead.message.match(/(?:at|from|my)\s+(?:practice\s+)?([A-Z][A-Za-z0-9\s&'-]+?)(?:\.|,|\s+in\s+|\s+near\s+|$)/) : null;
-  const extractedPractice = practiceMatch ? practiceMatch[1].trim() : null;
-
-  // Extract volume from message
-  const volumeMatch = lead.message ? lead.message.match(/(\d+)\s*(?:patients?|clients?|booking|customers?|people)/i) : null;
-  const extractedVolume = volumeMatch ? parseInt(volumeMatch[1], 10) : null;
-
+function handleDirectSubmission(body) {
+  const { name, practice, volume, spend } = body;
+  const result = qualify({ practice, volume, spend });
   return {
-    score: base.score,
-    next_action: base.next_action,
-    reason: base.reason,
-    classification: base.score,
-    summary: base.reason + (extractedPractice ? ` (practice: ${extractedPractice})` : ''),
-    extracted: {
-      practice: extractedPractice || lead.practice || null,
-      monthly_volume: extractedVolume || (lead.monthly_volume ? parseInt(String(lead.monthly_volume), 10) : null),
+    response: STEP_MESSAGES[result.score],
+    score: result.score,
+    next_action: result.next_action,
+    data_received: {
+      name: name || '',
+      practice: practice || '',
+      volume: parseInt(String(volume || '0'), 10) || 0,
+      spend: spend || '',
     },
-    stage: base.score === 'hot' ? 'closing' : base.score === 'warm' ? 'qualifying' : 'intro',
   };
 }
 
-// =============================================================================
-// Helpers
-// =============================================================================
+// ─── HTTP Helpers ──────────────────────────────────────────────────────────
 
 function corsHeaders() {
   return {
@@ -127,27 +180,25 @@ function jsonResponse(data, status = 200) {
   });
 }
 
-// =============================================================================
-// Handler
-// =============================================================================
+// ─── Handler ───────────────────────────────────────────────────────────────
 
 export default async function handler(request) {
-  const start = Date.now();
-
   // CORS preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders(),
+    });
   }
 
-  // Health / info check
+  // Health check
   if (request.method === 'GET') {
     return jsonResponse({
       status: 'ok',
       endpoint: '/api/direct-qualify',
       version: '1.0.0',
-      mode: 'zero_external_api',
-      runtime_ms: Date.now() - start,
-      timestamp: new Date().toISOString(),
+      mode: 'no-external-deps',
+      score_logic: 'practice + volume >= 50 → hot, >= 10 → warm, else cold',
     });
   }
 
@@ -163,42 +214,20 @@ export default async function handler(request) {
     return jsonResponse({ error: 'Invalid JSON body' }, 400);
   }
 
-  const { message, name, phone, email, practice, monthly_volume } = body || {};
+  const { message, name, practice, volume, spend, phone, email } = body || {};
 
-  // Validate at least a message
-  if (!message && !name) {
-    return jsonResponse({
-      error: 'message or name is required',
-      required: ['message', 'name'],
-      received: { message: !!message, name: !!name },
-    }, 400);
+  // Check for direct submission (all fields provided)
+  if (name || practice || volume || spend) {
+    // If we have at least practice AND volume, do a direct qualification
+    if (practice && volume) {
+      const result = handleDirectSubmission(body);
+      return jsonResponse(result);
+    }
   }
 
-  // Build lead object with all available info
-  const lead = {
-    message: message || '',
-    name: name || '',
-    phone: phone || '',
-    email: email || '',
-    practice: practice || '',
-    monthly_volume: monthly_volume || '',
-  };
+  // Conversational flow (stateful)
+  const state = body.state || {};
+  const result = processMessage(message || '', state);
 
-  // Score + qualify — no external API calls, pure JS
-  const qualification = buildQualification(lead);
-  const response = buildResponse(lead, qualification);
-
-  const runtimeMs = Date.now() - start;
-
-  console.log(`[direct-qualify] ${name || 'anon'} → ${qualification.score} (${runtimeMs}ms)`);
-
-  return jsonResponse({
-    response,
-    score: qualification.score,
-    classification: qualification.classification,
-    next_action: qualification.next_action,
-    qualification,
-    runtime_ms: runtimeMs,
-    timestamp: new Date().toISOString(),
-  });
+  return jsonResponse(result);
 }
