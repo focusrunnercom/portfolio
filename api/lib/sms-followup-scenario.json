@@ -1,0 +1,148 @@
+{
+  "name": "FocusRunner — SMS Auto-Followup",
+  "description": "When a lead is qualified (score >= 70) via chatbot, send SMS to sales team + auto-reply to lead with booking link. Alternative to inline Twilio in webhook.js.",
+  "scenario": {
+    "triggers": [
+      {
+        "id": "webhook_trigger",
+        "type": "webhook",
+        "label": "Receive lead from webhook.js",
+        "config": {
+          "method": "POST",
+          "contentType": "application/json",
+          "responseType": "200"
+        },
+        "output": {
+          "name": "{{payload.name}}",
+          "phone": "{{payload.phone}}",
+          "email": "{{payload.email}}",
+          "practice": "{{payload.practice}}",
+          "score": "{{payload.qualification.score}}",
+          "classification": "{{payload.qualification.classification}}",
+          "source": "{{payload.source}}",
+          "timestamp": "{{payload.timestamp}}"
+        }
+      }
+    ],
+    "modules": [
+      {
+        "id": "router_qualification",
+        "type": "router",
+        "label": "Check lead qualification",
+        "config": {
+          "routes": [
+            {
+              "id": "route_hot",
+              "label": "Hot Lead (score >= 70)",
+              "condition": "{{trigger.output.score}} >= 70 OR {{trigger.output.classification}} === \"hot\""
+            },
+            {
+              "id": "route_other",
+              "label": "Other (no SMS)",
+              "condition": "true"
+            }
+          ]
+        }
+      },
+      {
+        "id": "sms_sales",
+        "type": "twilio.send_sms",
+        "label": "Send SMS to Sales Team",
+        "config": {
+          "to": "{{vars.sales_team_phone}}",
+          "from": "{{vars.twilio_phone}}",
+          "body": "FOCUSRUNNER: New {{trigger.output.classification}} lead!\nName: {{trigger.output.name}}\nPhone: {{trigger.output.phone}}\nScore: {{trigger.output.score}}/100\nPractice: {{trigger.output.practice}}\nCall NOW — leads convert in <5 min."
+        },
+        "parent": "router_qualification",
+        "route": "route_hot"
+      },
+      {
+        "id": "sms_lead",
+        "type": "twilio.send_sms",
+        "label": "Send Auto-Reply to Lead",
+        "config": {
+          "to": "{{trigger.output.phone}}",
+          "from": "{{vars.twilio_phone}}",
+          "body": "Hi {{trigger.output.name}}! Thanks for your interest in FocusRunner.\nWe help med spas attract and convert more patients with AI.\n\nBook a quick call: {{vars.booking_url}}\n\nReply STOP to opt out."
+        },
+        "parent": "router_qualification",
+        "route": "route_hot"
+      },
+      {
+        "id": "ghl_tag",
+        "type": "http",
+        "label": "Tag lead in GoHighLevel",
+        "config": {
+          "url": "https://rest.gohighlevel.com/v1/contacts/{{trigger.output.phone}}/tags",
+          "method": "POST",
+          "headers": {
+            "Authorization": "Bearer {{vars.ghl_api_key}}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "tags": ["ai_qualified", "followup_sent", "sms_notified"]
+          }
+        },
+        "parent": "router_qualification",
+        "route": "route_hot"
+      },
+      {
+        "id": "log_datastore",
+        "type": "datastore.set",
+        "label": "Log to Make.com Data Store",
+        "config": {
+          "key": "{{trigger.output.phone}}",
+          "value": {
+            "name": "{{trigger.output.name}}",
+            "score": "{{trigger.output.score}}",
+            "classification": "{{trigger.output.classification}}",
+            "sms_sent": "true",
+            "sent_at": "{{now}}"
+          }
+        },
+        "parent": "router_qualification",
+        "route": "route_hot"
+      }
+    ],
+    "errorHandlers": [
+      {
+        "moduleId": "sms_sales",
+        "retryPolicy": {
+          "maxAttempts": 3,
+          "backoffMs": [1000, 5000, 15000]
+        },
+        "fallback": {
+          "type": "log_error",
+          "config": {
+            "datastore": "error_log",
+            "key": "sms_sales_error_{{now}}"
+          }
+        }
+      },
+      {
+        "moduleId": "sms_lead",
+        "retryPolicy": {
+          "maxAttempts": 3,
+          "backoffMs": [1000, 5000, 15000]
+        },
+        "fallback": {
+          "type": "log_error",
+          "config": {
+            "datastore": "error_log",
+            "key": "sms_lead_error_{{now}}"
+          }
+        }
+      }
+    ],
+    "variables": {
+      "sales_team_phone": "+1XXXXXXXXXX",
+      "twilio_phone": "+1XXXXXXXXXX",
+      "booking_url": "https://focusrunner.io/book",
+      "ghl_api_key": ""
+    },
+    "scheduling": {
+      "type": "immediate",
+      "autoCommit": false
+    }
+  }
+}

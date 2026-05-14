@@ -1,28 +1,19 @@
 {
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    { "src": "/api/leads/export", "dest": "/api/leads.js" },
-    { "src": "/api/leads", "dest": "/api/leads.js" },
-    { "src": "/api/chat", "dest": "/api/chat.js" },
-    { "src": "/api/webhook", "dest": "/api/webhook.js" },
-    { "src": "/api/kv", "dest": "/api/kv.js" },
-    { "src": "/api/client-config", "dest": "/api/client-config.js" },
-    { "src": "/api/notify-status", "dest": "/api/notify-status.js" },
-    { "src": "/api/direct-qualify", "dest": "/api/direct-qualify.js" },
-    { "src": "/api/health", "dest": "/api/health.js" },
-    { "src": "/api/test", "dest": "/api/test.js" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs18.x", "maxDuration": 30 }
+  },
+  "rewrites": [
+    { "source": "/api/leads/export", "destination": "/api/leads.js" },
+    { "source": "/api/leads", "destination": "/api/leads.js" },
+    { "source": "/api/chat", "destination": "/api/chat.js" },
+    { "source": "/api/webhook", "destination": "/api/webhook.js" },
+    { "source": "/api/kv", "destination": "/api/kv.js" },
+    { "source": "/api/client-config", "destination": "/api/client-config.js" },
+    { "source": "/api/notify-status", "destination": "/api/notify-status.js" },
+    { "source": "/api/lead-notify", "destination": "/api/lead-notify.js" },
+    { "source": "/api/direct-qualify", "destination": "/api/direct-qualify.js" },
+    { "source": "/api/health", "destination": "/api/health.js" },
+    { "source": "/admin/leads", "destination": "/admin/leads.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
