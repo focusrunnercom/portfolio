@@ -371,7 +371,7 @@
           if (emailMatch) state.email = emailMatch[0];
           if (phoneMatch) state.phone = phoneMatch[0].replace(/[\s\-\(\)\.]/g, '');
 
-          // Submit to webhook (best effort — works when backend is up)
+          // Build payload for API
           var payload = {
             name: state.practiceName,
             email: state.email || 'no-email@submitted',
@@ -385,19 +385,29 @@
             timestamp: new Date().toISOString()
           };
 
-          // Try Vercel API first
-          fetch('/api/webhook', {
+          // Submit to /api/chat endpoint (server-side state machine + storage)
+          fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+              message: state.email + ' ' + state.phone,
+              state: {
+                step: 4,
+                practice: state.practiceName,
+                q1_volume: state.q1_volume,
+                q2_spend: state.q2_spend,
+                q3_aspiration: state.q3_dream,
+                email: state.email,
+                phone: state.phone
+              }
+            })
           }).catch(function() {
-            // Vercel down — try local Flask fallback
-            fetch('http://192.168.40.1:5000/api/webhook', {
+            // Fallback: submit to /api/webhook directly
+            fetch('/api/webhook', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             }).catch(function() {
-              // Both down — lead stored locally, no data loss
               console.log('Lead data:', JSON.stringify(payload));
             });
           });
