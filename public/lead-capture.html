@@ -280,7 +280,7 @@
         utm_term: params.get('utm_term') || '',
         session_id: getSessionId()
       };
-      fetch('http://127.0.0.1:5000/api/track', {
+      fetch('https://statements-actress-combined-witch.trycloudflare.com/api/track', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
@@ -289,7 +289,7 @@
 
     // ─── Visitor Counter ──────────────────────
     (function loadVisitorCount() {
-      fetch('http://127.0.0.1:5000/api/visitor-count')
+      fetch('https://statements-actress-combined-witch.trycloudflare.com/api/visitor-count')
         .then(function(r) { return r.json(); })
         .then(function(data) {
           var el = document.getElementById('visitorStats');
@@ -322,7 +322,7 @@
       status.className = 'status';
 
       // POST directly to Flask backend — no Cloudflare tunnel
-      fetch('http://127.0.0.1:5000/api/lead', {
+      fetch('https://statements-actress-combined-witch.trycloudflare.com/api/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
