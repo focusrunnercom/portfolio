@@ -1,7 +1,7 @@
 /**
  * Vercel Serverless Function: /api/webhook
  * Receives lead data from lead-capture.html form and forwards to destinations.
- * CJS - zero imports, fully self-contained. Node.js Serverless Runtime (req, res).
+ * CJS - imports from shared lib/notify.js for lead email alert. Node.js Serverless Runtime.
  */
 
 async function retryFetch(url, options, maxRetries) {
@@ -95,6 +95,8 @@ function generateId() {
 
 const R = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Content-Type': 'application/json' };
 
+const { notifyLead } = require('./lib/notify');
+
 function sendJson(res, data, status) {
   status = status || 200;
   res.writeHead(status, R);
@@ -125,5 +127,9 @@ module.exports = async function handler(req, res) {
   var ghlResult = null;
   try { ghlResult = await createGHLContact(leadData); } catch (err) { console.error('[webhook] GHL forward failed:', err.message); }
   var ghlSuccess = ghlResult !== null;
+  // Fire-and-forget: email notification for leads with contact info
+  if (leadData.name || leadData.phone) {
+    notifyLead({ name: leadData.name, phone: leadData.phone, email: leadData.email, practice: leadData.practice, source: leadData.source, qualification: { classification: 'qualified', score: 50 } }).catch(function(err) { console.warn('[webhook] Notify failed:', err.message); });
+  }
   return sendJson(res, { success: ghlSuccess, lead_id: ghlResult?.contact?.id || ghlResult?.id || null, message: ghlSuccess ? 'Lead received and forwarded' : 'Lead received but GHL forwarding failed' }, ghlSuccess ? 200 : 202);
 };

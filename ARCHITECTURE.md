@@ -1,6 +1,6 @@
 # FocusRunner Platform Architecture
 
-**Last Updated:** 2026-05-14
+**Last Updated:** 2026-05-14 (v2 — added webhook notification, removed duplicate lib/lead-notify.js)
 **Author:** Senior Engineer
 
 ---
@@ -248,9 +248,10 @@ lead-capture.html ──► POST ──► focusrunner.io/api/webhook (Vercel, i
 
 ### 6.4 Notification Pipeline (Resend)
 
-- `RESEND_API_KEY` and `NOTIFY_EMAIL` exist in Vercel env as **empty strings**
-- Trigger: any lead qualification (hot/warm)
-- Fallback: logged + stored, no loss of data
+- `RESEND_API_KEY` and `NOTIFY_EMAIL` exist in Vercel env as **empty strings** (Resend not provisioned)
+- Trigger: any lead qualification (hot/warm) — wired in `chat.js`, `direct-qualify.js`, `webhook.js`
+- All endpoints now use shared `api/lib/notify.js` (consolidated per td-notify-consolidation.md)
+- `api/lib/lead-notify.js` removed (was duplicate of `api/lib/notify.js`)
 
 ## 7. Future Architecture
 

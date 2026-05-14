@@ -2,6 +2,7 @@
 
 **Author:** Senior Engineer
 **Date:** 2026-05-14
+**Status:** Partially resolved — webhook.js now uses lib/notify.js; lib/lead-notify.js removed. See ARCHITECTURE.md §5.
 
 ## Problem
 
