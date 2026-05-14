@@ -13,6 +13,7 @@ export const config = {
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const API_BASE = process.env.OPENAI_API_BASE || 'https://api.deepseek.com/v1';
 const MODEL = process.env.CHAT_MODEL || 'deepseek-chat';
+const AI_TIMEOUT_MS = 15000; // 15s timeout for AI calls
 
 function buildSystemPrompt(userData) {
   const name = userData.name || 'there';
@@ -64,22 +65,71 @@ The user is a med spa prospect who filled out a form. Here's what we already kno
 IMPORTANT: This person OWNS or runs a medical aesthetics practice. They are looking for a patient acquisition SYSTEM, not a treatment. Adapt your questions accordingly — ask about their practice's lead flow, conversion challenges, and growth goals. Do NOT treat them as a patient seeking treatment.`;
 }
 
+/**
+ * Extract JSON qualification block from AI response.
+ * Handles: ```json ... ```, bare JSON with leading whitespace, partial fragments.
+ * Returns null if no valid JSON found.
+ */
 function parseQualification(text) {
-  // Extract JSON qualification block from AI response
-  const jsonMatch = text.match(/```json\s*(\{.*?\})\s*```/s);
-  if (jsonMatch) {
+  if (!text || typeof text !== 'string') return null;
+
+  // Strategy 1: ```json ... ``` block (most common)
+  const fencedMatch = text.match(/```(?:json)?\s*(\{[^`]*?\})\s*```/s);
+  if (fencedMatch) {
     try {
-      return JSON.parse(jsonMatch[1]);
-    } catch (e) { /* ignore parse errors */ }
+      const parsed = JSON.parse(fencedMatch[1]);
+      if (parsed && typeof parsed.score === 'number') return parsed;
+    } catch (e) { /* fallthrough */ }
   }
-  // Fallback: find bare JSON object with score field
-  const bareMatch = text.match(/\{[^{}]*"score"[\s:0-9,."'a-z_\-]*\}/i);
+
+  // Strategy 2: Bare JSON anywhere in text with a "score" field
+  const bareMatch = text.match(/\{\s*"[^"]*"\s*:[\s\S]*?"score"\s*:\s*\d+[\s\S]*?\}/);
   if (bareMatch) {
     try {
-      return JSON.parse(bareMatch[0]);
-    } catch (e) { /* ignore */ }
+      const parsed = JSON.parse(bareMatch[0]);
+      if (parsed && typeof parsed.score === 'number') return parsed;
+    } catch (e) { /* fallthrough */ }
   }
+
+  // Strategy 3: Multi-line JSON fragment (model sometimes splits across lines)
+  const lines = text.split('\n');
+  let braceDepth = 0;
+  let jsonStart = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    for (let j = 0; j < line.length; j++) {
+      if (line[j] === '{') {
+        if (braceDepth === 0) jsonStart = i;
+        braceDepth++;
+      } else if (line[j] === '}') {
+        braceDepth--;
+        if (braceDepth === 0 && jsonStart >= 0) {
+          const candidate = lines.slice(jsonStart, i + 1).join('\n');
+          try {
+            const parsed = JSON.parse(candidate);
+            if (parsed && typeof parsed.score === 'number') return parsed;
+          } catch (e) { /* not valid — keep looking */ }
+          jsonStart = -1;
+        }
+      }
+    }
+  }
+
   return null;
+}
+
+/**
+ * Fetch with an AbortController timeout.
+ */
+async function fetchWithTimeout(url, options, timeoutMs = AI_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export default async function handler(request) {
@@ -145,7 +195,7 @@ export default async function handler(request) {
   ];
 
   try {
-    const aiResponse = await fetch(`${API_BASE}/chat/completions`, {
+    const aiResponse = await fetchWithTimeout(`${API_BASE}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -157,11 +207,13 @@ export default async function handler(request) {
         temperature: 0.7,
         max_tokens: 500,
       }),
-    });
+    }, AI_TIMEOUT_MS);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      return new Response(JSON.stringify({ error: `AI API error ${aiResponse.status}: ${errorText.slice(0, 500)}` }), {
+      return new Response(JSON.stringify({
+        error: `AI API error ${aiResponse.status}: ${errorText.slice(0, 500)}`,
+      }), {
         status: 502,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
@@ -173,7 +225,7 @@ export default async function handler(request) {
     const qualification = parseQualification(aiText);
 
     // Strip the JSON block from the visible reply
-    let reply = aiText.replace(/```json\s*\{.*?\}\s*```/gs, '').trim();
+    let reply = aiText.replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/g, '').trim();
     if (!reply) reply = aiText.trim();
 
     const bookingLink = qualification?.classification === 'qualified'
@@ -194,6 +246,13 @@ export default async function handler(request) {
       },
     });
   } catch (err) {
+    // Detect abort/timeout specifically
+    if (err.name === 'AbortError') {
+      return new Response(JSON.stringify({ error: 'AI API call timed out after 15 seconds' }), {
+        status: 504,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
     return new Response(JSON.stringify({ error: `AI API call failed: ${err.message}` }), {
       status: 502,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
