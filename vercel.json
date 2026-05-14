@@ -1,11 +1,29 @@
 {
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30,
-      "runtime": "nodejs22.x"
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node@2",
+      "config": { "includeFiles": [] }
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
-  },
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "routes": [
+    { "src": "/api/leads/export", "dest": "/api/leads.js" },
+    { "src": "/api/leads", "dest": "/api/leads.js" },
+    { "src": "/api/chat", "dest": "/api/chat.js" },
+    { "src": "/api/webhook", "dest": "/api/webhook.js" },
+    { "src": "/api/kv", "dest": "/api/kv.js" },
+    { "src": "/api/client-config", "dest": "/api/client-config.js" },
+    { "src": "/api/notify-status", "dest": "/api/notify-status.js" },
+    { "src": "/api/direct-qualify", "dest": "/api/direct-qualify.js" },
+    { "src": "/api/health", "dest": "/api/health.js" },
+    { "src": "/api/test", "dest": "/api/test.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
