@@ -10,15 +10,14 @@
  *   1. If X-Client-Id header provided → read config from Vercel KV
  *   2. If KV not found or no header → fallback to env vars (backward compat)
  */
-export const config = {
-  runtime: 'edge',
-};
-
+// Vercel Serverless Function (local ESM imports supported natively)
 import { resolveClient } from './kv.js';
 import { logAnalyticsEvent } from './lib/analytics-lib.js';
+import { createGHLContact } from './lib/ghl-sync.js';
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const API_BASE = process.env.OPENAI_API_BASE || 'https://api.deepseek.com/v1';
+const AI_TIMEOUT_MS = 15000; // 15s timeout for AI calls
 
 /**
  * Build the system prompt for a given client config and user data.
@@ -92,20 +91,71 @@ Known about this practice owner:
 CRITICAL: This is a BUSINESS OWNER evaluating a vendor. Do NOT say "you should try this treatment" or "how long have you had this concern." Ask about lead flow, ad spend, conversion rates, and growth goals. Treat them as a CEO, not a patient.`;
 }
 
+/**
+ * Extract JSON qualification block from AI response.
+ * Handles: ```json ... ```, bare JSON with leading whitespace, partial fragments.
+ * Returns null if no valid JSON found.
+ */
 function parseQualification(text) {
-  const jsonMatch = text.match(/```json\s*(\{.*?\})\s*```/s);
-  if (jsonMatch) {
+  if (!text || typeof text !== 'string') return null;
+
+  // Strategy 1: ```json ... ``` block (most common)
+  const fencedMatch = text.match(/```(?:json)?\s*(\{[^`]*?\})\s*```/s);
+  if (fencedMatch) {
     try {
-      return JSON.parse(jsonMatch[1]);
-    } catch (e) { /* ignore */ }
+      const parsed = JSON.parse(fencedMatch[1]);
+      if (parsed && typeof parsed.score === 'number') return parsed;
+    } catch (e) { /* fallthrough */ }
   }
-  const bareMatch = text.match(/\{[^{}]*"score"[\s:0-9,.\"'a-z_\-]*\}/i);
+
+  // Strategy 2: Bare JSON anywhere in text with a "score" field
+  const bareMatch = text.match(/\{\s*"[^"]*"\s*:[\s\S]*?"score"\s*:\s*\d+[\s\S]*?\}/);
   if (bareMatch) {
     try {
-      return JSON.parse(bareMatch[0]);
-    } catch (e) { /* ignore */ }
+      const parsed = JSON.parse(bareMatch[0]);
+      if (parsed && typeof parsed.score === 'number') return parsed;
+    } catch (e) { /* fallthrough */ }
   }
+
+  // Strategy 3: Multi-line JSON fragment (model sometimes splits across lines)
+  const lines = text.split('\n');
+  let braceDepth = 0;
+  let jsonStart = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    for (let j = 0; j < line.length; j++) {
+      if (line[j] === '{') {
+        if (braceDepth === 0) jsonStart = i;
+        braceDepth++;
+      } else if (line[j] === '}') {
+        braceDepth--;
+        if (braceDepth === 0 && jsonStart >= 0) {
+          const candidate = lines.slice(jsonStart, i + 1).join('\n');
+          try {
+            const parsed = JSON.parse(candidate);
+            if (parsed && typeof parsed.score === 'number') return parsed;
+          } catch (e) { /* not valid — keep looking */ }
+          jsonStart = -1;
+        }
+      }
+    }
+  }
+
   return null;
+}
+
+/**
+ * Fetch with an AbortController timeout.
+ */
+async function fetchWithTimeout(url, options, timeoutMs = AI_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export default async function handler(request) {
@@ -192,7 +242,7 @@ export default async function handler(request) {
   ];
 
   try {
-    const aiResponse = await fetch(`${API_BASE}/chat/completions`, {
+    const aiResponse = await fetchWithTimeout(`${API_BASE}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -241,8 +291,11 @@ export default async function handler(request) {
         qualification,
         bookingLink,
       }).catch(() => {});
-    }
+
+      // === GHL SYNC: auto-create GoHighLevel contact ===
+      createGHLContact(userData, qualification, clientId).catch(() => {});
     // ================================
+    }
 
     const responseData = {
       reply,

@@ -8,10 +8,7 @@
  * Reads from Vercel KV (leads list) with fallback to demo data.
  * No local ESM imports — fully self-contained.
  */
-export const config = {
-  runtime: 'edge',
-};
-
+// Vercel Serverless Function (local ESM imports + @vercel/kv dynamic import supported natively)
 const ADMIN_KEY = process.env.ADMIN_API_KEY || '';
 
 /** Parse KV JSON, graceful on bad data */

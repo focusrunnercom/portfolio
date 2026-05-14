@@ -9,10 +9,7 @@
  *   1. If X-Client-Id header provided → read config from KV, use per-client GHL URL
  *   2. If KV not found or no header → fallback to env vars (backward compat)
  */
-export const config = {
-  runtime: 'edge',
-};
-
+// Vercel Serverless Function (local ESM imports supported natively)
 import { resolveClient } from './kv.js';
 import { logAnalyticsEvent } from './lib/analytics-lib.js';
 import { notifyLead } from './lib/notify.js';

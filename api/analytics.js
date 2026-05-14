@@ -15,10 +15,7 @@
  *   ?limit=N     — Max events to return (default: 50, max: 500)
  *   ?since=ISO   — Return events after this timestamp
  */
-export const config = {
-  runtime: 'edge',
-};
-
+// Vercel Serverless Function (local ESM imports supported natively)
 import { kvLrange, kvLlen, kvGet } from './kv.js';
 
 const ANALYTICS_KEY = process.env.ANALYTICS_KEY || process.env.ADMIN_API_KEY || '';

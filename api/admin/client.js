@@ -11,10 +11,7 @@
  * DELETE /api/admin/client/:clientId    → Deactivate (set active=false, don't delete)
  * GET    /api/admin/clients             → List all active client IDs
  */
-export const config = {
-  runtime: 'edge',
-};
-
+// Vercel Serverless Function (local ESM imports supported natively)
 import { kvGet, kvSet, kvDel } from '../kv.js';
 
 const ADMIN_KEY = process.env.ADMIN_API_KEY || '';
