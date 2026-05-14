@@ -9,26 +9,258 @@
  * CONFIG RESOLUTION:
  *   1. If X-Client-Id header provided → read config from Vercel KV
  *   2. If KV not found or no header → fallback to env vars (backward compat)
+ *
+ * SELF-CONTAINED: All KV, analytics, and GHL logic is inlined.
+ * No external file imports (Vercel Edge Function safe).
  */
-// Vercel Serverless Function (local ESM imports supported natively)
-import { resolveClient } from './kv.js';
-import { logAnalyticsEvent } from './lib/analytics-lib.js';
-import { createGHLContact } from './lib/ghl-sync.js';
+
+// =============================================================================
+// KV Client — inlined from kv.js
+// =============================================================================
+
+const PREFIX_CLIENT = 'client:';
+const PREFIX_ANALYTICS = 'analytics:';
+const PREFIX_LEADS = 'leads:';
+const PREFIX_COUNTERS = 'counters:';
+
+async function tryKV() {
+  try {
+    const { kv } = await import('@vercel/kv');
+    return {
+      kvGet: async (key) => kv.get(key),
+      kvSet: async (key, value) => kv.set(key, typeof value === 'string' ? value : JSON.stringify(value)),
+      kvDel: async (key) => kv.del(key),
+      kvLpush: async (key, value) => kv.lpush(key, typeof value === 'string' ? value : JSON.stringify(value)),
+      kvIncr: async (key) => kv.incr(key),
+      kvLrange: async (key, start, stop) => kv.lrange(key, start, stop),
+      kvLlen: async (key) => kv.llen(key),
+    };
+  } catch (e) {
+    throw new Error('KV not available: ' + e.message);
+  }
+}
+
+let kvInstance = null;
+
+async function getKV() {
+  if (!kvInstance) {
+    kvInstance = await tryKV();
+  }
+  return kvInstance;
+}
+
+async function kvGet(key) {
+  const k = await getKV();
+  return k.kvGet(key);
+}
+
+async function kvSet(key, value) {
+  const k = await getKV();
+  return k.kvSet(key, value);
+}
+
+async function kvDel(key) {
+  const k = await getKV();
+  return k.kvDel(key);
+}
+
+async function kvLpush(key, value) {
+  const k = await getKV();
+  return k.kvLpush(key, value);
+}
+
+async function kvIncr(key) {
+  const k = await getKV();
+  return k.kvIncr(key);
+}
+
+async function kvLrange(key, start = 0, stop = -1) {
+  const k = await getKV();
+  return k.kvLrange(key, start, stop);
+}
+
+async function kvLlen(key) {
+  const k = await getKV();
+  return k.kvLlen(key);
+}
+
+function resolveClientId(request) {
+  const clientId = request.headers.get('X-Client-Id') || 'client_default';
+  return { clientId };
+}
+
+async function resolveClient(request) {
+  const { clientId } = resolveClientId(request);
+
+  try {
+    const config = await kvGet(`${PREFIX_CLIENT}${clientId}`);
+    if (config) {
+      return { config: typeof config === 'string' ? JSON.parse(config) : config, clientId, fromKV: true };
+    }
+  } catch (e) {
+    // KV not available — fall through to env var defaults
+  }
+
+  return {
+    config: {
+      active: true,
+      name: 'Default Client',
+      ai: {
+        system_prompt: null,
+        model: process.env.CHAT_MODEL || 'deepseek-chat',
+        temperature: 0.7,
+        max_tokens: 500,
+      },
+      booking_url: process.env.BOOKING_URL || 'https://focusrunner.io',
+      custom_fields: {},
+    },
+    clientId,
+    fromKV: false,
+  };
+}
+
+// =============================================================================
+// Analytics Library — inlined from lib/analytics-lib.js
+// =============================================================================
+
+async function logAnalyticsEvent(clientId, event) {
+  if (!clientId) return;
+
+  const timestamp = new Date().toISOString();
+  const dateKey = timestamp.slice(0, 10).replace(/-/g, '');
+  const eventKey = `analytics:${clientId}:events`;
+  const dailyPrefix = `analytics:${clientId}:daily:${dateKey}`;
+
+  const enriched = {
+    ...event,
+    clientId,
+    timestamp,
+  };
+
+  await kvLpush(eventKey, enriched).catch(() => {});
+
+  const type = event.type || 'unknown';
+  await kvIncr(`${dailyPrefix}:total`).catch(() => {});
+  await kvIncr(`${dailyPrefix}:${type}`).catch(() => {});
+
+  if (type === 'lead_captured' && event.qualification) {
+    const cls = event.qualification.classification || 'unknown';
+    await kvIncr(`${dailyPrefix}:classification:${cls}`).catch(() => {});
+  }
+
+  if (type === 'lead_submitted' && event.source) {
+    const source = event.source.replace(/[^a-zA-Z0-9_-]/g, '_');
+    await kvIncr(`${dailyPrefix}:source:${source}`).catch(() => {});
+  }
+}
+
+// =============================================================================
+// GoHighLevel Contact Sync — inlined from lib/ghl-sync.js
+// =============================================================================
+
+const GHL_API_BASE = 'https://rest.gohighlevel.com/v1';
+const GHL_TAG = 'focusrunner_chat';
+
+async function createGHLContact(leadData, qualification, clientId) {
+  const apiKey = process.env.GHL_API_KEY;
+  if (!apiKey) {
+    console.warn('[chat] GHL_API_KEY not set — skipping contact sync');
+    return null;
+  }
+
+  const payload = {
+    name: leadData.name || 'Chat Widget Lead',
+    phone: leadData.phone || '',
+    email: leadData.email || '',
+    tags: [GHL_TAG],
+  };
+
+  if (leadData.practice) {
+    payload.companyName = leadData.practice;
+  }
+
+  const customFields = {};
+
+  if (leadData.practice) customFields.practice_name = leadData.practice;
+  if (leadData.niche) customFields.niche = leadData.niche;
+  if (leadData.volume) customFields.patient_volume = leadData.volume;
+  if (clientId) customFields.focusrunner_client = clientId;
+
+  if (qualification) {
+    customFields.source = 'focusrunner_chat';
+    customFields.qualification_score = String(qualification.score ?? 0);
+    customFields.qualification_class = qualification.classification || 'unknown';
+    customFields.budget_tier = qualification.budget_tier || 'unknown';
+    customFields.timeline = qualification.timeline || 'unknown';
+    customFields.lead_summary = qualification.summary || '';
+  }
+
+  const locationId = process.env.GHL_LOCATION_ID;
+  if (locationId) {
+    customFields.location_id = locationId;
+  }
+
+  if (Object.keys(customFields).length > 0) {
+    payload.customField = customFields;
+  }
+
+  try {
+    const res = await fetch(`${GHL_API_BASE}/contacts/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await res.json();
+
+    if (!res.ok) {
+      console.error(`[chat] GHL API error ${res.status}:`, JSON.stringify(body).slice(0, 300));
+      return null;
+    }
+
+    console.log(`[chat] GHL contact created: id=${body.contact?.id || body.id} name=${leadData.name}`);
+    return body;
+  } catch (err) {
+    console.error('[chat] GHL network error:', err.message);
+    return null;
+  }
+}
+
+// =============================================================================
+// Constants
+// =============================================================================
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const API_BASE = process.env.OPENAI_API_BASE || 'https://api.deepseek.com/v1';
-const AI_TIMEOUT_MS = 15000; // 15s timeout for AI calls
+const AI_TIMEOUT_MS = 15000;
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Fetch with an AbortController timeout.
+ */
+async function fetchWithTimeout(url, options, timeoutMs = AI_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * Build the system prompt for a given client config and user data.
- * Uses per-client prompt if configured, otherwise builds dynamically.
- * This is the critical per-client customization point.
  */
 function buildSystemPrompt(config, userData) {
   const clientPrompt = config.ai?.system_prompt;
 
   if (clientPrompt) {
-    // Inject dynamic user data into the client's custom prompt
     return clientPrompt
       .replace(/\${name}/g, userData.name || 'there')
       .replace(/\${phone}/g, userData.phone || 'unknown')
@@ -37,7 +269,6 @@ function buildSystemPrompt(config, userData) {
       .replace(/\${volume}/g, userData.volume || 'unknown');
   }
 
-  // Default prompt — same as original but templated
   const name = userData.name || 'there';
   const phone = userData.phone || 'unknown';
   const practice = userData.practice || 'unknown';
@@ -93,8 +324,6 @@ CRITICAL: This is a BUSINESS OWNER evaluating a vendor. Do NOT say "you should t
 
 /**
  * Extract JSON qualification block from AI response.
- * Handles: ```json ... ```, bare JSON with leading whitespace, partial fragments.
- * Returns null if no valid JSON found.
  */
 function parseQualification(text) {
   if (!text || typeof text !== 'string') return null;
@@ -117,7 +346,7 @@ function parseQualification(text) {
     } catch (e) { /* fallthrough */ }
   }
 
-  // Strategy 3: Multi-line JSON fragment (model sometimes splits across lines)
+  // Strategy 3: Multi-line JSON fragment
   const lines = text.split('\n');
   let braceDepth = 0;
   let jsonStart = -1;
@@ -144,19 +373,9 @@ function parseQualification(text) {
   return null;
 }
 
-/**
- * Fetch with an AbortController timeout.
- */
-async function fetchWithTimeout(url, options, timeoutMs = AI_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    return response;
-  } finally {
-    clearTimeout(timer);
-  }
-}
+// =============================================================================
+// Handler
+// =============================================================================
 
 export default async function handler(request) {
   // CORS preflight
@@ -173,12 +392,10 @@ export default async function handler(request) {
 
   // Health check
   if (request.method === 'GET') {
-    const { clientId } = await import('./kv.js').then(m => m.resolveClientId(request));
     return new Response(JSON.stringify({
       status: 'ok',
       endpoint: '/api/chat',
       model: process.env.CHAT_MODEL || 'deepseek-chat',
-      clientId,
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -217,6 +434,11 @@ export default async function handler(request) {
       status: 400,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
+  }
+
+  // Validate userData fields
+  if (!userData.name && !userData.phone) {
+    console.warn('[chat] Lead submitted without name or phone — qualification will be limited');
   }
 
   // === MULTI-TENANT: resolve client config ===
@@ -299,9 +521,6 @@ export default async function handler(request) {
       createGHLContact(userData, qualification, clientId).catch(() => {});
     }
     // =====================================
-      createGHLContact(userData, qualification, clientId).catch(() => {});
-    }
-    // ================================
 
     const responseData = {
       reply,
