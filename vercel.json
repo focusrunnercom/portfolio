@@ -1,6 +1,10 @@
 {
   "builds": [
     {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -9,6 +13,7 @@
     }
   ],
   "routes": [
+    { "src": "/admin/leads", "dest": "/admin-leads.html" },
     { "src": "/api/leads/export", "dest": "/api/leads.js" },
     { "src": "/api/leads", "dest": "/api/leads.js" },
     { "src": "/api/chat", "dest": "/api/chat.js" },
