@@ -15,6 +15,7 @@ export const config = {
 
 import { resolveClient } from './kv.js';
 import { logAnalyticsEvent } from './lib/analytics-lib.js';
+import { notifyLead } from './lib/notify.js';
 
 export default async function handler(request) {
   // CORS preflight
@@ -127,6 +128,10 @@ export default async function handler(request) {
     qualification: body.qualification,
     source: body.source || 'chat_widget',
   }).catch(() => {});
+  // ===========================================
+
+  // === EMAIL NOTIFICATION: alert the team ===
+  notifyLead(body, { timestamp: new Date().toISOString() }).catch(() => {});
   // ===========================================
 
   return new Response(JSON.stringify({
