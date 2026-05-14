@@ -1,18 +1,11 @@
 {
   "functions": {
     "api/**/*.js": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "runtime": "nodejs22.x"
     }
   },
   "rewrites": [
-    { "source": "/api/leads/export", "destination": "/api/leads.js" },
-    { "source": "/api/leads", "destination": "/api/leads.js" },
-    { "source": "/api/chat", "destination": "/api/chat.js" },
-    { "source": "/api/webhook", "destination": "/api/webhook.js" },
-    { "source": "/api/kv", "destination": "/api/kv.js" },
-    { "source": "/api/client-config", "destination": "/api/client-config.js" },
-    { "source": "/api/direct-qualify", "destination": "/api/direct-qualify.js" },
-    { "source": "/api/notify-status", "destination": "/api/notify-status.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
