@@ -11,14 +11,14 @@
  *   NOTIFY_EMAIL    — optional, recipient override (default: hello@focusrunner.com)
  */
 
-export const config = {
+const config = {
   runtime: 'edge',
 };
 
 const DEFAULT_RECIPIENT = 'hello@focusrunner.com';
 const FROM_EMAIL = 'FocusRunner Leads <leads@focusrunner.io>';
 
-export default async function handler(request) {
+async function handler(request) {
   // CORS preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -203,6 +203,9 @@ export default async function handler(request) {
     });
   }
 }
+
+module.exports = handler;
+module.exports.config = config;
 
 function escapeHtml(str) {
   if (typeof str !== 'string') return String(str || '');

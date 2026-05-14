@@ -29,7 +29,7 @@
  *   }
  */
 
-import { kvGet, kvSet, kvDel } from './kv.js';
+const { kvGet, kvSet, kvDel } = require('./kv');
 
 // =============================================================================
 // Constants
@@ -229,7 +229,7 @@ async function handleDelete(request) {
 // Main handler
 // =============================================================================
 
-export default async function handler(request) {
+async function handler(request) {
   // CORS preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -262,3 +262,5 @@ export default async function handler(request) {
       return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 }
+
+module.exports = handler;

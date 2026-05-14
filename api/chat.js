@@ -19,9 +19,9 @@
 // =============================================================================
 // Configuration
 // =============================================================================
-import { kvGet } from './kv.js';
-import { notifyLead } from './lib/notify.js';
-import { appendLead } from './lib/lead-store.js';
+const { kvGet } = require('./kv');
+const { notifyLead } = require('./lib/notify');
+const { appendLead } = require('./lib/lead-store');
 
 const AI_TIMEOUT_MS = 8000;
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
@@ -234,7 +234,7 @@ function jsonResponse(data, status = 200) {
 // Handler
 // =============================================================================
 
-export default async function handler(request) {
+async function handler(request) {
   // CORS preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -441,3 +441,5 @@ export default async function handler(request) {
     lead_received: true,
   });
 }
+
+module.exports = handler;

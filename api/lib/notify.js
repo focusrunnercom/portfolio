@@ -21,7 +21,7 @@ const FROM_EMAIL = 'FocusRunner Leads <leads@focusrunner.io>';
  * @param {string} [opts.timestamp]  — ISO timestamp override (for testing)
  * @returns {Promise<object|null>} — Resend API response or null on failure
  */
-export async function notifyLead(lead, opts = {}) {
+async function notifyLead(lead, opts = {}) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn('[notify] RESEND_API_KEY not set — skipping notification');
@@ -175,4 +175,4 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-export default notifyLead;
+module.exports = { notifyLead };

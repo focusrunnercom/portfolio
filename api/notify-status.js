@@ -31,7 +31,7 @@ function jsonResponse(data, status = 200) {
   });
 }
 
-export default async function handler(request) {
+async function handler(request) {
   // CORS preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders() });
@@ -147,3 +147,5 @@ export default async function handler(request) {
     return jsonResponse({ error: `Failed to send test email: ${err.message}` }, 502);
   }
 }
+
+module.exports = handler;

@@ -1,17 +1,13 @@
 {
   "name": "FocusRunner — SMS Auto-Followup",
-  "description": "When a lead is qualified (score >= 70) via chatbot, send SMS to sales team + auto-reply to lead with booking link. Alternative to inline Twilio in webhook.js.",
+  "description": "When a lead is qualified (score >= 70) via chatbot, send SMS to sales team + auto-reply to lead with booking link.",
   "scenario": {
     "triggers": [
       {
         "id": "webhook_trigger",
         "type": "webhook",
         "label": "Receive lead from webhook.js",
-        "config": {
-          "method": "POST",
-          "contentType": "application/json",
-          "responseType": "200"
-        },
+        "config": { "method": "POST", "contentType": "application/json", "responseType": "200" },
         "output": {
           "name": "{{payload.name}}",
           "phone": "{{payload.phone}}",
@@ -79,9 +75,7 @@
             "Authorization": "Bearer {{vars.ghl_api_key}}",
             "Content-Type": "application/json"
           },
-          "body": {
-            "tags": ["ai_qualified", "followup_sent", "sms_notified"]
-          }
+          "body": { "tags": ["ai_qualified", "followup_sent", "sms_notified"] }
         },
         "parent": "router_qualification",
         "route": "route_hot"
@@ -107,31 +101,13 @@
     "errorHandlers": [
       {
         "moduleId": "sms_sales",
-        "retryPolicy": {
-          "maxAttempts": 3,
-          "backoffMs": [1000, 5000, 15000]
-        },
-        "fallback": {
-          "type": "log_error",
-          "config": {
-            "datastore": "error_log",
-            "key": "sms_sales_error_{{now}}"
-          }
-        }
+        "retryPolicy": { "maxAttempts": 3, "backoffMs": [1000, 5000, 15000] },
+        "fallback": { "type": "log_error", "config": { "datastore": "error_log" } }
       },
       {
         "moduleId": "sms_lead",
-        "retryPolicy": {
-          "maxAttempts": 3,
-          "backoffMs": [1000, 5000, 15000]
-        },
-        "fallback": {
-          "type": "log_error",
-          "config": {
-            "datastore": "error_log",
-            "key": "sms_lead_error_{{now}}"
-          }
-        }
+        "retryPolicy": { "maxAttempts": 3, "backoffMs": [1000, 5000, 15000] },
+        "fallback": { "type": "log_error", "config": { "datastore": "error_log" } }
       }
     ],
     "variables": {
@@ -140,9 +116,6 @@
       "booking_url": "https://focusrunner.io/book",
       "ghl_api_key": ""
     },
-    "scheduling": {
-      "type": "immediate",
-      "autoCommit": false
-    }
+    "scheduling": { "type": "immediate", "autoCommit": false }
   }
 }
