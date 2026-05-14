@@ -14,9 +14,10 @@
  *   dryRun?: boolean
  * }
  * 
- * CJS format for Vercel Hobby compat.
+ * Uses built-in https module — no external deps.
  */
 
+var https = require('https');
 var FROM_EMAIL = 'FocusRunner AI <hello@focusrunner.io>';
 var DEFAULT_SUBJECT = 'Your free Patient Acquisition Audit — personalized for your med spa';
 
@@ -35,7 +36,42 @@ function escapeHtml(str) {
 }
 
 function personalIntroHtml(name, practice) {
-  return '<!DOCTYPE html>\n<html>\n<head><meta charset="utf-8"></head>\n<body style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">\n  <div style="border-bottom:3px solid #7c3aed;padding-bottom:15px;margin-bottom:20px;">\n    <h1 style="color:#7c3aed;margin:0;">FocusRunner AI</h1>\n    <p style="color:#666;margin:5px 0 0;">AI-Powered Patient Acquisition</p>\n  </div>\n  <p>Hi ' + escapeHtml(name) + ',</p>\n  <p>I run a team that builds AI patient acquisition systems for med spas. We help practices like <strong>' + escapeHtml(practice) + '</strong> recover the 70% of leads that go cold within 24 hours.</p>\n  <p>Here\'s what we do:</p>\n  <ul>\n    <li><strong>24/7 AI Chatbot</strong> that qualifies leads while you sleep</li>\n    <li><strong>Automated follow-up</strong> — SMS + email sequences that warm cold leads</li>\n    <li><strong>Lead scoring</strong> so your front desk knows who to call first</li>\n    <li><strong>Booking integration</strong> — qualified leads book directly</li>\n  </ul>\n  <p>I\'d love to offer you a <strong>free Patient Acquisition Audit</strong> — we\'ll analyze your current lead flow and show you exactly where patients are falling through the cracks.</p>\n  <div style="text-align:center;margin:30px 0;">\n    <a href="https://focusrunner.io/lead-capture" style="background:#7c3aed;color:white;padding:14px 32px;text-decoration:none;border-radius:8px;font-size:16px;font-weight:600;display:inline-block;">Claim Your Free Audit →</a>\n  </div>\n  <p>No catch. Just a data-backed audit of your acquisition pipeline.</p>\n  <p>— CEO, FocusRunner AI</p>\n  <div style="border-top:1px solid #e5e5e5;padding-top:15px;margin-top:20px;font-size:12px;color:#999;">\n    <p>FocusRunner AI · 15 qualified leads in 30 days or it\'s free</p>\n    <p><a href="https://focusrunner.io" style="color:#7c3aed;">focusrunner.io</a></p>\n  </div>\n</body>\n</html>';
+  var n = escapeHtml(name);
+  var p = escapeHtml(practice);
+  return '<!DOCTYPE html>\n<html>\n<head><meta charset="utf-8"></head>\n<body style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">\n  <div style="border-bottom:3px solid #7c3aed;padding-bottom:15px;margin-bottom:20px;">\n    <h1 style="color:#7c3aed;margin:0;">FocusRunner AI</h1>\n    <p style="color:#666;margin:5px 0 0;">AI-Powered Patient Acquisition</p>\n  </div>\n  <p>Hi ' + n + ',</p>\n  <p>I run a team that builds AI patient acquisition systems for med spas. We help practices like <strong>' + p + '</strong> recover the 70% of leads that go cold within 24 hours.</p>\n  <p>Here\'s what we do:</p>\n  <ul>\n    <li><strong>24/7 AI Chatbot</strong> that qualifies leads while you sleep</li>\n    <li><strong>Automated follow-up</strong> — SMS + email sequences that warm cold leads</li>\n    <li><strong>Lead scoring</strong> so your front desk knows who to call first</li>\n    <li><strong>Booking integration</strong> — qualified leads book directly</li>\n  </ul>\n  <p>I\'d love to offer you a <strong>free Patient Acquisition Audit</strong> — we\'ll analyze your current lead flow and show you exactly where patients are falling through the cracks.</p>\n  <div style="text-align:center;margin:30px 0;">\n    <a href="https://focusrunner.io/lead-capture" style="background:#7c3aed;color:white;padding:14px 32px;text-decoration:none;border-radius:8px;font-size:16px;font-weight:600;display:inline-block;">Claim Your Free Audit →</a>\n  </div>\n  <p>No catch. Just a data-backed audit of your acquisition pipeline.</p>\n  <p>— CEO, FocusRunner AI</p>\n  <div style="border-top:1px solid #e5e5e5;padding-top:15px;margin-top:20px;font-size:12px;color:#999;">\n    <p>FocusRunner AI · 15 qualified leads in 30 days or it\'s free</p>\n    <p><a href="https://focusrunner.io" style="color:#7c3aed;">focusrunner.io</a></p>\n  </div>\n</body>\n</html>';
+}
+
+function resendSend(apiKey, email, subject, html) {
+  return new Promise(function(resolve, reject) {
+    var data = JSON.stringify({
+      from: FROM_EMAIL,
+      to: [email],
+      subject: subject,
+      html: html,
+    });
+    var opts = {
+      hostname: 'api.resend.com',
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data),
+      },
+    };
+    var req = https.request(opts, function(res) {
+      var body = '';
+      res.on('data', function(chunk) { body += chunk; });
+      res.on('end', function() {
+        var parsed;
+        try { parsed = JSON.parse(body); } catch(e) { parsed = { raw: body }; }
+        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, data: parsed });
+      });
+    });
+    req.on('error', function(err) { reject(err); });
+    req.write(data);
+    req.end();
+  });
 }
 
 module.exports = function handler(req, res) {
@@ -60,7 +96,6 @@ module.exports = function handler(req, res) {
     return;
   }
 
-  // Parse body manually
   var body = '';
   req.on('data', function(chunk) { body += chunk; });
   req.on('end', function() {
@@ -121,34 +156,21 @@ module.exports = function handler(req, res) {
 
       pending++;
 
-      fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: FROM_EMAIL,
-          to: [email],
-          subject: subject,
-          html: html,
-        }),
-      })
-      .then(function(resendRes) { return resendRes.json().catch(function() { return {}; }).then(function(data) { return { ok: resendRes.ok, status: resendRes.status, data: data }; }); })
-      .then(function(result) {
-        if (!result.ok) {
-          results.push({ name: name, email: email, status: 'failed', error: 'Resend error ' + result.status, detail: result.data });
-        } else {
-          results.push({ name: name, email: email, status: 'sent', id: result.data.id });
-        }
-        pending--;
-        if (pending === 0 && results.length === targets.length) finalize();
-      })
-      .catch(function(err) {
-        results.push({ name: name, email: email, status: 'failed', error: err.message });
-        pending--;
-        if (pending === 0 && results.length === targets.length) finalize();
-      });
+      resendSend(apiKey, email, subject, html)
+        .then(function(result) {
+          if (!result.ok) {
+            results.push({ name: name, email: email, status: 'failed', error: 'Resend error ' + result.status, detail: result.data });
+          } else {
+            results.push({ name: name, email: email, status: 'sent', id: result.data.id });
+          }
+          pending--;
+          if (pending === 0 && results.length === targets.length) finalize();
+        })
+        .catch(function(err) {
+          results.push({ name: name, email: email, status: 'failed', error: err.message });
+          pending--;
+          if (pending === 0 && results.length === targets.length) finalize();
+        });
     });
   });
 };
