@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Med Spa Patient Acquisition — FocusRunner AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            'fr-bg': '#0a0a0a',
+            'fr-card': '#111111',
+            'fr-border': '#1e1e1e',
+            'fr-green': '#6eff8a',
+            'fr-muted': '#666',
+            'fr-text': '#e5e5e5',
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out forwards',
+            'slide-up': 'slideUp 0.5s ease-out forwards',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body { background: #0a0a0a; color: #e5e5e5; font-family: 'Inter', sans-serif; }
+    .glow { box-shadow: 0 0 40px rgba(110, 255, 138, 0.06); }
+    .glow-strong { box-shadow: 0 0 60px rgba(110, 255, 138, 0.12); }
+    .input-field {
+      background: #1a1a1a; border: 1px solid #2a2a2a; color: #e5e5e5;
+      border-radius: 10px; padding: 14px 16px; width: 100%; font-size: 15px;
+      outline: none; transition: all 0.2s;
+    }
+    .input-field:focus { border-color: #6eff8a; box-shadow: 0 0 0 3px rgba(110, 255, 138, 0.1); }
+    .input-field::placeholder { color: #555; }
+    .input-field.error { border-color: #ef4444; }
+    .btn-primary {
+      background: #6eff8a; color: #0a0a0a; font-weight: 700;
+      padding: 16px 32px; border-radius: 10px; font-size: 16px;
+      border: none; cursor: pointer; transition: all 0.2s; width: 100%;
+    }
+    .btn-primary:hover { background: #5ae874; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(110, 255, 138, 0.2); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .stat-num { font-size: 36px; font-weight: 800; color: #6eff8a; line-height: 1; }
+    .stat-label { font-size: 13px; color: #888; margin-top: 4px; }
+    .gradient-bar { height: 4px; background: linear-gradient(90deg, #6eff8a, #00d4ff); width: 60px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="min-h-screen flex flex-col lg:flex-row">
+  <!-- LEFT: Value proposition -->
+  <div class="lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center">
+    <div class="max-w-xl mx-auto lg:mx-0">
+      <div class="gradient-bar mb-6 opacity-0 animate-fade-in" style="animation-delay:0.1s"></div>
+      <div class="text-xs font-semibold tracking-[0.2em] text-fr-green mb-4 opacity-0 animate-fade-in" style="animation-delay:0.15s">FOCUSRUNNER AI — PATIENT ACQUISITION</div>
+      
+      <h1 class="text-4xl lg:text-5xl font-black leading-[1.1] mb-6 opacity-0 animate-fade-in" style="animation-delay:0.2s">
+        You're Losing 70% of Your Med Spa Leads.
+        <span class="text-fr-green block mt-2">We'll Recover Them in 48 Hours.</span>
+      </h1>
+
+      <p class="text-lg text-fr-muted leading-relaxed mb-8 opacity-0 animate-fade-in" style="animation-delay:0.3s">
+        Every lead that calls, DMs, or fills a form on your site — then goes silent — is revenue walking out the door. Not because they weren't interested. Because nobody responded fast enough.
+      </p>
+
+      <p class="text-fr-text mb-8 opacity-0 animate-fade-in" style="animation-delay:0.35s">
+        FocusRunner deploys a complete AI patient acquisition system in <strong>48 hours flat</strong>. AI chat that qualifies 24/7. SMS follow-up that books appointments. A lead pipeline you can actually see. <strong>$2,500 setup — $2,500/month. No contracts.</strong>
+      </p>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-3 gap-8 mb-8 opacity-0 animate-fade-in" style="animation-delay:0.4s">
+        <div><div class="stat-num">48h</div><div class="stat-label">Deploy Time</div></div>
+        <div><div class="stat-num">$2.5K</div><div class="stat-label">Setup / Month</div></div>
+        <div><div class="stat-num">70%</div><div class="stat-label">Lead Recovery Rate</div></div>
+      </div>
+
+      <!-- Trust signals -->
+      <div class="border-t border-fr-border pt-6 opacity-0 animate-fade-in" style="animation-delay:0.45s">
+        <div class="flex flex-wrap items-center gap-4 text-sm text-fr-muted">
+          <span class="flex items-center gap-1"><span class="text-fr-green">✓</span> No contracts</span>
+          <span class="flex items-center gap-1"><span class="text-fr-green">✓</span> 48h deployment</span>
+          <span class="flex items-center gap-1"><span class="text-fr-green">✓</span> Cancel anytime</span>
+          <span class="flex items-center gap-1"><span class="text-fr-green">✓</span> No setup fee for first 5 clients</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Capture form -->
+  <div class="lg:w-1/2 p-8 lg:p-16 flex items-center justify-center">
+    <div class="w-full max-w-lg">
+      <div class="bg-fr-card border border-fr-border rounded-2xl p-8 lg:p-10 glow opacity-0 animate-slide-up" style="animation-delay:0.5s">
+        <h2 class="text-2xl font-bold mb-2">Get Your Free Patient Acquisition Audit</h2>
+        <p class="text-sm text-fr-muted mb-6">We'll analyze your current lead flow and build a custom recovery plan — no sales call, no commitment.</p>
+
+        <form id="leadForm">
+          <!-- Name -->
+          <div class="mb-4">
+            <label class="text-xs text-fr-muted block mb-1.5 font-semibold uppercase tracking-wider">Your Name <span class="text-red-400">*</span></label>
+            <input type="text" id="name" class="input-field" placeholder="Dr. Sarah Chen" required>
+          </div>
+
+          <!-- Email -->
+          <div class="mb-4">
+            <label class="text-xs text-fr-muted block mb-1.5 font-semibold uppercase tracking-wider">Email Address <span class="text-red-400">*</span></label>
+            <input type="email" id="email" class="input-field" placeholder="sarah@yourmedspa.com" required>
+          </div>
+
+          <!-- Phone -->
+          <div class="mb-4">
+            <label class="text-xs text-fr-muted block mb-1.5 font-semibold uppercase tracking-wider">Phone Number</label>
+            <input type="tel" id="phone" class="input-field" placeholder="(305) 555-0123">
+          </div>
+
+          <!-- Practice Name -->
+          <div class="mb-4">
+            <label class="text-xs text-fr-muted block mb-1.5 font-semibold uppercase tracking-wider">Practice or Med Spa Name</label>
+            <input type="text" id="practice" class="input-field" placeholder="e.g. Miami Aesthetics & Laser">
+          </div>
+
+          <!-- Monthly Patient Volume -->
+          <div class="mb-6">
+            <label class="text-xs text-fr-muted block mb-1.5 font-semibold uppercase tracking-wider">Approx. Monthly New Patients</label>
+            <select id="volume" class="input-field">
+              <option value="">Select range...</option>
+              <option value="0-20">0–20 per month</option>
+              <option value="20-50">20–50 per month</option>
+              <option value="50-100">50–100 per month</option>
+              <option value="100+">100+ per month</option>
+            </select>
+          </div>
+
+          <button type="submit" id="submitBtn" class="btn-primary">
+            Get My Free Audit →
+          </button>
+          <p class="text-xs text-center text-fr-muted mt-4">No spam. No sales pitch. Just a data-driven acquisition plan for your practice.</p>
+        </form>
+
+        <!-- Success state -->
+        <div id="successMessage" class="hidden text-center py-8">
+          <div class="w-16 h-16 bg-fr-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="text-3xl text-fr-green">✓</span>
+          </div>
+          <h3 class="text-xl font-bold mb-2">You're On the List!</h3>
+          <p class="text-sm text-fr-muted">We'll review your practice and send your personalized patient acquisition audit within 24 hours. Check your email — that's where the good stuff lands.</p>
+          <p class="text-xs text-fr-muted mt-6">No contracts. No obligation. Just hard data on what your practice is leaving on the table.</p>
+        </div>
+
+        <!-- Error state -->
+        <div id="errorMessage" class="hidden text-center py-8">
+          <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="text-3xl text-red-400">✕</span>
+          </div>
+          <h3 class="text-xl font-bold mb-2 text-red-400">Something went wrong</h3>
+          <p class="text-sm text-fr-muted">We couldn't process your request. Please try again or email us directly at <a href="mailto:hello@focusrunner.io" class="text-fr-green underline">hello@focusrunner.io</a></p>
+          <button onclick="resetForm()" class="mt-6 text-sm text-fr-green underline cursor-pointer bg-transparent border-none">Try again</button>
+        </div>
+      </div>
+
+      <p class="text-xs text-center text-fr-muted mt-4 opacity-0 animate-fade-in" style="animation-delay:0.7s">
+        FocusRunner AI — Done-for-you AI marketing for med spas.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+async function handleSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  const form = document.getElementById('leadForm');
+  const success = document.getElementById('successMessage');
+  const error = document.getElementById('errorMessage');
+  const fields = ['name', 'email', 'phone', 'practice', 'volume'];
+
+  // Clear previous errors
+  fields.forEach(f => document.getElementById(f).classList.remove('error'));
+
+  // Validate required
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  if (!name) {
+    document.getElementById('name').classList.add('error');
+    document.getElementById('name').focus();
+    return;
+  }
+  if (!email || !email.includes('@')) {
+    document.getElementById('email').classList.add('error');
+    document.getElementById('email').focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  const payload = {
+    name: name,
+    email: email,
+    phone: document.getElementById('phone').value.trim(),
+    practice: document.getElementById('practice').value.trim(),
+    volume: document.getElementById('volume').value,
+    source: 'lead_capture_form',
+  };
+
+  try {
+    const res = await fetch('/api/webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (res.ok || res.status === 202) {
+      form.classList.add('hidden');
+      success.classList.remove('hidden');
+    } else {
+      throw new Error(data.error || 'Submission failed');
+    }
+  } catch (err) {
+    console.error('Form submission error:', err);
+    form.classList.add('hidden');
+    error.classList.remove('hidden');
+  }
+  return false;
+}
+
+function resetForm() {
+  document.getElementById('errorMessage').classList.add('hidden');
+  document.getElementById('leadForm').classList.remove('hidden');
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitBtn').textContent = 'Get My Free Audit →';
+}
+
+document.getElementById('leadForm').addEventListener('submit', handleSubmit);
+</script>
+
+</body>
+</html>
