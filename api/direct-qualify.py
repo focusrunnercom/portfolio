@@ -192,9 +192,28 @@ def app(environ, start_response):
     practice = body.get("practice", "")
     raw_volume = body.get("volume") or body.get("monthly_volume") or ""
     spend = body.get("spend", "")
+    spa_name = body.get("spa_name", "")
+    ad_spend = body.get("ad_spend")
+    booking_rate = body.get("booking_rate")
+    timeline = body.get("timeline")
+    page_url = body.get("page_url", "")
 
+    # Form mode (numeric scoring from ad_spend + booking_rate + timeline)
+    if ad_spend or booking_rate or timeline:
+        score = calc_form_score(ad_spend, booking_rate, timeline)
+        classification = classify_numeric(score)
+        result = {
+            "qualification": {
+                "score": score,
+                "classification": classification,
+                "summary": f"{name or 'Prospect'} — {classification}. Score {score}/100."
+            },
+            "reply": f"Hey {name or 'there'} — {'Great fit' if classification == 'hot' else 'Good fit' if classification == 'warm' else 'Thanks'}, we'll review your details.",
+            "lead_received": True,
+            "mode": "form",
+        }
     # Direct submission mode (all data provided at once)
-    if practice and raw_volume:
+    elif practice and raw_volume:
         result = handle_direct_submission(body)
     else:
         # Partial data — use conversational flow
