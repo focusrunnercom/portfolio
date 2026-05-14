@@ -857,11 +857,11 @@ function addOptions(opts) {
 
 function startChat() {
   chatActive = true;
-  addMsg("Hi! I'm FocusRunner's AI. Let's see how many patients you could be booking. Ready?", 'bot');
+  addMsg("Hey — I'm FocusRunner's AI acquisition consultant. Let's run a quick audit on your patient pipeline. Ready?", 'bot');
   addOptions([
     {label: "Yes — let's do this", field: 'started', value: true, next: askNiche},
     {label: "Just browsing", field: 'started', value: false, next: function(){
-      addMsg("No worries! Check out our case studies above, or click ★ Book a Call when ready.", 'bot');
+      addMsg('No worries — the case studies above show exactly what we deliver. Ping us when you are ready to scale.', 'bot');
     }}
   ]);
 }
