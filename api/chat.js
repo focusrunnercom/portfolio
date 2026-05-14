@@ -291,11 +291,17 @@ export default async function handler(request) {
         qualification,
         bookingLink,
       }).catch(() => {});
-
-      // === GHL SYNC: auto-create GoHighLevel contact ===
-      createGHLContact(userData, qualification, clientId).catch(() => {});
-    // ================================
     }
+    // ================================
+
+    // === GHL SYNC: auto-create contact ===
+    if (qualification) {
+      createGHLContact(userData, qualification, clientId).catch(() => {});
+    }
+    // =====================================
+      createGHLContact(userData, qualification, clientId).catch(() => {});
+    }
+    // ================================
 
     const responseData = {
       reply,
