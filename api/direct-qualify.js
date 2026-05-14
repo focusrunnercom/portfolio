@@ -1,11 +1,12 @@
 /**
  * Vercel Serverless Function: /api/direct-qualify
  * DeepSeek-independent lead qualification endpoint.
+ * CJS-style for Vercel Hobby Node 18.x compatibility.
  *
  * Zero external API calls. Zero dependencies. Zero AI.
  * Rules-based qualification powered by:
- *   - Chat flow: practice + volume → hot/warm/cold (3-question state machine)
- *   - Form flow: ad_spend + booking_rate + timeline → 0-100 numeric score
+ *   - Chat flow: practice + volume -> hot/warm/cold (3-question state machine)
+ *   - Form flow: ad_spend + booking_rate + timeline -> 0-100 numeric score
  *
  * Features:
  * - File-based lead storage in /tmp/leads.json (zero infra)
@@ -13,6 +14,9 @@
  * - CORS for any origin
  * - <500ms response on every path
  */
+
+const { readFileSync, writeFileSync, existsSync } = require('fs');
+const { randomUUID } = require('crypto');
 
 // =============================================================================
 // Scoring Engine — Chat Mode (practice + volume)
@@ -57,10 +61,10 @@ function qualify(lead) {
 
 const SPEND_SCORES = { 'Under $3K': 5, '$3K-$5K': 20, '$5K-$10K': 30, '$10K+': 35 };
 const BOOKING_SCORES = { 'Under 10%': 35, '10-15%': 25, '15-20%': 10, '20%+': 5 };
-const TIMELINE_SCORES = { 'ASAP — ready now': 30, 'ASAP \u2014 ready now': 30, 'This quarter': 20, 'Just researching': 5 };
+const TIMELINE_SCORES = { 'ASAP \u2014 ready now': 30, 'This quarter': 20, 'Just researching': 5 };
 
 function calcFormScore(adSpend, bookingRate, timeline) {
-  return (SPEND_SCORES[adSpend] ?? 5) + (BOOKING_SCORES[bookingRate] ?? 5) + (TIMELINE_SCORES[timeline] ?? 5);
+  return (SPEND_SCORES[adSpend] || 5) + (BOOKING_SCORES[bookingRate] || 5) + (TIMELINE_SCORES[timeline] || 5);
 }
 
 function classifyNumeric(score) {
@@ -70,68 +74,8 @@ function classifyNumeric(score) {
 }
 
 // =============================================================================
-// Conversation State Machine
-// =============================================================================
-
-function processMessage(message, state) {
-  const step = (state && state.step) || 'greeting';
-  const practice = (state && state.practice) || '';
-  const volume = (state && state.volume) || '';
-  const input = (message || '').trim();
-
-  switch (step) {
-    case 'greeting':
-      return {
-        response: STEP_MESSAGES.greeting + '\n\n' + STEP_MESSAGES.ask_practice,
-        next_step: 'ask_volume', requires_input: true, field: 'practice',
-      };
-    case 'ask_volume':
-      return {
-        response: STEP_MESSAGES.ask_volume,
-        next_step: 'ask_spend', requires_input: true, field: 'volume',
-      };
-    case 'ask_spend':
-      return {
-        response: STEP_MESSAGES.ask_spend,
-        next_step: 'done', requires_input: true, field: 'spend',
-      };
-    case 'done': {
-      const result = qualify({ practice, volume, spend: input });
-      return {
-        response: STEP_MESSAGES[result.score],
-        score: result.score, next_action: result.next_action,
-        next_step: 'complete', requires_input: false,
-      };
-    }
-    case 'complete':
-      return {
-        response: 'Already submitted! Our team will reach out.',
-        score: 'cold', next_action: 'drip',
-        next_step: 'complete', requires_input: false,
-      };
-    default:
-      return {
-        response: STEP_MESSAGES.greeting,
-        next_step: 'ask_volume', requires_input: true, field: 'practice',
-      };
-  }
-}
-
-function buildFormReply(name, classification, ad_spend, booking_rate) {
-  const tierMsg = {
-    hot: `Great fit — ${ad_spend || 'your level'} in ad spend, ${booking_rate || 'current'} booking rate. We'll get you on a free strategy call.`,
-    warm: `Good fit. A lot of med spas at this stage see a big jump when they fix response times. Let's send you a case study.`,
-    cold: `Thanks. We'll send resources on med spa lead generation. When you're ready to scale, you know where to find us.`,
-  };
-  return `Hey ${name} — ${tierMsg[classification] || tierMsg.cold}`;
-}
-
-// =============================================================================
 // Lead Storage
 // =============================================================================
-
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { randomUUID } from 'crypto';
 
 const STORAGE_PATH = '/tmp/leads.json';
 const MAX_LEADS = 500;
@@ -139,21 +83,20 @@ const MAX_LEADS = 500;
 function readLeads() {
   try {
     if (!existsSync(STORAGE_PATH)) return [];
-    return JSON.parse(readFileSync(STORAGE_PATH, 'utf-8')).leads || [];
+    const raw = readFileSync(STORAGE_PATH, 'utf-8');
+    const data = JSON.parse(raw);
+    return Array.isArray(data.leads) ? data.leads : [];
   } catch (_) { return []; }
 }
 
 function storeLead(data) {
   try {
-    const lead = {
-      id: randomUUID(), timestamp: new Date().toISOString(), notified: false,
-      ...data,
-    };
+    const lead = { id: randomUUID(), timestamp: new Date().toISOString(), notified: false, ...data };
     let leads = readLeads();
     leads.push(lead);
     if (leads.length > MAX_LEADS) leads = leads.slice(-MAX_LEADS);
     writeFileSync(STORAGE_PATH, JSON.stringify({ leads }, null, 2), 'utf-8');
-    console.log(`[direct-qualify] Lead stored: ${lead.id} — ${lead.name || 'anon'}`);
+    console.log('[direct-qualify] Lead stored:', lead.id, '-', lead.name || 'anon');
     return lead.id;
   } catch (err) {
     console.error('[direct-qualify] Store failed:', err.message);
@@ -162,7 +105,7 @@ function storeLead(data) {
 }
 
 // =============================================================================
-// Email Notification (fire-and-forget)
+// Email Notification (fire-and-forget via Resend)
 // =============================================================================
 
 async function notifyLead(lead, classification, score) {
@@ -170,34 +113,33 @@ async function notifyLead(lead, classification, score) {
   if (!apiKey) { console.warn('[direct-qualify] RESEND_API_KEY not set — skipping notif'); return; }
   const recipient = process.env.NOTIFY_EMAIL || 'hello@focusrunner.com';
   const badgeColor = { hot: '#dc2626', warm: '#ea580c', cold: '#2563eb' }[classification] || '#6b7280';
-  const name = lead.name || '—';
-  const phone = lead.phone || '—';
-  const email = lead.email || '—';
-  const practice = lead.practice || lead.spa_name || '—';
+  const name = lead.name || '\u2014';
+  const phone = lead.phone || '\u2014';
+  const email = lead.email || '\u2014';
+  const practice = lead.practice || lead.spa_name || '\u2014';
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'FocusRunner Leads <leads@focusrunner.io>',
         to: recipient,
-        subject: `New Lead: ${name} — ${classification.toUpperCase()} (${score}/100)`,
-        html: `<div style="font-family:sans-serif;max-width:560px;margin:24px auto;background:#fff;border-radius:12px">
-<div style="background:#0f172a;color:#fff;padding:24px 32px"><h1 style="margin:0">New Lead Captured</h1>
-<p style="opacity:.7">direct-qualify &middot; ${new Date().toLocaleString('en-US', { month:'short', day:'numeric' })}</p>
-<div style="display:inline-block;padding:4px 12px;border-radius:20px;color:#fff;background:${badgeColor};font-weight:600;font-size:13px">
-${classification.toUpperCase()} &middot; ${score}/100</div></div>
-<div style="padding:24px 32px">
-<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Name</div><div>${name}</div></div>
-<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Phone</div><div>${phone}</div></div>
-<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Email</div><div>${email}</div></div>
-<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Practice</div><div>${practice}</div></div>
-</div>
-<div style="padding:8px 32px 24px;font-size:11px;color:#9ca3af;text-align:center">FocusRunner AI</div></div>`,
+        subject: 'New Lead: ' + name + ' \u2014 ' + classification.toUpperCase() + ' (' + score + '/100)',
+        html: '<div style="font-family:sans-serif;max-width:560px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden">' +
+          '<div style="background:#0f172a;color:#fff;padding:24px 32px"><h1 style="margin:0">New Lead Captured</h1>' +
+          '<p style="opacity:.7">direct-qualify</p>' +
+          '<div style="display:inline-block;padding:4px 12px;border-radius:20px;color:#fff;background:' + badgeColor + ';font-weight:600;font-size:13px">' +
+          classification.toUpperCase() + ' &middot; ' + score + '/100</div></div>' +
+          '<div style="padding:24px 32px">' +
+          '<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Name</div><div>' + name + '</div></div>' +
+          '<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Phone</div><div>' + phone + '</div></div>' +
+          '<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Email</div><div>' + email + '</div></div>' +
+          '<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Practice</div><div>' + practice + '</div></div>' +
+          '</div></div>',
       }),
     });
-    if (!res.ok) console.error('[direct-qualify] Notif error:', res.status, await res.text().catch(()=>''));
+    if (!res.ok) console.error('[direct-qualify] Notif error:', res.status);
   } catch (err) { console.error('[direct-qualify] Notif failed:', err.message); }
 }
 
@@ -214,23 +156,21 @@ function corsHeaders() {
   };
 }
 
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: corsHeaders() });
-}
-
 // =============================================================================
 // Handler
 // =============================================================================
 
-export default async function handler(request) {
+module.exports = async function handler(req, res) {
   const start = Date.now();
 
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, corsHeaders());
+    return res.end();
   }
 
-  if (request.method === 'GET') {
-    return jsonResponse({
+  if (req.method === 'GET') {
+    res.writeHead(200, corsHeaders());
+    return res.end(JSON.stringify({
       status: 'ok',
       endpoint: '/api/direct-qualify',
       version: '2.0.0',
@@ -239,76 +179,89 @@ export default async function handler(request) {
         form: { fields: ['name', 'email', 'phone', 'spa_name', 'ad_spend', 'booking_rate', 'timeline'] },
       },
       runtime_ms: Date.now() - start,
-    });
+    }));
   }
 
-  if (request.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
+  if (req.method !== 'POST') {
+    res.writeHead(405, corsHeaders());
+    return res.end(JSON.stringify({ error: 'Method not allowed' }));
   }
 
-  let body;
-  try { body = await request.json(); } catch (_) {
-    return jsonResponse({ error: 'Invalid JSON body' }, 400);
-  }
+  let body = '';
+  req.on('data', chunk => body += chunk);
+  req.on('end', async () => {
+    let data;
+    try { data = JSON.parse(body); } catch (_) {
+      res.writeHead(400, corsHeaders());
+      return res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+    }
 
-  const { message, name, email, phone, practice, volume, spend, spa_name, ad_spend, booking_rate, timeline, page_url } = body || {};
+    const { message, name, email, phone, practice, volume, spend, spa_name, ad_spend, booking_rate, timeline, page_url } = data;
 
-  // ─── MODE DETECTION ───────────────────────────────
-  // Form mode: has ad_spend or booking_rate or timeline
-  // Chat mode: has message, or practice+volume, or bare name
-  const isFormMode = !!(ad_spend || booking_rate || timeline);
+    // Mode detection: form mode if ad_spend / booking_rate / timeline present
+    const isFormMode = !!(ad_spend || booking_rate || timeline);
 
-  if (isFormMode) {
-    // ─── FORM MODE ──────────────────────────────────
-    const score = calcFormScore(ad_spend, booking_rate, timeline);
-    const classification = classifyNumeric(score);
-    const qualification = {
-      score, classification,
-      summary: `${name || 'Prospect'} — ${classification}. Score ${score}/100. Ad spend: ${ad_spend || 'n/a'}`,
-    };
-    const leadId = storeLead({
-      name, email, phone, practice: spa_name || practice,
-      ad_spend, booking_rate, timeline, qualification,
-      source: 'direct_qualify', mode: 'form', referral_source: page_url || '',
-    });
-    if (classification !== 'cold') notifyLead(body, classification, score);
+    if (isFormMode) {
+      const score = calcFormScore(ad_spend, booking_rate, timeline);
+      const classification = classifyNumeric(score);
+      const qualification = { score, classification, summary: (name || 'Prospect') + ' \u2014 ' + classification + '. Score ' + score + '/100. Ad spend: ' + (ad_spend || 'n/a') };
+      const leadId = storeLead({ name, email, phone, practice: spa_name || practice, ad_spend, booking_rate, timeline, qualification, source: 'direct_qualify', mode: 'form', referral_source: page_url || '' });
+      if (classification !== 'cold') notifyLead(data, classification, score);
 
-    return jsonResponse({
-      qualification,
-      reply: buildFormReply(name || 'there', classification, ad_spend, booking_rate),
-      lead_id: leadId, lead_received: true, runtime_ms: Date.now() - start, mode: 'form',
-    });
-  }
+      const tierMsg = {
+        hot: "Great fit — we'll get you on a free strategy call.",
+        warm: "Good fit — let's send you a case study.",
+        cold: "Thanks — we'll send resources when you're ready to scale.",
+      };
 
-  // ─── CHAT MODE ────────────────────────────────────
-  const hasAllFields = !!(practice && volume);
+      res.writeHead(200, corsHeaders());
+      return res.end(JSON.stringify({
+        qualification,
+        reply: 'Hey ' + (name || 'there') + ' \u2014 ' + (tierMsg[classification] || tierMsg.cold),
+        lead_id: leadId,
+        lead_received: true,
+        runtime_ms: Date.now() - start,
+        mode: 'form',
+      }));
+    }
 
-  if (hasAllFields) {
-    // Direct submission — all data in one shot
-    const result = qualify({ practice, volume, spend });
-    const qualification = {
-      score: result.numericScore,
-      classification: result.score,
-      summary: `Practice: ${practice}, volume: ${volume}/mo → ${result.score}`,
-      next_action: result.next_action,
-    };
-    const leadId = storeLead({
-      name, email, phone, practice, volume, spend, qualification,
-      source: 'direct_qualify', mode: 'chat', referral_source: page_url || '',
-    });
-    if (result.score !== 'cold') notifyLead(body, result.score, result.numericScore);
+    // Chat mode: all fields in one shot
+    if (practice && volume) {
+      const result = qualify({ practice, volume, spend });
+      const qualification = { score: result.numericScore, classification: result.score, summary: 'Practice: ' + practice + ', volume: ' + volume + '/mo \u2192 ' + result.score, next_action: result.next_action };
+      const leadId = storeLead({ name, email, phone, practice, volume, spend, qualification, source: 'direct_qualify', mode: 'chat', referral_source: page_url || '' });
+      if (result.score !== 'cold') notifyLead(data, result.score, result.numericScore);
 
-    return jsonResponse({
-      response: STEP_MESSAGES[result.score],
-      score: result.score,
-      next_action: result.next_action,
-      qualification,
-      lead_id: leadId, lead_received: true, runtime_ms: Date.now() - start, mode: 'chat',
-    });
-  }
+      res.writeHead(200, corsHeaders());
+      return res.end(JSON.stringify({
+        response: STEP_MESSAGES[result.score],
+        score: result.score,
+        next_action: result.next_action,
+        qualification,
+        lead_id: leadId,
+        lead_received: true,
+        runtime_ms: Date.now() - start,
+        mode: 'chat',
+      }));
+    }
 
-  // Conversational flow
-  const state = body.state || {};
-  const result = processMessage(message || '', state);
-  return jsonResponse({ ...result, runtime_ms: Date.now() - start });
-}
+    // Conversational
+    const state = data.state || {};
+    const step = state.step || 'greeting';
+
+    switch (step) {
+      case 'greeting':
+        return res.end(JSON.stringify({ response: STEP_MESSAGES.greeting + '\n\n' + STEP_MESSAGES.ask_practice, next_step: 'ask_volume', requires_input: true, field: 'practice', runtime_ms: Date.now() - start }));
+      case 'ask_volume':
+        return res.end(JSON.stringify({ response: STEP_MESSAGES.ask_volume, next_step: 'ask_spend', requires_input: true, field: 'volume', runtime_ms: Date.now() - start }));
+      case 'ask_spend':
+        return res.end(JSON.stringify({ response: STEP_MESSAGES.ask_spend, next_step: 'done', requires_input: true, field: 'spend', runtime_ms: Date.now() - start }));
+      case 'done': {
+        const result = qualify({ practice: state.practice || '', volume: state.volume || '', spend: message });
+        return res.end(JSON.stringify({ response: STEP_MESSAGES[result.score], score: result.score, next_action: result.next_action, next_step: 'complete', requires_input: false, runtime_ms: Date.now() - start }));
+      }
+      default:
+        return res.end(JSON.stringify({ response: STEP_MESSAGES.greeting, next_step: 'ask_volume', requires_input: true, field: 'practice', runtime_ms: Date.now() - start }));
+    }
+  });
+};

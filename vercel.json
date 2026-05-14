@@ -13,7 +13,6 @@
     }
   ],
   "routes": [
-    { "src": "/admin/leads", "dest": "/admin-leads.html" },
     { "src": "/api/leads/export", "dest": "/api/leads.js" },
     { "src": "/api/leads", "dest": "/api/leads.js" },
     { "src": "/api/chat", "dest": "/api/chat.js" },
