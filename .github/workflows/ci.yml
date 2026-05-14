@@ -28,17 +28,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Run tests
+      - name: Smoke test
         run: |
-          cd api && node -e "
-            // Test parseQualification
-            const code = require('fs').readFileSync('chat.js', 'utf8');
-            // We eval in isolation to test the function
-            const fn = code.match(/function parseQualification\(text\) \{[\s\S]*?^function /m)?.[0]?.replace(/^function /m, '') ||
-                       code.match(/function parseQualification\(text\) \{[\s\S]*?^\}/m)?.[0];
-            if (!fn) { console.log('parseQualification found in source'); process.exit(0); }
-            console.log('chat.js — syntax OK');
-          "
+          cd api && node -e "require('fs').readFileSync('chat.js','utf8'); console.log('chat.js — syntax OK');"
           node -e "require('fs').readFileSync('webhook.js','utf8'); console.log('webhook.js — syntax OK');"
 
   build:

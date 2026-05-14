@@ -60,8 +60,8 @@ async function forwardToGHL(body, attempt = 1) {
   };
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    result.body = body;
+    const respBody = await response.text().catch(() => '');
+    result.body = respBody;
 
     // Rate-limited (429) — backoff and retry
     if (response.status === 429 && attempt < MAX_RETRIES) {
