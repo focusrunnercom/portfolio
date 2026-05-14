@@ -1,14 +1,22 @@
 {
-  "functions": {
-    "api/chat.js": {
-      "maxDuration": 30
-    },
-    "api/webhook.js": {
-      "maxDuration": 30
-    }
-  },
   "framework": "vite",
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "functions": {
+    "api/**/*.js": {
+      "memory": 256,
+      "maxDuration": 30
+    }
+  }
+}
+    { "src": "/api/chat", "dest": "/api/chat.js" },
+    { "src": "/api/leads", "dest": "/api/leads.js" },
+    { "src": "/api/lead", "dest": "/api/lead.py" },
+    { "src": "/api/webhook", "dest": "/api/webhook.js" },
+    { "src": "/api/kv", "dest": "/api/kv.js" },
+    { "src": "/api/client-config", "dest": "/api/client-config.js" },
+    { "src": "/api/notify-status", "dest": "/api/notify-status.js" },
+    { "src": "/api/(.*)", "dest": "/api/index.py" }
+  ]
 }
