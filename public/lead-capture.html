@@ -276,7 +276,7 @@
       btn.textContent = 'Sending...';
       status.className = 'status';
 
-      fetch('/api/webhook', {
+      fetch('http://192.168.40.1:5000/api/webhook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
