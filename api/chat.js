@@ -12,17 +12,32 @@
  * - Multi-strategy JSON extraction (fenced block, bare JSON, multi-line fragment)
  * - Returns 504 on timeout instead of generic 502
  * - Validates required fields (name, phone) — returns 400 if missing
- * - Real-time email notification on hot/warm leads via Resend
+ * - File-based lead storage fallback (zero infra, crash-recoverable)
+ * - Email notification on hot/warm leads via Resend (fire-and-forget)
+ * - Cached qualification fallback when DeepSeek API is down
  */
 // =============================================================================
 // Configuration
 // =============================================================================
 import { kvGet } from './kv.js';
-import { notifyLead } from './lib/lead-notify.js';
-import { record as storeLead } from './lib/notify.js';
+import { notifyLead } from './lib/notify.js';
+import { appendLead } from './lib/lead-store.js';
 
 const AI_TIMEOUT_MS = 8000;
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+
+/** Cached qualification flow — served when the AI API is unreachable */
+const FALLBACK_REPLY = `Thanks for reaching out! We've noted your information and our team will follow up shortly to discuss how FocusRunner can help grow your practice. In the meantime, check out focusrunner.io to learn more.`;
+
+const FALLBACK_QUALIFICATION = {
+  score: 50,
+  classification: 'warm',
+  summary: 'Lead captured during AI API outage — stored for manual qualification.',
+};
+
+// =============================================================================
+// Per-client AI config
+// =============================================================================
 
 /**
  * Resolve AI configuration for a client.
@@ -67,7 +82,7 @@ async function resolveAIConfig(clientId) {
 
 /**
  * Fetch with an AbortController timeout.
- * Throws on timeout — caller catches and returns 504.
+ * Throws on timeout — caller catches and returns fallback.
  */
 async function fetchWithTimeout(url, options, timeoutMs = AI_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -269,12 +284,23 @@ export default async function handler(request) {
 
   // Check AI API key
   if (!aiConfig.apiKey) {
-    console.warn('[chat] No AI API key configured — skipping AI, storing lead only');
+    console.warn('[chat] No AI API key configured — using cached fallback, storing lead');
+    // Store lead with fallback qualification
+    try {
+      appendLead({
+        name, phone: phone || '', email: email || '',
+        qualification: FALLBACK_QUALIFICATION,
+        source: 'chat_widget',
+        referral_source: page_url || '',
+      });
+    } catch (_) { /* fail-safe */ }
+
     return jsonResponse({
-      reply: `Thanks ${name}! Our team will get back to you shortly.`,
-      qualification: null,
+      reply: FALLBACK_REPLY,
+      qualification: FALLBACK_QUALIFICATION,
       booking_link: null,
       lead_received: true,
+      using_fallback: true,
     });
   }
 
@@ -302,36 +328,81 @@ export default async function handler(request) {
       }),
     });
   } catch (err) {
-    // Timeout or network error
+    // Timeout or network error → serve cached fallback
     if (err.name === 'AbortError') {
-      console.error('[chat] AI API timeout after 15s');
-      return jsonResponse({
-        error: 'AI service timed out — lead stored for later processing',
-        lead_received: true,
-        name,
-      }, 504);
+      console.error('[chat] AI API timeout after 15s — serving fallback response');
+    } else {
+      console.error(`[chat] AI API error: ${err.message} — serving fallback response`);
     }
+
+    // Store lead with fallback qualification
+    try {
+      appendLead({
+        name, phone: phone || '', email: email || '',
+        qualification: FALLBACK_QUALIFICATION,
+        source: 'chat_widget',
+        referral_source: page_url || '',
+      });
+    } catch (_) { /* fail-safe */ }
+
+    // Also try to notify via email about the fallback lead
+    const leadPayload = { name, email, phone, practice, niche, volume, qualification: FALLBACK_QUALIFICATION, source: 'chat_widget' };
+    notifyLead(leadPayload).catch(() => {});
+
     return jsonResponse({
-      error: `AI API error: ${err.message}`,
+      reply: FALLBACK_REPLY,
+      qualification: FALLBACK_QUALIFICATION,
+      booking_link: null,
       lead_received: true,
-      name,
-    }, 502);
+      using_fallback: true,
+      fallback_reason: err.name === 'AbortError' ? 'timeout' : 'network_error',
+    });
   }
 
   if (!aiResponse.ok) {
     const errorText = await aiResponse.text().catch(() => '(no body)');
-    console.error(`[chat] AI API error ${aiResponse.status}: ${errorText.slice(0, 300)}`);
+    console.error(`[chat] AI API error ${aiResponse.status}: ${errorText.slice(0, 300)} — serving fallback`);
+
+    try {
+      appendLead({
+        name, phone: phone || '', email: email || '',
+        qualification: FALLBACK_QUALIFICATION,
+        source: 'chat_widget',
+        referral_source: page_url || '',
+      });
+    } catch (_) { /* fail-safe */ }
+
+    const leadPayload = { name, email, phone, practice, niche, volume, qualification: FALLBACK_QUALIFICATION, source: 'chat_widget' };
+    notifyLead(leadPayload).catch(() => {});
+
     return jsonResponse({
-      error: `AI API error ${aiResponse.status}`,
+      reply: FALLBACK_REPLY,
+      qualification: FALLBACK_QUALIFICATION,
+      booking_link: null,
       lead_received: true,
-      name,
-    }, 502);
+      using_fallback: true,
+      fallback_reason: `ai_api_error_${aiResponse.status}`,
+    });
   }
 
   const aiData = await aiResponse.json();
   const aiText = aiData.choices?.[0]?.message?.content || '';
 
   const qualification = parseQualification(aiText);
+
+  // --- File-based lead storage ---
+  try {
+    appendLead({
+      name,
+      phone: phone || '',
+      email: email || '',
+      qualification,
+      source: 'chat_widget',
+      referral_source: page_url || '',
+    });
+  } catch (_) {
+    // fail-safe
+  }
 
   // Strip JSON block from visible reply
   let reply = aiText.replace(/```json\s*\{.*?\}\s*```/gs, '').trim();
@@ -346,7 +417,7 @@ export default async function handler(request) {
   console.log(`[chat] Lead qualified: ${name} score=${qualification?.score ?? 'N/A'} class=${qualification?.classification ?? 'N/A'}`);
 
   // === EMAIL NOTIFICATION: alert the team in real-time ===
-  // Only send for hot/warm/qualified leads (skips cold/unknown)
+  // Only send for hot/warm leads (skips cold/unknown)
   if (qualification && qualification.classification !== 'cold') {
     const leadPayload = {
       name: name || 'Anonymous',
@@ -362,18 +433,6 @@ export default async function handler(request) {
       console.error('[chat] Email notification failed:', err.message)
     );
   }
-
-  // === IN-MEMORY STORE: always store for live dashboard ===
-  storeLead({
-    name: name || 'Anonymous',
-    email: email || '',
-    phone: phone || '',
-    practice: practice || '',
-    niche: niche || '',
-    volume: volume || '',
-    qualification,
-    source: 'chat_widget',
-  });
 
   return jsonResponse({
     reply,

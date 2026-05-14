@@ -1,98 +1,86 @@
 /**
  * Vercel Serverless Function: /api/leads
+ * GET — returns file-based lead storage content (newest first).
+ * POST — purge/reset leads (requires admin auth).
  *
- * Reads in-memory lead store. Returns JSON of captured leads.
- * No external dependencies — works without any API keys.
- *
- * GET  /api/leads[?status=unread&limit=50&offset=0]
- * POST /api/leads/mark-read  Body: { id, status? }
- * GET  /api/leads/export     → text/csv download
+ * This is the visibility layer for the file-based fallback (FOC-238).
+ * Works immediately with no external API keys.
  */
+import { readLeads } from './lib/lead-store.js';
+import { writeFileSync } from 'fs';
 
-import { listLeads, markRead, exportCsv } from './lib/notify.js';
+const STORAGE_PATH = '/tmp/leads.json';
 
-// =============================================================================
-// Auth
-// =============================================================================
-
-function isAuthenticated(request) {
-  const authHeader = request.headers.get('authorization') || '';
-  const adminKey = process.env.ADMIN_API_KEY;
-  if (!adminKey) return true; // No key configured = open (dev mode)
-  return authHeader === `Bearer ${adminKey}` || authHeader === `Bearer ${process.env.PAPERCLIP_API_KEY}`;
-}
-
-// =============================================================================
-// CORS
-// =============================================================================
-
-const CORS = {
+const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Content-Type': 'application/json',
 };
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
-}
-
-// =============================================================================
-// Handler
-// =============================================================================
-
 export default async function handler(request) {
+  // CORS preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: CORS });
+    return new Response(null, { status: 204, headers });
   }
 
-  if (!isAuthenticated(request)) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
+  // Health check
+  if (request.method === 'GET') {
+    const leads = readLeads();
+    // Newest first
+    leads.reverse();
 
-  const url = new URL(request.url.startsWith('http') ? request.url : `https://focusrunner.io${request.url}`);
-  const path = url.pathname.replace(/\/+$/, '');
+    const adminKey = process.env.ADMIN_API_KEY || '';
+    const authHeader = request.headers.get('authorization') || '';
 
-  // GET /api/leads — list leads
-  if (request.method === 'GET' && (path === '/api/leads' || path === '/api/leads/')) {
-    const status = url.searchParams.get('status') || undefined;
-    const limit = parseInt(url.searchParams.get('limit') || '50', 10);
-    const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+    if (authHeader === `Bearer ${adminKey}`) {
+      // Admin: full data
+      return new Response(JSON.stringify({ leads, count: leads.length }), {
+        status: 200,
+        headers,
+      });
+    }
 
-    const queryOpts = {};
-    if (status) queryOpts.status = status;
+    // Public: clean summary (no internal fields)
+    const summary = leads.map(l => ({
+      id: l.id,
+      name: l.name,
+      phone: l.phone,
+      email: l.email,
+      practice: l.practice || '',
+      classification: l.qualification?.classification || 'unknown',
+      score: l.qualification?.score || 0,
+      source: l.source,
+      timestamp: l.timestamp,
+    }));
 
-    return json(listLeads(limit, offset));
-  }
-
-  // GET /api/leads/export — CSV download
-  if (request.method === 'GET' && path.endsWith('/export')) {
-    const csv = exportCsv();
-    return new Response(csv, {
+    return new Response(JSON.stringify({ leads: summary, count: summary.length }), {
       status: 200,
-      headers: {
-        ...CORS,
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="leads_${new Date().toISOString().slice(0, 10)}.csv"`,
-      },
+      headers,
     });
   }
 
-  // POST /api/leads/mark-read — mark lead status
-  if (request.method === 'POST' && (path.endsWith('/mark-read') || path.endsWith('/read'))) {
-    try {
-      const body = await request.json();
-      if (!body || !body.id) {
-        return json({ error: 'id is required' }, 400);
-      }
-      const ok = markRead(body.id, body.status || 'read');
-      return json({ success: ok, id: body.id });
-    } catch (e) {
-      return json({ error: 'Invalid JSON' }, 400);
+  // Admin: purge all leads
+  if (request.method === 'POST') {
+    const adminKey = process.env.ADMIN_API_KEY || '';
+    const authHeader = request.headers.get('authorization') || '';
+
+    if (authHeader !== `Bearer ${adminKey}`) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers,
+      });
     }
+
+    writeFileSync(STORAGE_PATH, JSON.stringify({ leads: [] }), 'utf-8');
+    return new Response(JSON.stringify({ success: true, message: 'Lead store purged' }), {
+      status: 200,
+      headers,
+    });
   }
 
-  return json({ error: 'Not found' }, 404);
+  return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+    status: 405,
+    headers,
+  });
 }

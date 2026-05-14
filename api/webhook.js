@@ -16,8 +16,7 @@
  */
 
 import { kvGet } from './kv.js';
-import { record as storeLead } from './lib/notify.js';
-import { notifyLead } from './lib/lead-notify.js';
+import { appendLead } from './lib/lead-store.js';
 
 // =============================================================================
 // Retry helper
@@ -386,6 +385,17 @@ export default async function handler(request) {
 
   console.log(`[webhook] Received lead: name=${leadData.name} phone=${leadData.phone} source=${leadData.source}`);
 
+  // --- File-based lead storage (zero-infra fallback) ---
+  try {
+    appendLead({
+      ...leadData,
+      qualification,
+      source: leadData.source || 'webhook',
+    });
+  } catch (_) {
+    // fail-safe
+  }
+
   // Resolve per-client CRM config from X-Client-Id header
   const clientId = request.headers.get('x-client-id') || '';
   let clientConfig = null;
@@ -409,9 +419,6 @@ export default async function handler(request) {
   } catch (err) {
     console.error('[webhook] GHL forward failed:', err.message);
   }
-
-  // --- Store to in-memory store ---
-  storeLead(leadData);
 
   // --- Send email notification ---
   let emailResult = null;

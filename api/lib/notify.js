@@ -1,172 +1,178 @@
 /**
- * in-memory lead store — shared module for all Vercel Edge Functions
+ * Notification Library — email lead alerts via Resend API.
  *
- * Uses a module-level Map. Survives between invocations within the same
- * V8 isolate warm instance (~5-15 min on Vercel Edge). Falls back to
- * reading /tmp/leads.json on fresh cold-start to preserve across instances.
+ * Fire-and-forget: all errors are caught and logged, never throw.
+ * Works on Vercel Edge Runtime (no NPM dependencies, pure fetch()).
  *
- * Design:
- * - key: lead_{timestamp}_{shorthash}
- * - TTL: 7 days (auto-evict)
- * - Status: "unread" | "read" | "contacted"
- * - Periodic cleanup every 5 min on write
- * - Max 10,000 entries soft limit
+ * Env vars:
+ *   RESEND_API_KEY  — required, Resend API key
+ *   NOTIFY_EMAIL    — optional, recipient override (default: hello@focusrunner.com)
  */
 
-// =============================================================================
-// Store
-// =============================================================================
-
-// @ts-ignore — module-level Map persists across invocations in same isolate
-let store;
-try {
-  if (typeof globalThis !== 'undefined' && typeof globalThis.__leadsStore === 'undefined') {
-    globalThis.__leadsStore = new Map();
-    globalThis.__leadsStoreInit = Date.now();
-  }
-  store = /** @type {Map<string, LeadRecord>} */ (
-    typeof globalThis !== 'undefined' ? globalThis.__leadsStore : null
-  );
-} catch (e) {
-  // Fallback: module-scoped Map (no cross-invoke persistence, but won't crash)
-  console.error('[notify] globalThis not available, using module-level store:', e.message);
-}
-if (!store) {
-  store = new Map();
-}
-
-const TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-const MAX_ENTRIES = 10000;
-
-/** @typedef {{ id: string, data: object, createdAt: string, status: string }} LeadRecord */
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-function nanoId(length = 12) {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
+const DEFAULT_RECIPIENT = 'hello@focusrunner.com';
+const FROM_EMAIL = 'FocusRunner Leads <leads@focusrunner.io>';
 
 /**
- * Clean expired entries from the store.
+ * Send an email notification for a captured lead.
+ *
+ * @param {object} lead  — lead data from the webhook body
+ * @param {object} [opts]
+ * @param {string} [opts.recipient]  — email recipient override
+ * @param {string} [opts.timestamp]  — ISO timestamp override (for testing)
+ * @returns {Promise<object|null>} — Resend API response or null on failure
  */
-function cleanup() {
-  const now = Date.now();
-  for (const [key, record] of store) {
-    if (now - new Date(record.createdAt).getTime() > TTL_MS) {
-      store.delete(key);
-    }
+export async function notifyLead(lead, opts = {}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('[notify] RESEND_API_KEY not set — skipping notification');
+    return null;
   }
-  // Enforce soft limit
-  if (store.size > MAX_ENTRIES) {
-    const entries = [...store.entries()]
-      .sort((a, b) => new Date(a[1].createdAt).getTime() - new Date(b[1].createdAt).getTime());
-    const toRemove = store.size - MAX_ENTRIES;
-    for (let i = 0; i < toRemove; i++) {
-      store.delete(entries[i][0]);
-    }
-  }
-}
 
-// =============================================================================
-// Exports
-// =============================================================================
+  const recipient = opts.recipient || process.env.NOTIFY_EMAIL || DEFAULT_RECIPIENT;
+  const timestamp = opts.timestamp || new Date().toISOString();
+  const classification = lead.qualification?.classification || 'unknown';
+  const score = lead.qualification?.score ?? 0;
+  const source = lead.source || 'chat_widget';
 
-/**
- * Record a lead in the in-memory store.
- * @param {object} data — lead data
- * @returns {{ id: string }}
- */
-export function record(data) {
-  const now = Date.now();
-  const id = `lead_${now}_${nanoId()}`;
-  store.set(id, {
-    id,
-    data,
-    createdAt: new Date(now).toISOString(),
-    status: 'unread',
+  const subject = `New Lead: ${lead.name || 'Anonymous'} — ${classification.toUpperCase()}`;
+
+  // Build a clean, mobile-friendly HTML email
+  const html = buildEmailHtml({
+    name: lead.name || '—',
+    phone: lead.phone || '—',
+    email: lead.email || '—',
+    practice: lead.practice || '—',
+    niche: lead.niche || '—',
+    volume: lead.volume || '—',
+    classification,
+    score,
+    source,
+    timestamp,
   });
 
-  // Periodic cleanup (every ~5 min)
-  const cleanupAt = typeof globalThis !== 'undefined' ? globalThis.__leadsStoreCleanupAt : 0;
-  const elapsed = now - (cleanupAt || 0);
-  if (elapsed > CLEANUP_INTERVAL_MS || store.size > MAX_ENTRIES * 0.9) {
-    cleanup();
-    try { if (typeof globalThis !== 'undefined') globalThis.__leadsStoreCleanupAt = now; } catch {}
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: recipient,
+        subject,
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '(no body)');
+      console.error(`[notify] Resend error ${res.status}: ${errText}`);
+      return null;
+    }
+
+    const data = await res.json();
+    console.log(`[notify] Email sent: id=${data.id}`);
+    return data;
+  } catch (err) {
+    console.error('[notify] Failed to send email:', err.message);
+    return null;
   }
-
-  return { id };
 }
 
 /**
- * List recent leads from the in-memory store.
- * @param {number} limit — max entries (default 50)
- * @param {number} offset — page offset (default 0)
- * @returns {{ total: number, leads: LeadRecord[] }}
+ * Build a clean, mobile-friendly HTML email body.
  */
-export function listLeads(limit = 50, offset = 0) {
-  const entries = [...store.values()]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  return {
-    total: entries.length,
-    leads: entries.slice(offset, offset + limit),
-  };
+function buildEmailHtml(lead) {
+  const badgeColor = {
+    hot: '#dc2626',
+    warm: '#ea580c',
+    cold: '#2563eb',
+  }[lead.classification.toLowerCase()] || '#6b7280';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; }
+    .container { max-width: 560px; margin: 24px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .header { background: #0f172a; color: #ffffff; padding: 24px 32px; }
+    .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+    .header p { margin: 4px 0 0; opacity: 0.7; font-size: 13px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; color: #ffffff; font-weight: 600; font-size: 13px; text-transform: uppercase; margin-top: 8px; }
+    .body { padding: 24px 32px; }
+    .field { margin-bottom: 16px; }
+    .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; font-weight: 600; margin-bottom: 2px; }
+    .value { font-size: 15px; color: #111827; font-weight: 500; }
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
+    .footer { padding: 16px 32px 24px; font-size: 11px; color: #9ca3af; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>New Lead Captured</h1>
+      <p>focusrunner.io &middot; ${new Date(lead.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+      <div class="badge" style="background: ${badgeColor};">${lead.classification.toUpperCase()}</div>
+    </div>
+    <div class="body">
+      <div class="field">
+        <div class="label">Name</div>
+        <div class="value">${escapeHtml(lead.name)}</div>
+      </div>
+      <div class="field">
+        <div class="label">Phone</div>
+        <div class="value">${escapeHtml(lead.phone)}</div>
+      </div>
+      <div class="field">
+        <div class="label">Email</div>
+        <div class="value">${escapeHtml(lead.email)}</div>
+      </div>
+      <hr class="divider">
+      <div class="field">
+        <div class="label">Practice</div>
+        <div class="value">${escapeHtml(lead.practice)}</div>
+      </div>
+      <div class="field">
+        <div class="label">Niche</div>
+        <div class="value">${escapeHtml(lead.niche)}</div>
+      </div>
+      <div class="field">
+        <div class="label">Patient Volume</div>
+        <div class="value">${escapeHtml(lead.volume)}</div>
+      </div>
+      <hr class="divider">
+      <div class="field">
+        <div class="label">Qualification Score</div>
+        <div class="value">${lead.score}/10</div>
+      </div>
+      <div class="field">
+        <div class="label">Source</div>
+        <div class="value">${escapeHtml(lead.source)}</div>
+      </div>
+    </div>
+    <div class="footer">
+      FocusRunner AI &middot; Patient acquisition for medical aesthetics
+    </div>
+  </div>
+</body>
+</html>`.trim();
 }
 
 /**
- * Mark a lead as read/contacted.
- * @param {string} id — lead ID
- * @param {string} status — new status
- * @returns {boolean}
+ * Minimal HTML escaping for user-provided values.
  */
-export function markRead(id, status = 'read') {
-  const record = store.get(id);
-  if (!record) return false;
-  record.status = status;
-  return true;
+function escapeHtml(str) {
+  if (typeof str !== 'string') return String(str || '');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
-/**
- * Export all leads as CSV string.
- * @returns {string}
- */
-export function exportCsv() {
-  const entries = [...store.values()].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-
-  const headers = ['id', 'createdAt', 'status', 'name', 'phone', 'email', 'practice', 'niche', 'score', 'classification'];
-  const rows = entries.map((r) => {
-    const d = r.data || {};
-    const q = d.qualification || {};
-    return [
-      r.id,
-      r.createdAt,
-      r.status,
-      escapeCsv(d.name || ''),
-      escapeCsv(d.phone || ''),
-      escapeCsv(d.email || ''),
-      escapeCsv(d.practice || ''),
-      escapeCsv(d.niche || ''),
-      q.score ?? '',
-      q.classification || '',
-    ].join(',');
-  });
-
-  return [headers.join(','), ...rows].join('\n');
-}
-
-function escapeCsv(str) {
-  const s = String(str || '');
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
+export default notifyLead;
