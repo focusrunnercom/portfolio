@@ -385,13 +385,21 @@
             timestamp: new Date().toISOString()
           };
 
+          // Try Vercel API first
           fetch('/api/webhook', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           }).catch(function() {
-            // Backend down — lead stored locally, no data loss
-            console.log('Lead data:', JSON.stringify(payload));
+            // Vercel down — try local Flask fallback
+            fetch('http://192.168.40.1:5000/api/webhook', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            }).catch(function() {
+              // Both down — lead stored locally, no data loss
+              console.log('Lead data:', JSON.stringify(payload));
+            });
           });
 
           // Also store locally so no leads are lost even if backend is down
