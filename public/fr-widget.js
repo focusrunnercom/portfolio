@@ -35,6 +35,7 @@
   var BG = attrs('data-bg', '#0d120f');
   var API_BASE = attrs('data-api-base', window.location.origin);
 
+  var QUALIFY_URL = API_BASE + '/api/direct-qualify';
   var WEBHOOK_URL = API_BASE + '/api/webhook';
   var CHAT_URL = API_BASE + '/api/chat';
 
@@ -425,12 +426,42 @@
     var payload = {
       name: state.name,
       phone: state.phone,
+      email: state.email,
       practice: state.practice,
       niche: state.niche,
       source: 'focusrunner_widget',
       qualification: null,
     };
 
+    // Try /api/direct-qualify first — rule-based scoring, no AI API needed
+    var qualifyXhr = new XMLHttpRequest();
+    qualifyXhr.open('POST', QUALIFY_URL, true);
+    qualifyXhr.setRequestHeader('Content-Type', 'application/json');
+
+    qualifyXhr.onload = function () {
+      if (qualifyXhr.status >= 200 && qualifyXhr.status < 300) {
+        showStep(4); // success
+      } else {
+        submitToWebhook(payload);
+      }
+      state.submitting = false;
+    };
+
+    qualifyXhr.onerror = function () {
+      submitToWebhook(payload);
+      state.submitting = false;
+    };
+
+    qualifyXhr.send(JSON.stringify({
+      name: state.name,
+      email: state.email || '',
+      phone: state.phone,
+      practice: state.practice,
+      page_url: window.location.href,
+    }));
+  }
+
+  function submitToWebhook(payload) {
     var xhr = new XMLHttpRequest();
     xhr.open('POST', WEBHOOK_URL, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
