@@ -238,6 +238,14 @@ def store(lead: dict) -> str:
 @app.route("/admin")
 @req_auth_html
 def admin():
+    """Serve the lead admin dashboard HTML."""
+    path = BASE_DIR / "admin.html"
+    if path.exists():
+        token = request.args.get("token", ADMIN_TOKEN)
+        html = path.read_text()
+        html = html.replace("TOKEN = new URLSearchParams", f"TOKEN = '{token}' || new URLSearchParams")
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    # Fallback: inline dashboard (same data as admin.html)
     c = conn()
     rows = c.execute("SELECT * FROM leads ORDER BY created_at DESC").fetchall()
     names = [d[1] for d in c.execute("PRAGMA table_info(leads)").fetchall()]
@@ -371,6 +379,34 @@ def analytics():
         ir = round(v["with_info"]/v["count"]*100) if v["count"] else 0
         ssum.append({"source":src,"count":v["count"],"scored":v["scored"],"avg_score":avg,"qualified":v["qualified"],"hot":v["hot"],"with_info":v["with_info"],"info_rate":ir})
     return jsonify({"last_updated":now.isoformat(),"summary":{"total_leads":t,"funnel":f,"funnel_rate":{"scored":round(f["scored"]/t*100,1) if t else 0,"qualified":round(f["qualified"]/t*100,1) if t else 0,"hot":round(f["hot"]/t*100,1) if t else 0}},"score_distribution":bk,"by_source":ssum,"by_day":[{"date":d,**dm[d]} for d in sorted(dm) if dm[d]["captured"]>0]})
+
+@app.route("/api/track", methods=["POST"])
+def track_visit():
+    """Track page visit with UTM params. Fire-and-forget, no lead created."""
+    data = request.get_json(silent=True) or {}
+    session_id = data.get("session_id", "")
+    page = data.get("page", "/")
+    utm_source = data.get("utm_source", "direct")
+    utm_medium = data.get("utm_medium", "")
+    utm_campaign = data.get("utm_campaign", "")
+    utm_content = data.get("utm_content", "")
+    utm_term = data.get("utm_term", "")
+    referer = data.get("referer", "")
+    logger.info(f"Visit: {page} utm_source={utm_source} session={session_id[:16]}")
+    try:
+        c = conn()
+        c.execute("""INSERT INTO notifications (type, lead_id, recipient, status, message)
+            VALUES ('visit', ?, 'internal', 'tracked', ?)""",
+            (session_id or "anon", json.dumps({
+                "page": page, "referer": referer,
+                "utm_source": utm_source, "utm_medium": utm_medium,
+                "utm_campaign": utm_campaign, "utm_content": utm_content,
+                "utm_term": utm_term,
+            })[:500]))
+        c.commit(); c.close()
+    except Exception as e:
+        logger.debug(f"Visit log non-critical fail: {e}")
+    return jsonify({"ok": True}), 200
 
 @app.route("/api/health", methods=["GET"])
 @app.route("/health", methods=["GET"])

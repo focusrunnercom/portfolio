@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusRunner — Lead Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a0a0a;color:#e0e0e0;font-family:'Inter',sans-serif;min-height:100vh}
+    .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:#0d0d0d;border-right:1px solid #1a1a1a;padding:24px;display:flex;flex-direction:column}
+    .logo{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#6eff8a;margin-bottom:32px;letter-spacing:-0.5px}
+    .logo span{color:#555}
+    .nav{display:flex;flex-direction:column;gap:4px}
+    .nav a{font-size:13px;color:#666;text-decoration:none;padding:8px 12px;border-radius:6px;transition:all .15s}
+    .nav a:hover{color:#e0e0e0;background:#141414}
+    .nav a.active{color:#6eff8a;background:rgba(110,255,138,0.08);font-weight:500}
+    .nav a .count{float:right;color:#444;font-size:11px;font-family:'JetBrains Mono',monospace}
+    .main{margin-left:220px;padding:32px 40px}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
+    .header h1{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:600;color:#fff;letter-spacing:-0.5px}
+    .header .meta{color:#555;font-size:12px}
+    .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+    .card{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:10px;padding:20px}
+    .card .label{font-size:11px;text-transform:uppercase;color:#555;letter-spacing:0.5px;margin-bottom:8px}
+    .card .value{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600}
+    .card .sub{font-size:12px;color:#444;margin-top:4px}
+    .card.hot .value{color:#ef4444}
+    .card.warm .value{color:#f59e0b}
+    .card.cold .value{color:#6b7280}
+    .card.total .value{color:#6eff8a}
+    .card.visitors .value{color:#6a9bff}
+    .filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+    .filters button{background:transparent;border:1px solid #1a1a1a;color:#666;padding:6px 16px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+    .filters button:hover{border-color:#333;color:#e0e0e0}
+    .filters button.active{background:rgba(110,255,138,0.08);border-color:#6eff8a;color:#6eff8a}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{text-align:left;padding:10px 12px;border-bottom:1px solid #1a1a1a;color:#555;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;font-family:'JetBrains Mono',monospace}
+    td{padding:10px 12px;border-bottom:1px solid #111;vertical-align:top;font-size:12px}
+    tr:hover td{background:rgba(110,255,138,0.02)}
+    .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
+    .badge-hot{background:rgba(239,68,68,0.1);color:#ef4444}
+    .badge-warm{background:rgba(245,158,11,0.1);color:#f59e0b}
+    .badge-cold{background:rgba(107,114,128,0.1);color:#9ca3af}
+    .time{color:#555;font-size:11px;font-family:'JetBrains Mono',monospace}
+    .email{color:#6a9bff}
+    .phone{color:#888}
+    .status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px}
+    .status-dot.online{background:#6eff8a}
+    .status-dot.offline{background:#ef4444}
+    .loading{text-align:center;padding:60px;color:#555;font-size:14px}
+    .error{text-align:center;padding:60px;color:#ef4444;font-size:14px}
+    .refresh-btn{background:transparent;border:1px solid #1a1a1a;color:#555;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+    .refresh-btn:hover{border-color:#6eff8a;color:#6eff8a}
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="logo">fr<span>//</span>leads</div>
+    <div class="nav">
+      <a href="#" class="active" onclick="return false">All Leads</a>
+      <a href="#" onclick="return false">🔥 Hot</a>
+      <a href="#" onclick="return false">⭐ Warm</a>
+      <a href="#" onclick="return false">❄️ Cold</a>
+      <a href="#" onclick="return false">📊 Analytics</a>
+      <a href="#" onclick="return false">⚙️ Settings</a>
+    </div>
+    <div style="margin-top:auto;font-size:11px;color:#333;padding-top:20px;border-top:1px solid #1a1a1a">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <span class="status-dot online"></span>
+        <span style="color:#555">Flask :5000</span>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;color:#333" id="refreshTime">—</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <div>
+        <h1>Lead Dashboard</h1>
+        <div class="meta" id="headerMeta">loading...</div>
+      </div>
+      <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+    </div>
+
+    <div class="cards" id="cards">
+      <div class="card total"><div class="label">Total Leads</div><div class="value">—</div></div>
+      <div class="card hot"><div class="label">🔥 Hot</div><div class="value">—</div></div>
+      <div class="card warm"><div class="label">⭐ Warm</div><div class="value">—</div></div>
+      <div class="card cold"><div class="label">❄️ Cold</div><div class="value">—</div></div>
+    </div>
+
+    <div class="filters" id="filters">
+      <button class="active" data-filter="all">All</button>
+      <button data-filter="hot">🔥 Hot</button>
+      <button data-filter="warm">⭐ Warm</button>
+      <button data-filter="cold">❄️ Cold</button>
+      <button data-filter="today">📅 Today</button>
+    </div>
+
+    <div id="tableContainer">
+      <div class="loading">Loading leads...</div>
+    </div>
+  </div>
+
+  <script>
+    var TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+    var ALL_LEADS = [];
+    var ACTIVE_FILTER = 'all';
+
+    function getToken() {
+      if (TOKEN) return TOKEN;
+      // Try to get from localStorage
+      TOKEN = localStorage.getItem('fr_admin_token') || '';
+      return TOKEN;
+    }
+
+    function setToken(t) {
+      TOKEN = t;
+      if (t) localStorage.setItem('fr_admin_token', t);
+    }
+
+    function apiUrl(path) {
+      var sep = path.indexOf('?') > -1 ? '&' : '?';
+      return path + sep + 'token=' + encodeURIComponent(getToken());
+    }
+
+    function formatTime(iso) {
+      if (!iso) return '—';
+      var d = new Date(iso);
+      var now = new Date();
+      var diff = Math.floor((now - d) / 1000);
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+      return d.toLocaleDateString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+    }
+
+    function scoreBadge(score) {
+      if (!score) return '<span class="badge badge-cold">unscored</span>';
+      if (score.startsWith('hot')) return '<span class="badge badge-hot">' + score + '</span>';
+      if (score.startsWith('warm')) return '<span class="badge badge-warm">' + score + '</span>';
+      return '<span class="badge badge-cold">' + score + '</span>';
+    }
+
+    function loadData() {
+      // Load leads
+      fetch(apiUrl('/api/leads?limit=200'))
+        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(data) {
+          ALL_LEADS = data.leads || [];
+          renderAll();
+        })
+        .catch(function(err) {
+          document.getElementById('tableContainer').innerHTML = '<div class="error">Failed to load: ' + err.message + '</div>';
+        });
+
+      // Load visitor stats
+      fetch(apiUrl('/api/visitors'))
+        .then(function(r) { return r.json(); })
+        .then(function(v) {
+          var el = document.querySelector('.card.visitors .value');
+          if (el) el.textContent = v.total_visits || 0;
+        })
+        .catch(function() {});
+
+      document.getElementById('refreshTime').textContent = new Date().toLocaleTimeString();
+    }
+
+    function renderAll() {
+      var leads = ALL_LEADS;
+      var total = leads.length;
+      var hot = leads.filter(function(l) { return l.score && l.score.startsWith('hot'); }).length;
+      var warm = leads.filter(function(l) { return l.score && l.score.startsWith('warm'); }).length;
+      var cold = leads.filter(function(l) { return l.score && l.score.startsWith('cold'); }).length;
+
+      // Update cards
+      document.querySelector('.card.total .value').textContent = total;
+      document.querySelector('.card.hot .value').textContent = hot;
+      document.querySelector('.card.warm .value').textContent = warm;
+      document.querySelector('.card.cold .value').textContent = cold;
+      document.getElementById('headerMeta').textContent = total + ' leads · last updated ' + formatTime(new Date().toISOString());
+
+      // Apply filter
+      var filtered = leads;
+      if (ACTIVE_FILTER === 'hot') filtered = leads.filter(function(l) { return l.score && l.score.startsWith('hot'); });
+      else if (ACTIVE_FILTER === 'warm') filtered = leads.filter(function(l) { return l.score && l.score.startsWith('warm'); });
+      else if (ACTIVE_FILTER === 'cold') filtered = leads.filter(function(l) { return l.score && l.score.startsWith('cold'); });
+      else if (ACTIVE_FILTER === 'today') {
+        var today = new Date().toISOString().slice(0, 10);
+        filtered = leads.filter(function(l) { return l.created_at && l.created_at.slice(0, 10) === today; });
+      }
+
+      // Render table
+      if (filtered.length === 0) {
+        document.getElementById('tableContainer').innerHTML = '<div class="loading">No leads match this filter.</div>';
+        return;
+      }
+
+      var html = '<table><thead><tr><th>Time</th><th>Name</th><th>Contact</th><th>Practice</th><th>Volume</th><th>Spend</th><th>Score</th><th>Source</th></tr></thead><tbody>';
+      filtered.forEach(function(l) {
+        html += '<tr>' +
+          '<td class="time">' + formatTime(l.created_at) + '</td>' +
+          '<td><strong>' + esc(l.name) + '</strong></td>' +
+          '<td><div class="email">' + esc(l.email) + '</div><div class="phone">' + esc(l.phone || '') + '</div></td>' +
+          '<td>' + esc(l.practice || '') + '</td>' +
+          '<td>' + esc(l.volume || '') + '</td>' +
+          '<td>' + esc(l.spend || '') + '</td>' +
+          '<td>' + scoreBadge(l.score) + '</td>' +
+          '<td style="color:#555;font-size:11px">' + esc(l.source || '') + '</td>' +
+          '</tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('tableContainer').innerHTML = html;
+    }
+
+    function esc(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Filter buttons
+    document.getElementById('filters').addEventListener('click', function(e) {
+      if (e.target.tagName === 'BUTTON') {
+        document.querySelectorAll('#filters button').forEach(function(b) { b.classList.remove('active'); });
+        e.target.classList.add('active');
+        ACTIVE_FILTER = e.target.getAttribute('data-filter') || 'all';
+        renderAll();
+      }
+    });
+
+    // Auto-refresh every 30s
+    loadData();
+    setInterval(loadData, 30000);
+  </script>
+</body>
+</html>
