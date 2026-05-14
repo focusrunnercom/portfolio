@@ -18,12 +18,22 @@
 // =============================================================================
 
 // @ts-ignore — module-level Map persists across invocations in same isolate
-if (typeof globalThis.__leadsStore === 'undefined') {
-  globalThis.__leadsStore = new Map();
-  globalThis.__leadsStoreInit = Date.now();
+let store;
+try {
+  if (typeof globalThis !== 'undefined' && typeof globalThis.__leadsStore === 'undefined') {
+    globalThis.__leadsStore = new Map();
+    globalThis.__leadsStoreInit = Date.now();
+  }
+  store = /** @type {Map<string, LeadRecord>} */ (
+    typeof globalThis !== 'undefined' ? globalThis.__leadsStore : null
+  );
+} catch (e) {
+  // Fallback: module-scoped Map (no cross-invoke persistence, but won't crash)
+  console.error('[notify] globalThis not available, using module-level store:', e.message);
 }
-
-const store = /** @type {Map<string, LeadRecord>} */ (globalThis.__leadsStore);
+if (!store) {
+  store = new Map();
+}
 
 const TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -85,10 +95,11 @@ export function record(data) {
   });
 
   // Periodic cleanup (every ~5 min)
-  const elapsed = now - (globalThis.__leadsStoreCleanupAt || 0);
+  const cleanupAt = typeof globalThis !== 'undefined' ? globalThis.__leadsStoreCleanupAt : 0;
+  const elapsed = now - (cleanupAt || 0);
   if (elapsed > CLEANUP_INTERVAL_MS || store.size > MAX_ENTRIES * 0.9) {
     cleanup();
-    globalThis.__leadsStoreCleanupAt = now;
+    try { if (typeof globalThis !== 'undefined') globalThis.__leadsStoreCleanupAt = now; } catch {}
   }
 
   return { id };
