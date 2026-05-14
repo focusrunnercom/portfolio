@@ -151,18 +151,36 @@ export async function kvKeys(pattern) {
 // /tmp file-based fallback (Vercel serverless ephemeral storage)
 // =============================================================================
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync, readdirSync, mkdirSync } from 'fs';
-import { join } from 'path';
-
 const KV_DIR = '/tmp/focusrunner-kv';
 
+// In-memory storage for Edge Runtime (no /tmp access)
+const memoryStore = new Map();
+
+let fsModule = null;
+let pathModule = null;
+let fsAvailable = false;
+
+function ensureFsLoaded() {
+  if (fsModule !== undefined) return;
+  try {
+    // Use eval('require') to avoid the top-level import
+    const createRequire = eval('require');
+    fsModule = createRequire('fs');
+    pathModule = createRequire('path');
+    fsAvailable = true;
+  } catch {
+    fsModule = null;
+    pathModule = null;
+    fsAvailable = false;
+  }
+}
+
 function ensureDir() {
-  if (!existsSync(KV_DIR)) {
-    try {
-      mkdirSync(KV_DIR, { recursive: true });
-    } catch {
-      // ignore
-    }
+  if (!fsAvailable) return;
+  try {
+    fsModule.mkdirSync(KV_DIR, { recursive: true });
+  } catch {
+    // ignore
   }
 }
 
@@ -170,14 +188,20 @@ function kvPath(key) {
   ensureDir();
   // Sanitize key for filesystem
   const safeName = key.replace(/[^a-zA-Z0-9_-]/g, '_');
-  return join(KV_DIR, safeName);
+  return fsAvailable ? pathModule.join(KV_DIR, safeName) : `memory:${safeName}`;
 }
 
+// In-memory storage for Edge Runtime (no /tmp access)
+const memoryStore = new Map();
+
 function kvGetFallback(key) {
-  const path = kvPath(key);
+  if (!fsAvailable) {
+    return memoryStore.get(key) || null;
+  }
+  const fpath = kvPath(key);
   try {
-    if (!existsSync(path)) return null;
-    const raw = readFileSync(path, 'utf-8');
+    if (!fsModule.existsSync(fpath)) return null;
+    const raw = fsModule.readFileSync(fpath, 'utf-8');
     try { return JSON.parse(raw); } catch { return raw; }
   } catch {
     return null;
@@ -185,18 +209,27 @@ function kvGetFallback(key) {
 }
 
 function kvSetFallback(key, value) {
-  const path = kvPath(key);
+  const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+  if (!fsAvailable) {
+    memoryStore.set(key, serialized);
+    return;
+  }
+  const fpath = kvPath(key);
   try {
-    writeFileSync(path, typeof value === 'string' ? value : JSON.stringify(value), 'utf-8');
+    fsModule.writeFileSync(fpath, serialized, 'utf-8');
   } catch (err) {
     console.error(`[kv/fallback] SET ${key} failed:`, err.message);
   }
 }
 
 function kvDelFallback(key) {
-  const path = kvPath(key);
+  if (!fsAvailable) {
+    memoryStore.delete(key);
+    return;
+  }
+  const fpath = kvPath(key);
   try {
-    if (existsSync(path)) unlinkSync(path);
+    if (fsModule.existsSync(fpath)) fsModule.unlinkSync(fpath);
   } catch (err) {
     console.error(`[kv/fallback] DEL ${key} failed:`, err.message);
   }
@@ -204,10 +237,14 @@ function kvDelFallback(key) {
 
 function kvKeysFallback(pattern) {
   ensureDir();
+  const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+  
+  if (!fsAvailable) {
+    return Array.from(memoryStore.keys()).filter(k => regex.test(k));
+  }
+  
   try {
-    const files = readdirSync(KV_DIR);
-    // Convert pattern to regex (simple glob)
-    const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+    const files = fsModule.readdirSync(KV_DIR);
     return files.filter(f => regex.test(f));
   } catch {
     return [];

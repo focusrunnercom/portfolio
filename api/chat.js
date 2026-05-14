@@ -17,8 +17,10 @@
 // Configuration
 // =============================================================================
 import { kvGet } from './kv.js';
-const AI_TIMEOUT_MS = 15000;
+import { notifyLead } from './lib/notify.js';
 
+const AI_TIMEOUT_MS = 15000;
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 /**
  * Resolve AI configuration for a client.
  * Falls back to env vars if no client config found.
@@ -193,7 +195,8 @@ export default async function handler(request) {
 
   // Health check
   if (request.method === 'GET') {
-    const clientId = new URL(request.url).searchParams.get('clientId') || '';
+    const url = request.url.startsWith('http') ? new URL(request.url) : new URL(request.url, 'https://focusrunner.io');
+    const clientId = url.searchParams.get('clientId') || '';
     return jsonResponse({
       status: 'ok',
       endpoint: '/api/chat',
@@ -214,7 +217,7 @@ export default async function handler(request) {
     return jsonResponse({ error: 'Invalid JSON body' }, 400);
   }
 
-  const { name, email, phone, time, page_url } = body || {};
+  const { name, email, phone, time, page_url, practice, niche, volume } = body || {};
 
   // Validate required fields
   if (!name || !phone) {
@@ -306,6 +309,23 @@ export default async function handler(request) {
     : null;
 
   console.log(`[chat] Lead qualified: ${name} score=${qualification?.score ?? 'N/A'} class=${qualification?.classification ?? 'N/A'}`);
+
+  // === EMAIL NOTIFICATION: alert the team in real-time ===
+  if (qualification && qualification.classification !== 'cold') {
+    const leadPayload = {
+      name: name || 'Anonymous',
+      email: email || '',
+      phone: phone || '',
+      practice: body.practice || '',
+      niche: body.niche || '',
+      volume: body.volume || '',
+      qualification,
+      source: 'chat_widget',
+    };
+    notifyLead(leadPayload).catch(err =>
+      console.error('[chat] Email notification failed:', err.message)
+    );
+  }
 
   return jsonResponse({
     reply,

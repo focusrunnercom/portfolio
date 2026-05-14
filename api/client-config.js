@@ -94,7 +94,7 @@ function jsonResponse(data, status = 200) {
  * Returns the client config, or 404 if not found.
  */
 async function handleGet(request) {
-  const url = new URL(request.url);
+  const url = request.url.startsWith('http') ? new URL(request.url) : new URL(request.url, 'https://focusrunner.io');
   const clientId = url.searchParams.get('clientId');
 
   const err = validateClientId(clientId);
@@ -199,7 +199,7 @@ async function handleDelete(request) {
     return jsonResponse({ error: auth.reason }, 401);
   }
 
-  const url = new URL(request.url);
+  const url = request.url.startsWith('http') ? new URL(request.url) : new URL(request.url, 'https://focusrunner.io');
   const clientId = url.searchParams.get('clientId');
 
   const err = validateClientId(clientId);
@@ -239,13 +239,16 @@ export default async function handler(request) {
   }
 
   // Health check
-  if (request.method === 'GET' && !new URL(request.url).searchParams.has('clientId')) {
-    return jsonResponse({
-      status: 'ok',
-      endpoint: '/api/client-config',
-      version: '1.0.0',
-      kv_configured: !!process.env.KV_REST_API_URL,
-    });
+  if (request.method === 'GET') {
+    const reqUrl = request.url.startsWith('http') ? new URL(request.url) : new URL(request.url, 'https://focusrunner.io');
+    if (!reqUrl.searchParams.has('clientId')) {
+      return jsonResponse({
+        status: 'ok',
+        endpoint: '/api/client-config',
+        version: '1.0.0',
+        kv_configured: !!process.env.KV_REST_API_URL,
+      });
+    }
   }
 
   switch (request.method) {
