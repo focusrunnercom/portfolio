@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/**/*.js": { "runtime": "nodejs18.x", "maxDuration": 30 },
+    "api/**/*.js": { "runtime": "nodejs24.x", "maxDuration": 30 },
     "api/**/*.py": { "runtime": "python3.12", "maxDuration": 30 }
   },
   "rewrites": [
