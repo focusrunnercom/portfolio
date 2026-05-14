@@ -1,7 +1,10 @@
 {
   "rewrites": [
     { "source": "/admin/leads", "destination": "/admin/leads.html" },
-    { "source": "/admin/leads/:match(.*)", "destination": "/admin/leads.html" }
+    { "source": "/admin/leads/:match(.*)", "destination": "/admin/leads.html" },
+    { "source": "/admin/dashboard", "destination": "/dashboard.html" },
+    { "source": "/api/analytics/:clientId/:action(.*)", "destination": "/api/analytics" },
+    { "source": "/api/analytics/:clientId", "destination": "/api/analytics" }
   ],
   "headers": [
     {
