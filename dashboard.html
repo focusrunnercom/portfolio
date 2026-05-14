@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FocusRunner — Analytics Dashboard</title>
+<style>
+  :root {
+    --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e;
+    --ink-faint: #3f4a43; --bg-panel: #0d120f; --bg-2: #0f1412;
+    --line: #1a2620; --line-bright: #2a3f33; --amber: #ffb547; --danger: #ff5c4d;
+    --blue: #5fa8ff; --purple: #b47aff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 13px; -webkit-font-smoothing: antialiased; padding: 24px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  h1 small { font-size: 12px; color: var(--ink-faint); font-weight: 400; }
+  .subtitle { color: var(--ink-dim); font-size: 12px; margin-bottom: 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .card { background: var(--bg-2); border: 1px solid var(--line); padding: 16px; }
+  .card-label { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .card-value { font-size: 28px; font-weight: 700; }
+  .card-value.green { color: var(--phos); }
+  .card-value.amber { color: var(--amber); }
+  .card-value.blue { color: var(--blue); }
+  .card-value.purple { color: var(--purple); }
+  .card-value.danger { color: var(--danger); }
+  .card-sub { font-size: 11px; color: var(--ink-dim); margin-top: 4px; }
+  .section-title { font-size: 14px; font-weight: 500; margin-bottom: 12px; color: var(--ink); }
+  .bar-chart { display: flex; gap: 8px; align-items: flex-end; height: 160px; padding: 0 4px; margin-bottom: 28px; }
+  .bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+  .bar { width: 100%; min-height: 2px; border-radius: 2px 2px 0 0; transition: height .3s; position: relative; }
+  .bar-label { font-size: 9px; color: var(--ink-faint); margin-top: 4px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-dim); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .funnel { display: flex; gap: 0; margin-bottom: 28px; align-items: stretch; }
+  .funnel-step { flex: 1; border: 1px solid var(--line); padding: 14px; text-align: center; position: relative; background: var(--bg-2); }
+  .funnel-step + .funnel-step { border-left: none; }
+  .funnel-step .count { font-size: 24px; font-weight: 700; }
+  .funnel-step .label { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }
+  .funnel-step .rate { font-size: 12px; margin-top: 4px; }
+  .funnel-arrow { display: flex; align-items: center; color: var(--ink-faint); font-size: 18px; padding: 0 4px; }
+  .source-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .source-row:last-child { border-bottom: none; }
+  .source-bar { height: 6px; border-radius: 3px; transition: width .3s; }
+  .source-track { flex: 1; background: var(--line); border-radius: 3px; margin: 0 12px; height: 6px; overflow: hidden; }
+  .config-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .config-bar input { background: var(--bg-2); border: 1px solid var(--line); color: var(--ink); padding: 6px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; flex: 1; min-width: 120px; }
+  .config-bar input:focus { outline: none; border-color: var(--phos); }
+  .btn { padding: 6px 14px; background: var(--phos); color: #000; border: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .btn:hover { background: #8affa0; }
+  .btn-secondary { background: var(--line); color: var(--ink); }
+  .btn-secondary:hover { background: var(--line-bright); }
+  .error-msg { color: var(--danger); font-size: 11px; margin-top: 8px; }
+  #loading { color: var(--ink-faint); font-size: 12px; padding: 20px; text-align: center; }
+  @media (max-width: 600px) { .grid { grid-template-columns: repeat(2, 1fr); } .funnel { flex-direction: column; } .funnel-arrow { transform: rotate(90deg); padding: 4px 0; } }
+</style>
+</head>
+<body>
+  <h1>focusrunner <small>analytics</small></h1>
+  <p class="subtitle">lead source attribution · conversion funnel · performance dashboard</p>
+
+  <div class="config-bar">
+    <input type="text" id="analyticsKey" placeholder="X-Analytics-Key" value="" />
+    <input type="text" id="clientId" placeholder="client_default" value="client_default" />
+    <input type="number" id="days" placeholder="7" value="7" min="1" max="90" />
+    <button class="btn" id="refreshBtn">&#9654; load</button>
+  </div>
+
+  <div id="loading">connecting to /api/analytics...</div>
+  <div id="content" style="display:none">
+    <!-- Metric Cards -->
+    <div class="grid" id="metricGrid"></div>
+
+    <!-- Funnel -->
+    <div class="section-title">conversion funnel</div>
+    <div class="funnel" id="funnel"></div>
+
+    <!-- Timeline Chart -->
+    <div class="section-title">7-day trend</div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background:var(--phos)"></span> chat started</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span> qualified</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span> submitted</span>
+    </div>
+    <div class="bar-chart" id="timelineChart"></div>
+
+    <!-- Source Attribution -->
+    <div class="section-title">source attribution</div>
+    <div id="sourceAttribution"></div>
+  </div>
+
+<script>
+const API_BASE = '/api/analytics';
+
+function el(id) { return document.getElementById(id); }
+
+async function load() {
+  const clientId = el('clientId').value || 'client_default';
+  const days = parseInt(el('days').value) || 7;
+  const key = el('analyticsKey').value;
+  const headers = { 'Content-Type': 'application/json' };
+  if (key) headers['X-Analytics-Key'] = key;
+
+  el('loading').style.display = 'block';
+  el('content').style.display = 'none';
+
+  try {
+    const [summaryRes, funnelRes] = await Promise.all([
+      fetch(`${API_BASE}/${clientId}/summary?days=${days}`, { headers }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.error) })),
+      fetch(`${API_BASE}/${clientId}/funnel?days=${days}`, { headers }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.error) })),
+    ]);
+
+    renderMetrics(summaryRes);
+    renderFunnel(funnelRes.funnel);
+    renderTimeline(summaryRes.daily || []);
+    renderSources(summaryRes.totals?.sources || {});
+
+    el('loading').style.display = 'none';
+    el('content').style.display = 'block';
+  } catch (err) {
+    el('loading').innerHTML = `<span class="error-msg">&#x2717; ${err.message}</span>`;
+  }
+}
+
+function renderMetrics(data) {
+  const t = data.totals || {};
+  const grid = el('metricGrid');
+  const totalEvents = data.total_events || 0;
+  const periodEvents = t.events || 0;
+  const qualified = t.classifications?.qualified || 0;
+  const submitted = t.lead_submitted ?? t.events ?? 0;
+  const convRate = periodEvents > 0 ? Math.round((qualified / periodEvents) * 100) : 0;
+
+  grid.innerHTML = `
+    <div class="card"><div class="card-label">Total Events (all time)</div><div class="card-value green">${totalEvents}</div></div>
+    <div class="card"><div class="card-label">Events (${el('days').value}d)</div><div class="card-value blue">${periodEvents}</div></div>
+    <div class="card"><div class="card-label">Qualified Leads</div><div class="card-value amber">${qualified}</div></div>
+    <div class="card"><div class="card-label">Conversion Rate</div><div class="card-value ${convRate > 30 ? 'green' : convRate > 10 ? 'amber' : 'danger'}">${convRate}%</div><div class="card-sub">chat → qualified</div></div>
+  `;
+}
+
+function renderFunnel(f) {
+  if (!f) return;
+  const el_ = el('funnel');
+  const maxVal = Math.max(f.chat_started, f.qualified, f.lead_submitted, 1);
+  el_.innerHTML = `
+    <div class="funnel-step">
+      <div class="count" style="color:var(--phos)">${f.chat_started}</div>
+      <div class="label">Chat Started</div>
+      <div class="rate" style="color:var(--ink-faint)">100%</div>
+    </div>
+    <div class="funnel-arrow">&#8594;</div>
+    <div class="funnel-step">
+      <div class="count" style="color:var(--amber)">${f.qualified}</div>
+      <div class="label">Qualified</div>
+      <div class="rate" style="color:${f.chat_to_qualified_pct > 30 ? 'var(--phos)' : 'var(--amber)'}">${f.chat_to_qualified_pct}%</div>
+    </div>
+    <div class="funnel-arrow">&#8594;</div>
+    <div class="funnel-step">
+      <div class="count" style="color:var(--blue)">${f.lead_submitted}</div>
+      <div class="label">Lead Submitted</div>
+      <div class="rate" style="color:${f.qualified_to_submitted_pct > 50 ? 'var(--phos)' : 'var(--ink-faint)'}">${f.qualified_to_submitted_pct}%</div>
+    </div>
+  `;
+}
+
+function renderTimeline(daily) {
+  const chart = el('timelineChart');
+  if (!daily.length) { chart.innerHTML = '<div style="color:var(--ink-faint);font-size:11px">no data yet</div>'; return; }
+
+  const maxVal = Math.max(...daily.map(d => Math.max(d.lead_captured, d.classifications?.qualified || 0, d.lead_submitted)), 1);
+
+  chart.innerHTML = daily.slice(0, 7).reverse().map(d => {
+    const h1 = (d.lead_captured / maxVal) * 140;
+    const h2 = ((d.classifications?.qualified || 0) / maxVal) * 140;
+    const h3 = (d.lead_submitted / maxVal) * 140;
+    const label = d.date.slice(4);
+    return `<div class="bar-group">
+      <div style="display:flex;align-items:flex-end;gap:2px;height:140px;width:100%;justify-content:center">
+        <div class="bar" style="height:${Math.max(h1,2)}px;background:var(--phos);width:8px"></div>
+        <div class="bar" style="height:${Math.max(h2,2)}px;background:var(--amber);width:8px"></div>
+        <div class="bar" style="height:${Math.max(h3,2)}px;background:var(--blue);width:8px"></div>
+      </div>
+      <div class="bar-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderSources(sources) {
+  const container = el('sourceAttribution');
+  if (!sources || (!sources.chat_widget && !sources.lead_form)) {
+    container.innerHTML = '<div style="color:var(--ink-faint);font-size:11px">no source data yet</div>';
+    return;
+  }
+
+  const total = (sources.chat_widget || 0) + (sources.lead_form || 0);
+  const entries = Object.entries(sources).filter(([_, v]) => v > 0);
+
+  container.innerHTML = entries.map(([name, count]) => {
+    const pct = total > 0 ? (count / total) * 100 : 0;
+    const color = name === 'chat_widget' ? 'var(--phos)' : 'var(--blue)';
+    return `<div class="source-row">
+      <span style="color:${color};font-weight:500">${name.replace(/_/g,' ')}</span>
+      <div class="source-track"><div class="source-bar" style="width:${pct}%;background:${color}"></div></div>
+      <span>${count}</span>
+      <span style="color:var(--ink-faint);width:40px;text-align:right">${Math.round(pct)}%</span>
+    </div>`;
+  }).join('');
+}
+
+// Auto-refresh
+el('refreshBtn').addEventListener('click', load);
+el('days').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+el('clientId').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+el('analyticsKey').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+
+// Load on page load
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body>
+</html>
