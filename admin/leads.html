@@ -10,333 +10,460 @@
 <style>
   :root {
     --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e;
-    --ink-faint: #3f4a43; --bg: #0d120f; --bg-2: #0f1412;
-    --line: #1a2620; --line-bright: #2a3f33;
-    --hot: #ff5c4d; --warm: #ffb547; --cold: #4d7aff;
+    --ink-faint: #3f4a43; --bg-panel: #0d120f; --bg-2: #0f1412;
+    --line: #1a2620; --line-bright: #2a3f33; --amber: #ffb547; --danger: #ff5c4d;
+    --blue: #5fa8ff; --hot: #ff3b30; --warm: #ffb547; --cold: #6b7280;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; padding: 24px; }
-  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-  .header h1 { font-size: 18px; font-weight: 700; color: var(--phos); }
-  .header .sub { font-size: 11px; color: var(--ink-faint); }
-  .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .controls input, .controls select {
-    background: var(--bg-2); border: 1px solid var(--line); color: var(--ink);
-    padding: 6px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; outline: none;
-  }
-  .controls input:focus, .controls select:focus { border-color: var(--phos); }
-  .controls .btn {
-    background: var(--phos); color: #000; border: none; padding: 6px 14px;
-    font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; cursor: pointer;
-  }
-  .controls .btn:hover { background: #8affa0; }
-  .controls .btn-outline {
-    background: transparent; color: var(--ink); border: 1px solid var(--line-bright);
-    padding: 6px 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; cursor: pointer;
-  }
-  .controls .btn-outline:hover { border-color: var(--phos); color: var(--phos); }
+  body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 13px; -webkit-font-smoothing: antialiased; padding: 0; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
 
-  /* Stats row */
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-bottom: 24px; }
-  .stat { background: var(--bg); padding: 16px; text-align: center; }
-  .stat .val { font-size: 28px; font-weight: 700; }
-  .stat .lbl { font-size: 10px; color: var(--ink-faint); margin-top: 4px; }
-  .stat .val.hot { color: var(--hot); }
-  .stat .val.warm { color: var(--warm); }
-  .stat .val.cold { color: var(--cold); }
-  .stat .val.total { color: var(--phos); }
-  .stat .val.chat { color: #8affa0; }
-  .stat .val.form { color: var(--ink-dim); }
+  /* Header */
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header h1 small { font-size: 12px; color: var(--ink-faint); font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-2); border: 1px solid var(--line); font-size: 11px; }
+  .status-badge.live { border-color: var(--phos); color: var(--phos); }
+  .status-badge .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .status-badge .dot.green { background: var(--phos); }
+
+  /* Filters */
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filters input, .filters select {
+    background: var(--bg-2); border: 1px solid var(--line); color: var(--ink);
+    padding: 7px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    outline: none; min-width: 0;
+  }
+  .filters input:focus, .filters select:focus { border-color: var(--phos); }
+  .filters input { flex: 1; min-width: 160px; }
+  .filters select { cursor: pointer; }
+  .filter-btn {
+    padding: 7px 14px; background: var(--phos); color: #000; border: none;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    cursor: pointer; transition: background .15s;
+  }
+  .filter-btn:hover { background: #8affa0; }
+  .filter-count { font-size: 11px; color: var(--ink-faint); margin-left: auto; }
+
+  /* Stats bar */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .stat-card { background: var(--bg-2); border: 1px solid var(--line); padding: 12px; }
+  .stat-card .stat-label { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .5px; }
+  .stat-card .stat-value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  .stat-card .stat-value.hot { color: var(--hot); }
+  .stat-card .stat-value.warm { color: var(--warm); }
+  .stat-card .stat-value.cold { color: var(--cold); }
+  .stat-card .stat-value.green { color: var(--phos); }
+  .stat-card .stat-value.blue { color: var(--blue); }
 
   /* Table */
   .table-wrap { overflow-x: auto; border: 1px solid var(--line); }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 700; color: var(--ink-dim); background: var(--bg-2); border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
-  th:hover { color: var(--phos); }
-  th .sort-dir { font-size: 10px; margin-left: 4px; }
-  td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  tr:last-child td { border-bottom: none; }
+  thead { background: var(--bg-2); }
+  th { text-align: left; padding: 10px 12px; font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .5px; font-weight: 500; border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
+  th:hover { color: var(--ink); }
+  th.sorted { color: var(--phos); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   tr:hover td { background: var(--bg-2); }
+  tr:last-child td { border-bottom: none; }
 
-  .score { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
-  .score .bar { width: 60px; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
-  .score .bar-inner { height: 100%; border-radius: 2px; transition: width .3s; }
-  .score .bar-inner.hot { background: var(--hot); }
-  .score .bar-inner.warm { background: var(--warm); }
-  .score .bar-inner.cold { background: var(--cold); }
-
-  .badge { display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 700; }
-  .badge.qualified { background: var(--phos); color: #000; }
-  .badge.contacted { background: var(--warm); color: #000; }
-  .badge.new { background: var(--ink-faint); color: var(--ink); }
-
-  .source-badge { font-size: 10px; color: var(--ink-faint); }
-  .source-badge.chat { color: #8affa0; }
-  .source-badge.form { color: var(--cold); }
-
-  .summary-cell { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-dim); font-size: 11px; }
-
-  .timestamp { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
-
-  .empty { text-align: center; padding: 48px; color: var(--ink-faint); font-size: 14px; }
-
-  .toast {
-    position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
-    background: var(--phos); color: #000; font-size: 12px; font-weight: 500;
-    display: none; z-index: 999;
+  .score-badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+    font-size: 11px; font-weight: 500; border-radius: 0;
   }
-  .toast.error { background: var(--hot); }
-  .toast.show { display: block; animation: fadeIn .2s; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .score-hot { background: rgba(255,59,48,0.12); color: var(--hot); border: 1px solid rgba(255,59,48,0.25); }
+  .score-warm { background: rgba(255,181,71,0.12); color: var(--warm); border: 1px solid rgba(255,181,71,0.25); }
+  .score-cold { background: rgba(107,114,128,0.12); color: var(--cold); border: 1px solid rgba(107,114,128,0.25); }
+
+  .tag { display: inline-block; padding: 1px 6px; font-size: 10px; background: var(--bg-2); border: 1px solid var(--line); }
+  .tag.chat { border-color: var(--phos-dim); color: var(--phos); }
+  .tag.form { border-color: var(--blue); color: var(--blue); }
+
+  .phone-link { color: var(--ink-dim); text-decoration: none; }
+  .phone-link:hover { color: var(--phos); }
+
+  /* Detail modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; }
+  .modal-overlay.open { display: block; }
+  .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-panel); border: 1px solid var(--line-bright); z-index: 1001; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; }
+  .modal.open { display: block; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
+  .modal-header h2 { font-size: 15px; }
+  .modal-close { background: none; border: none; color: var(--ink-faint); font-size: 18px; cursor: pointer; font-family: 'JetBrains Mono', monospace; }
+  .modal-close:hover { color: var(--danger); }
+  .modal-body { padding: 16px; }
+  .modal-dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px; font-size: 12px; }
+  .modal-dl dt { color: var(--ink-faint); }
+  .modal-dl dd { color: var(--ink); word-break: break-word; }
+  .modal-dl dd.score { font-weight: 700; }
+
+  #loading { color: var(--ink-faint); font-size: 12px; padding: 40px; text-align: center; }
+  #error { color: var(--danger); font-size: 12px; padding: 20px; text-align: center; display: none; }
+  #empty { color: var(--ink-faint); font-size: 12px; padding: 40px; text-align: center; display: none; }
 
   @media (max-width: 768px) {
-    body { padding: 12px; }
-    .stats { grid-template-columns: repeat(3, 1fr); }
-    .controls { flex-direction: column; align-items: stretch; }
-    .controls input, .controls select { width: 100%; }
+    .wrap { padding: 12px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    th, td { padding: 8px; font-size: 11px; }
+    .header { flex-direction: column; align-items: flex-start; }
   }
 </style>
 </head>
 <body>
+<div class="wrap">
 
 <div class="header">
   <div>
-    <h1>>_ FocusRunner · Lead Dashboard</h1>
-    <div class="sub">Real-time pipeline — updated on load</div>
+    <h1>&gt;_ lead dashboard <small>focusrunner</small></h1>
   </div>
-  <div class="controls">
-    <input type="text" id="searchInput" placeholder="search name, phone, email..." oninput="filterTable()">
-    <select id="statusFilter" onchange="filterTable()">
-      <option value="all">All</option>
-      <option value="new">New</option>
-      <option value="contacted">Contacted</option>
-      <option value="qualified">Qualified</option>
-    </select>
-    <select id="scoreFilter" onchange="filterTable()">
-      <option value="all">Any Score</option>
-      <option value="hot">Hot (70+)</option>
-      <option value="warm">Warm (40-69)</option>
-      <option value="cold">Cold (0-39)</option>
-    </select>
-    <button class="btn" onclick="loadLeads()">↻ Refresh</button>
+  <div class="header-right">
+    <div class="status-badge live" id="statusBadge">
+      <span class="dot green"></span> loading...
+    </div>
+    <input type="text" id="tokenInput" placeholder="token" style="background:var(--bg-2);border:1px solid var(--line);color:var(--ink);padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;width:100px" />
   </div>
 </div>
 
-<div class="stats" id="statsRow">
-  <div class="stat"><div class="val total" id="statTotal">—</div><div class="lbl">Total Leads</div></div>
-  <div class="stat"><div class="val hot" id="statHot">0</div><div class="lbl">Hot (70+)</div></div>
-  <div class="stat"><div class="val warm" id="statWarm">0</div><div class="lbl">Warm (40-69)</div></div>
-  <div class="stat"><div class="val cold" id="statCold">0</div><div class="lbl">Cold (0-39)</div></div>
-  <div class="stat"><div class="val chat" id="statChat">0</div><div class="lbl">From Chat</div></div>
-  <div class="stat"><div class="val form" id="statForm">0</div><div class="lbl">From Form</div></div>
+<div class="filters">
+  <input type="text" id="searchInput" placeholder="search name, practice, phone..." />
+  <select id="scoreFilter">
+    <option value="">all scores</option>
+    <option value="hot">hot (70-100)</option>
+    <option value="warm">warm (30-69)</option>
+    <option value="cold">cold (0-29)</option>
+  </select>
+  <select id="sourceFilter">
+    <option value="">all sources</option>
+    <option value="chat_widget">chat widget</option>
+    <option value="lead_form">lead form</option>
+  </select>
+  <select id="classificationFilter">
+    <option value="">all classifications</option>
+    <option value="qualified">qualified</option>
+    <option value="nurture">nurture</option>
+    <option value="not_a_fit">not a fit</option>
+  </select>
+  <button class="filter-btn" id="refreshBtn">&#9654; load</button>
+  <button class="filter-btn" style="background:var(--line);color:var(--ink)" id="autoRefreshBtn">&#8635; auto</button>
+  <span class="filter-count" id="leadCount">— leads</span>
 </div>
 
-<div class="table-wrap" id="tableWrap">
+<div class="stats" id="statsBar">
+  <div class="stat-card"><div class="stat-label">Total Leads</div><div class="stat-value blue" id="statTotal">0</div></div>
+  <div class="stat-card"><div class="stat-label">Hot</div><div class="stat-value hot" id="statHot">0</div></div>
+  <div class="stat-card"><div class="stat-label">Warm</div><div class="stat-value warm" id="statWarm">0</div></div>
+  <div class="stat-card"><div class="stat-label">Cold</div><div class="stat-value cold" id="statCold">0</div></div>
+  <div class="stat-card"><div class="stat-label">Chat Widget</div><div class="stat-value green" id="statChat">0</div></div>
+  <div class="stat-card"><div class="stat-label">Lead Form</div><div class="stat-value" id="statForm" style="color:var(--blue)">0</div></div>
+</div>
+
+<div id="loading">connecting to /api/leads...</div>
+<div id="error"></div>
+<div id="empty">no leads yet. chatbot not live or no submissions received.</div>
+
+<div class="table-wrap" id="tableWrap" style="display:none">
   <table>
     <thead>
       <tr>
-        <th onclick="sortBy('name')">Name <span class="sort-dir" id="s-name"></span></th>
-        <th onclick="sortBy('score')">Score <span class="sort-dir" id="s-score"></span></th>
-        <th onclick="sortBy('phone')">Phone <span class="sort-dir" id="s-phone"></span></th>
-        <th onclick="sortBy('email')">Email <span class="sort-dir" id="s-email"></span></th>
-        <th onclick="sortBy('practice')">Practice <span class="sort-dir" id="s-practice"></span></th>
-        <th onclick="sortBy('source')">Source <span class="sort-dir" id="s-source"></span></th>
-        <th>Service</th>
-        <th onclick="sortBy('timeline')">Timeline <span class="sort-dir" id="s-timeline"></span></th>
-        <th>Summary</th>
-        <th onclick="sortBy('created_at')">Captured <span class="sort-dir" id="s-created_at"></span></th>
+        <th data-sort="name">name</th>
+        <th data-sort="practice">practice</th>
+        <th data-sort="phone">phone</th>
+        <th data-sort="score">score</th>
+        <th data-sort="classification">qualification</th>
+        <th data-sort="source">source</th>
+        <th data-sort="created_at">captured</th>
+        <th></th>
       </tr>
     </thead>
-    <tbody id="leadsBody"></tbody>
+    <tbody id="leadBody"></tbody>
   </table>
 </div>
-<div class="empty" id="emptyState" style="display:none;">No leads yet. Chat widget is active — leads will appear here.</div>
 
-<div class="toast" id="toast"></div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()"></div>
+<div class="modal" id="modal">
+  <div class="modal-header">
+    <h2 id="modalTitle">Lead Details</h2>
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="modal-dl" id="modalBody"></div>
+  </div>
+</div>
 
 <script>
-// --- Auth ---
+var leads = [];
+var sortField = 'created_at';
+var sortDir = -1;
+var autoRefresh = false;
+var autoTimer = null;
+
+function el(id) { return document.getElementById(id); }
+
 function getToken() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('token') || localStorage.getItem('fr_admin_token') || '';
+  var t = el('tokenInput').value.trim();
+  if (!t) t = new URLSearchParams(location.search).get('token') || '';
+  return t;
 }
 
-function setToken(t) {
-  localStorage.setItem('fr_admin_token', t);
+function scoreClass(score) {
+  if (score >= 70) return 'score-hot';
+  if (score >= 30) return 'score-warm';
+  return 'score-cold';
 }
 
-// --- State ---
-let leads = [];
-let sortField = 'created_at';
-let sortDir = -1;
+function scoreLabel(score) {
+  if (score >= 70) return 'HOT';
+  if (score >= 30) return 'WARM';
+  return 'COLD';
+}
 
-function scoreClass(s) {
-  if (s >= 70) return 'hot';
-  if (s >= 40) return 'warm';
-  return 'cold';
+function classificationLabel(cls) {
+  switch(cls) {
+    case 'qualified': return 'qualified';
+    case 'nurture': return 'nurture';
+    case 'not_a_fit': return 'not a fit';
+    default: return cls || 'unknown';
+  }
 }
 
 function timeAgo(iso) {
-  const ms = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(ms / 60000);
+  var ms = Date.now() - new Date(iso).getTime();
+  var mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'just now';
   if (mins < 60) return mins + 'm ago';
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return hrs + 'h ago';
-  const days = Math.floor(hrs / 24);
+  var hours = Math.floor(mins / 60);
+  if (hours < 24) return hours + 'h ago';
+  var days = Math.floor(hours / 24);
   return days + 'd ago';
 }
 
 function formatDate(iso) {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  var d = new Date(iso);
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
 }
 
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast ' + (type || '') + ' show';
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
+async function load() {
+  el('loading').style.display = 'block';
+  el('error').style.display = 'none';
+  el('tableWrap').style.display = 'none';
+  el('empty').style.display = 'none';
 
-// --- Load ---
-async function loadLeads() {
-  const token = getToken();
-  if (!token) {
-    const input = prompt('Enter admin token:');
-    if (!input) { showToast('Token required', 'error'); return; }
-    setToken(input);
-    return loadLeads();
-  }
+  var token = getToken();
+  var url = '/api/leads?limit=200';
+  if (token) url += '&token=' + encodeURIComponent(token);
 
   try {
-    const res = await fetch('/api/leads?token=' + encodeURIComponent(token));
-    if (res.status === 401) {
-      localStorage.removeItem('fr_admin_token');
-      showToast('Unauthorized — re-enter token', 'error');
-      return loadLeads();
+    var res = await fetch(url);
+    if (!res.ok) {
+      var errData = await res.json().catch(function(){ return {error: res.statusText}; });
+      throw new Error(errData.error || 'HTTP ' + res.status);
     }
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
+    var data = await res.json();
+
+    if (data.source === 'demo') {
+      el('statusBadge').innerHTML = '<span class="dot green"></span> demo data (KV not connected)';
+    } else {
+      el('statusBadge').innerHTML = '<span class="dot green"></span> live &bull; ' + data.total + ' leads';
+    }
+
     leads = data.leads || [];
-    renderStats(data.stats);
-    renderTable();
-  } catch (e) {
-    showToast('Load failed: ' + e.message, 'error');
+    applyFilters();
+  } catch (err) {
+    el('loading').style.display = 'none';
+    el('error').style.display = 'block';
+    el('error').textContent = '&#x2717; ' + err.message;
+    el('statusBadge').innerHTML = '<span style="color:var(--danger)">&#x2717; error</span>';
   }
 }
 
-// --- Stats ---
-function renderStats(stats) {
-  if (!stats) {
-    const s = { total: leads.length, qualified: 0, warm: 0, cold: 0, chat_sourced: 0, form_sourced: 0 };
-    leads.forEach(l => {
-      const sc = l.qualification_score || 0;
-      if (sc >= 70) s.qualified++;
-      else if (sc >= 40) s.warm++;
-      else s.cold++;
-      if ((l.source || '').includes('chat')) s.chat_sourced++;
-      if ((l.source || '').includes('form')) s.form_sourced++;
-    });
-    stats = s;
-  }
-  document.getElementById('statTotal').textContent = stats.total || 0;
-  document.getElementById('statHot').textContent = stats.qualified || 0;
-  document.getElementById('statWarm').textContent = stats.warm || 0;
-  document.getElementById('statCold').textContent = stats.cold || 0;
-  document.getElementById('statChat').textContent = stats.chat_sourced || 0;
-  document.getElementById('statForm').textContent = stats.form_sourced || 0;
-}
+function applyFilters() {
+  var search = el('searchInput').value.toLowerCase().trim();
+  var scoreVal = el('scoreFilter').value;
+  var sourceVal = el('sourceFilter').value;
+  var clsVal = el('classificationFilter').value;
 
-// --- Filter + Sort ---
-function filterTable() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  const status = document.getElementById('statusFilter').value;
-  const score = document.getElementById('scoreFilter').value;
-
-  let filtered = leads.filter(l => {
-    if (q && !(l.name||'').toLowerCase().includes(q) && !(l.phone||'').includes(q) && !(l.email||'').toLowerCase().includes(q)) return false;
-    if (status !== 'all' && (l.status||'new') !== status) return false;
-    const sc = l.qualification_score || 0;
-    if (score === 'hot' && sc < 70) return false;
-    if (score === 'warm' && (sc < 40 || sc >= 70)) return false;
-    if (score === 'cold' && sc >= 40) return false;
+  var filtered = leads.filter(function(l) {
+    if (search && !(l.name || '').toLowerCase().includes(search) &&
+        !(l.practice || '').toLowerCase().includes(search) &&
+        !(l.phone || '').includes(search)) return false;
+    if (scoreVal === 'hot' && l.score < 70) return false;
+    if (scoreVal === 'warm' && (l.score < 30 || l.score >= 70)) return false;
+    if (scoreVal === 'cold' && l.score >= 30) return false;
+    if (sourceVal && l.source !== sourceVal) return false;
+    if (clsVal && l.classification !== clsVal) return false;
     return true;
   });
 
-  filtered.sort((a, b) => {
-    let va = a[sortField] || '';
-    let vb = b[sortField] || '';
-    if (sortField === 'score') { va = a.qualification_score || 0; vb = b.qualification_score || 0; }
-    if (sortField === 'created_at') { va = new Date(a.created_at||0).getTime(); vb = new Date(b.created_at||0).getTime(); }
-    if (typeof va === 'string') return sortDir * va.localeCompare(vb);
-    return sortDir * (va - vb);
+  // Sort
+  filtered.sort(function(a, b) {
+    var va = a[sortField];
+    var vb = b[sortField];
+    if (sortField === 'score') {
+      return sortDir * (parseInt(va) - parseInt(vb));
+    }
+    if (sortField === 'created_at') {
+      return sortDir * (new Date(va) - new Date(vb));
+    }
+    return sortDir * ((va || '').localeCompare(vb || ''));
   });
 
-  renderRows(filtered);
+  renderStats(filtered);
+  renderTable(filtered);
 }
 
-function sortBy(field) {
-  if (field === sortField) sortDir *= -1;
-  else { sortField = field; sortDir = -1; }
-  document.querySelectorAll('.sort-dir').forEach(el => el.textContent = '');
-  const el = document.getElementById('s-' + field);
-  if (el) el.textContent = sortDir === -1 ? '▼' : '▲';
-  filterTable();
+function renderStats(filtered) {
+  var total = filtered.length;
+  var hot = filtered.filter(function(l) { return l.score >= 70; }).length;
+  var warm = filtered.filter(function(l) { return l.score >= 30 && l.score < 70; }).length;
+  var cold = filtered.filter(function(l) { return l.score < 30; }).length;
+  var chat = filtered.filter(function(l) { return l.source === 'chat_widget'; }).length;
+  var form = filtered.filter(function(l) { return l.source === 'lead_form'; }).length;
+
+  el('statTotal').textContent = total;
+  el('statHot').textContent = hot;
+  el('statWarm').textContent = warm;
+  el('statCold').textContent = cold;
+  el('statChat').textContent = chat;
+  el('statForm').textContent = form;
+  el('leadCount').textContent = total + ' leads';
 }
 
-// --- Render ---
-function renderTable() {
-  sortBy(sortField);
-}
+function renderTable(filtered) {
+  var body = el('leadBody');
+  el('loading').style.display = 'none';
 
-function renderRows(rows) {
-  const tbody = document.getElementById('leadsBody');
-  const empty = document.getElementById('emptyState');
-
-  if (!rows.length) {
-    tbody.innerHTML = '';
-    empty.style.display = 'block';
+  if (!filtered.length) {
+    el('tableWrap').style.display = 'none';
+    el('empty').style.display = 'block';
     return;
   }
-  empty.style.display = 'none';
 
-  tbody.innerHTML = rows.map(l => {
-    const sc = l.qualification_score || 0;
-    const cls = scoreClass(sc);
-    const src = (l.source || '').toLowerCase();
-    const srcClass = src.includes('chat') ? 'chat' : src.includes('form') ? 'form' : '';
-    const srcLabel = src.includes('chat') ? 'chatbot' : src.includes('form') ? 'form' : l.source || '—';
+  el('tableWrap').style.display = 'block';
+  el('empty').style.display = 'none';
 
-    return `<tr>
-      <td style="font-weight:500">${esc(l.name) || '—'}</td>
-      <td>
-        <div class="score">
-          <span style="color:var(--${cls})">${sc}</span>
-          <div class="bar"><div class="bar-inner ${cls}" style="width:${sc}%"></div></div>
-        </div>
-      </td>
-      <td style="font-size:11px;color:var(--ink-dim)">${esc(l.phone) || '—'}</td>
-      <td style="font-size:11px;color:var(--ink-dim)">${esc(l.email) || '—'}</td>
-      <td>${esc(l.practice) || '—'}</td>
-      <td><span class="source-badge${srcClass ? ' ' + srcClass : ''}">${srcLabel}</span></td>
-      <td style="font-size:11px;color:var(--ink-dim)">${esc(l.service_interest) || '—'}</td>
-      <td style="font-size:11px">${esc(timelineLabel(l.timeline))}</td>
-      <td class="summary-cell" title="${esc(l.summary||'')}">${esc(l.summary) || '—'}</td>
-      <td class="timestamp" title="${formatDate(l.created_at)}">${timeAgo(l.created_at)}</td>
-    </tr>`;
+  body.innerHTML = filtered.map(function(l) {
+    var sc = scoreClass(l.score);
+    var sl = scoreLabel(l.score);
+    var cls = classificationLabel(l.classification);
+    var sourceTag = l.source === 'chat_widget' ? 'chat' : (l.source === 'lead_form' ? 'form' : l.source);
+    var srcClass = l.source === 'chat_widget' ? 'tag chat' : 'tag form';
+    return '<tr>' +
+      '<td><strong>' + esc(l.name) + '</strong></td>' +
+      '<td style="color:var(--ink-dim);font-size:11px">' + esc(l.practice) + '</td>' +
+      '<td><a class="phone-link" href="tel:' + esc(l.phone) + '">' + esc(l.phone) + '</a></td>' +
+      '<td><span class="score-badge ' + sc + '">' + sl + ' (' + l.score + ')</span></td>' +
+      '<td style="color:' + (cls === 'qualified' ? 'var(--phos)' : cls === 'nurture' ? 'var(--amber)' : 'var(--ink-faint)') + '">' + cls + '</td>' +
+      '<td><span class="' + srcClass + '">' + esc(sourceTag) + '</span></td>' +
+      '<td style="color:var(--ink-faint);font-size:11px" title="' + formatDate(l.created_at) + '">' + timeAgo(l.created_at) + '</td>' +
+      '<td><button class="filter-btn" style="padding:3px 8px;font-size:10px;background:var(--line);color:var(--ink-dim)" onclick="showDetail(' + filtered.indexOf(l) + ')">details</button></td>' +
+      '</tr>';
   }).join('');
 }
 
-function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function timelineLabel(t) {
-  if (!t) return '—';
-  const m = { immediate: 'now', within_month: '30d', exploring: 'looking' };
-  return m[t] || t;
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// --- Init ---
-loadLeads();
-setInterval(loadLeads, 60000); // auto-refresh every 60s
+function showDetail(idx) {
+  var l = leads.filter(function(ll) {
+    var search = el('searchInput').value.toLowerCase().trim();
+    var scoreVal = el('scoreFilter').value;
+    var sourceVal = el('sourceFilter').value;
+    var clsVal = el('classificationFilter').value;
+    if (search && !(ll.name || '').toLowerCase().includes(search) &&
+        !(ll.practice || '').toLowerCase().includes(search) &&
+        !(ll.phone || '').includes(search)) return false;
+    if (scoreVal === 'hot' && ll.score < 70) return false;
+    if (scoreVal === 'warm' && (ll.score < 30 || ll.score >= 70)) return false;
+    if (scoreVal === 'cold' && ll.score >= 30) return false;
+    if (sourceVal && ll.source !== sourceVal) return false;
+    if (clsVal && ll.classification !== clsVal) return false;
+    return true;
+  })[idx];
+
+  if (!l) return;
+
+  el('modalTitle').textContent = esc(l.name);
+
+  var cls = classificationLabel(l.classification);
+  var sc = scoreClass(l.score);
+
+  el('modalBody').innerHTML =
+    '<dt>Score</dt><dd class="score"><span class="score-badge ' + sc + '">' + scoreLabel(l.score) + ' (' + l.score + '/100)</span></dd>' +
+    '<dt>Qualification</dt><dd style="color:' + (l.classification === 'qualified' ? 'var(--phos)' : l.classification === 'nurture' ? 'var(--amber)' : 'var(--ink-faint)') + '">' + cls + '</dd>' +
+    '<dt>Practice</dt><dd>' + esc(l.practice) + '</dd>' +
+    '<dt>Phone</dt><dd><a class="phone-link" href="tel:' + esc(l.phone) + '">' + esc(l.phone) + '</a></dd>' +
+    '<dt>Email</dt><dd>' + esc(l.email || '-') + '</dd>' +
+    '<dt>Niche</dt><dd>' + esc(l.niche || '-') + '</dd>' +
+    '<dt>Volume</dt><dd>' + esc((l.volume || '').replace(/_/g,' ')) + '</dd>' +
+    '<dt>Source</dt><dd>' + esc((l.source || '').replace(/_/g,' ')) + '</dd>' +
+    '<dt>Budget Tier</dt><dd>' + esc(l.budget_tier || '-') + '</dd>' +
+    '<dt>Service Interest</dt><dd>' + esc(l.service_interest || '-') + '</dd>' +
+    '<dt>Timeline</dt><dd>' + esc((l.timeline || '').replace(/_/g,' ')) + '</dd>' +
+    '<dt>Summary</dt><dd>' + esc(l.summary || '-') + '</dd>' +
+    '<dt>Captured</dt><dd>' + formatDate(l.created_at) + '</dd>';
+
+  el('modalOverlay').classList.add('open');
+  el('modal').classList.add('open');
+}
+
+function closeModal() {
+  el('modalOverlay').classList.remove('open');
+  el('modal').classList.remove('open');
+}
+
+// Sort click handlers
+document.querySelectorAll('th[data-sort]').forEach(function(th) {
+  th.addEventListener('click', function() {
+    var field = th.getAttribute('data-sort');
+    if (sortField === field) {
+      sortDir *= -1;
+    } else {
+      sortField = field;
+      sortDir = -1;
+    }
+    document.querySelectorAll('th[data-sort]').forEach(function(t) { t.classList.remove('sorted'); });
+    th.classList.add('sorted');
+    applyFilters();
+  });
+});
+
+// Filter events
+el('searchInput').addEventListener('input', applyFilters);
+el('scoreFilter').addEventListener('change', applyFilters);
+el('sourceFilter').addEventListener('change', applyFilters);
+el('classificationFilter').addEventListener('change', applyFilters);
+el('refreshBtn').addEventListener('click', load);
+el('tokenInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') load(); });
+
+// Auto-refresh toggle
+el('autoRefreshBtn').addEventListener('click', function() {
+  autoRefresh = !autoRefresh;
+  if (autoRefresh) {
+    el('autoRefreshBtn').style.background = 'var(--phos)';
+    el('autoRefreshBtn').style.color = '#000';
+    autoTimer = setInterval(load, 30000);
+  } else {
+    el('autoRefreshBtn').style.background = 'var(--line)';
+    el('autoRefreshBtn').style.color = 'var(--ink)';
+    clearInterval(autoTimer);
+  }
+});
+
+// Keyboard shortcut: Escape closes modal
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+// Load on startup
+var initialToken = new URLSearchParams(location.search).get('token');
+if (initialToken) el('tokenInput').value = initialToken;
+load();
 </script>
 </body>
 </html>
