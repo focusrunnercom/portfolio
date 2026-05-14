@@ -21,7 +21,7 @@ import { kvGet } from './kv.js';
 import { notifyLead } from './lib/lead-notify.js';
 import { record as storeLead } from './lib/notify.js';
 
-const AI_TIMEOUT_MS = 15000;
+const AI_TIMEOUT_MS = 25000;
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 
 /**

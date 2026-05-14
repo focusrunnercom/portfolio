@@ -1,4 +1,12 @@
 {
+  "functions": {
+    "api/chat.js": {
+      "maxDuration": 30
+    },
+    "api/webhook.js": {
+      "maxDuration": 30
+    }
+  },
   "framework": "vite",
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist",
