@@ -1,16 +1,4 @@
 {
-  "functions": {
-    "api/chat.py": {
-      "runtime": "python3.11",
-      "maxDuration": 30,
-      "memory": 512
-    },
-    "api/webhook.py": {
-      "runtime": "python3.11",
-      "maxDuration": 15,
-      "memory": 256
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
