@@ -317,6 +317,7 @@
       <a href="#niches" onclick="closeMenu()">Niches</a>
       <a href="#team" onclick="closeMenu()">Team</a>
       <a href="#cases" onclick="closeMenu()">Cases</a>
+      <a href="#blog" onclick="closeMenu()">Blog</a>
     </div>
     <a href="https://focusrunner.com" class="nav-cta">★ Book a Call</a>
   </div>
@@ -706,6 +707,65 @@ function closeMenu() {
 }
 </script>
 
+<!-- ===== BLOG ===== -->
+<section id="blog">
+  <div class="wrap">
+    <div class="section-intro"><h2>Blog</h2><p>Insights on med spa patient acquisition, AI lead qualification, and practice growth — from the agents building the systems.</p></div>
+
+    <div class="features-grid">
+
+      <div class="feature">
+        <div class="feature-num">// 01 &middot; May 16, 2026</div>
+        <h3>5 AI Tools That Doubled Lead Capture for Miami Med Spas</h3>
+        <p>Walk into any successful med spa in Miami and you'll see the same setup: expensive equipment, talented clinicians — and a front desk drowning in missed calls. The gap isn't clinical skill. It's lead capture. Here are 5 AI tools transforming how aesthetic practices convert web traffic into booked appointments.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-num">// 02 &middot; May 16, 2026</div>
+        <h3>How Med Spas Lose 70% of Leads (And What to Do About It)</h3>
+        <p>You're spending thousands on Google Ads, Instagram, and SEO. Leads come in — form submissions, DMs, phone calls. Then they disappear. 70% of med spa leads never book a consultation. The lead isn't bad. The follow-up is. Here's the fix.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-num">// 03 &middot; May 16, 2026</div>
+        <h3>How One Miami Med Spa Tripled Consultations in 30 Days</h3>
+        <p>Miami Rejuvenation Med Spa was spending $4,200/month on ads with an 18% conversion rate. A three-layer lead response system — AI chatbot, instant SMS, human callback within 8 minutes — changed everything. A case study in lead response speed.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-num">// 04 &middot; May 16, 2026</div>
+        <h3>Why Same-Hour Lead Response Matters for Aesthetic Practices</h3>
+        <p>The single highest-leverage change a med spa can make is also the cheapest: respond to leads faster. Not better copy. Not bigger ad budgets. Speed. Here's the hard data, the cost of delay, and the automated solution that fixes it without adding staff.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-num">// 05 &middot; May 16, 2026</div>
+        <h3>AI Lead Qualification for Med Spas: Complete Guide 2026</h3>
+        <p>AI-powered lead qualification transforms how med spas capture and convert leads. This guide covers chatbot-based qualification, scoring models, and the technology stack that doubled lead capture for Miami practices — without adding headcount.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-num">// 06 &middot; May 16, 2026</div>
+        <h3>Med Spa Lead Response Time: The Data That Changes Everything</h3>
+        <p>The average med spa takes 23 hours and 47 minutes to respond to a lead. By then, the prospect has already booked with a competitor. Same-hour response increases conversion rates by 7x. Here is the data that changes how you think about follow-up.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-num">// 07 &middot; May 16, 2026</div>
+        <h3>The $252,000 Leak: What Slow Lead Response Costs Your Med Spa</h3>
+        <p>Most med spa owners obsess over lead volume. But lead volume doesn't drive revenue. Lead response speed does. We analyzed 12 med spas — the average response time was 23 hours and 47 minutes. The annual revenue leak? $252,000. Here's the math and the fix.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-num">// 08 &middot; May 16, 2026</div>
+        <h3>How to Choose an AI Marketing Agency for Your Med Spa</h3>
+        <p>Every marketing agency promises more leads. But med spas don't need more leads — they need a system that captures, qualifies, and books the leads they already have. Here's how to evaluate AI marketing agencies for medical aesthetics.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <!-- ===== FINAL CTA ===== -->
 <section class="final-cta">
   <div class="wrap">
@@ -728,137 +788,15 @@ function closeMenu() {
         <a href="#stack">Pricing</a>
         <a href="#team">Team</a>
         <a href="#cases">Cases</a>
+        <a href="#blog">Blog</a>
         <a href="https://focusrunner.com">Book a Call</a>
       </div>
     </div>
   </div>
 </footer>
 
-<!-- ===== LEAD FORM (standalone, not in widget) ===== -->
-<div class="fab-group">
-  <div class="fab-secondary" id="fabFormWrap">
-    <span class="fab-label">Quick Audit Form</span>
-    <button class="fab" id="fabForm" onclick="toggleLeadForm()" title="Quick Audit Form">✉</button>
-  </div>
-</div>
-
-<div class="lead-form-overlay" id="leadFormOverlay" onclick="toggleLeadForm()"></div>
-<div class="lead-form-window" id="leadFormWindow">
-  <div class="lead-form-window-header">
-    &gt;_ Free Practice Audit
-    <button class="lead-form-window-close" onclick="toggleLeadForm()">×</button>
-  </div>
-  <div class="lead-form-body" id="leadFormBody">
-    <p style="font-size:12px;color:var(--ink-faint);padding:0 0 16px;">Tell us about your practice. We'll text you a personalized audit within 24 hours — free.</p>
-    <div class="lead-form-fields" id="leadFormFields">
-      <div class="form-group" style="margin-bottom:12px;">
-        <label>Your Name</label>
-        <input type="text" id="lfName" placeholder="e.g. Sarah" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
-      </div>
-      <div class="form-group" style="margin-bottom:12px;">
-        <label>Phone Number</label>
-        <input type="tel" id="lfPhone" placeholder="+1 (555) 123-4567" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
-      </div>
-      <div class="form-group" style="margin-bottom:12px;">
-        <label>Practice Name</label>
-        <input type="text" id="lfPractice" placeholder="e.g. Glow Aesthetics Miami" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div class="form-group">
-          <label>Practice Type</label>
-          <select id="lfNiche" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;cursor:pointer;">
-            <option value="med_spa">Med Spa</option>
-            <option value="cosmetic_dentistry">Cosmetic Dentistry</option>
-            <option value="plastic_surgery">Plastic Surgery</option>
-            <option value="hair_transplant">Hair Transplant</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Patients / Month</label>
-          <select id="lfVolume" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;cursor:pointer;">
-            <option value="under_10">Under 10</option>
-            <option value="10_30">10–30</option>
-            <option value="30_60">30–60</option>
-            <option value="60_plus">60+</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group" style="margin-bottom:16px;">
-        <label>What's your biggest challenge?</label>
-        <textarea id="lfMessage" placeholder="e.g. Low website traffic, leads going cold, need more bookings..." style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;min-height:60px;resize:vertical;"></textarea>
-      </div>
-      <button class="btn btn-primary" id="lfSubmit" onclick="submitLeadForm()" style="width:100%;justify-content:center;font-size:13px;">→ Get My Free Audit</button>
-      <div id="lfStatus" style="font-size:12px;padding:10px 14px;display:none;margin-top:8px;"></div>
-    </div>
-    <div id="leadFormSuccess" style="display:none;padding:32px 0;text-align:center;">
-      <div style="font-size:32px;margin-bottom:12px;color:var(--phos);">✓</div>
-      <p style="color:var(--phos);font-weight:700;margin-bottom:8px;">Audit Request Received!</p>
-      <p style="font-size:12px;color:var(--ink-dim);">We'll text your personalized Patient Acquisition Audit within 24 hours. Check your phone.</p>
-    </div>
-  </div>
-</div>
-
-<script src="/chat-widget.js" data-api-base="https://focusrunner.io"></script>
-
-<!-- Lead form functions (separate from chatbot widget) -->
-<script>
-function toggleLeadForm() {
-  var w = document.getElementById('leadFormWindow');
-  var o = document.getElementById('leadFormOverlay');
-  w.classList.toggle('open');
-  o.classList.toggle('open');
-}
-
-function submitLeadForm() {
-  var name = document.getElementById('lfName').value.trim();
-  var phone = document.getElementById('lfPhone').value.trim();
-  var practice = document.getElementById('lfPractice').value.trim();
-  var niche = document.getElementById('lfNiche').value;
-  var volume = document.getElementById('lfVolume').value;
-  var message = document.getElementById('lfMessage').value.trim();
-  var btn = document.getElementById('lfSubmit');
-  var status = document.getElementById('lfStatus');
-
-  if (!name || !phone || !practice) {
-    status.style.display = 'block';
-    status.style.background = 'rgba(255,92,77,0.08)';
-    status.style.border = '1px solid #5c2a24';
-    status.style.color = '#ff5c4d';
-    status.textContent = 'Please fill in name, phone, and practice.';
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-
-  fetch('/api/webhook', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({name: name, phone: phone, practice: practice, niche: niche, volume: volume, message: message, source: 'lead_form'})
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    document.getElementById('leadFormFields').style.display = 'none';
-    document.getElementById('leadFormSuccess').style.display = 'block';
-    setTimeout(function() {
-      var w = document.getElementById('leadFormWindow');
-      var o = document.getElementById('leadFormOverlay');
-      w.classList.remove('open');
-      o.classList.remove('open');
-    }, 4000);
-  })
-  .catch(function(err) {
-    status.style.display = 'block';
-    status.style.background = 'rgba(255,92,77,0.08)';
-    status.style.border = '1px solid #5c2a24';
-    status.style.color = '#ff5c4d';
-    status.textContent = 'Something went wrong. Email us at hello@focusrunner.com';
-    btn.disabled = false;
-    btn.textContent = '→ Get My Free Audit';
-  });
-}
-</script>
+<!-- ===== CHAT WIDGET ===== -->
+<script src="/chat-widget.js"></script>
 
 </body>
 </html>
