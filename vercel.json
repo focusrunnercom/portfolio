@@ -1,19 +1,21 @@
 {
+  "builds": [
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "*.js", "use": "@vercel/static" },
+    { "src": "public/**", "use": "@vercel/static" },
+    { "src": "api/*.js", "use": "@vercel/node" }
+  ],
   "rewrites": [
     { "source": "/api/chat", "destination": "/api/chat.js" },
     { "source": "/api/webhook", "destination": "/api/webhook.js" },
     { "source": "/api/leads", "destination": "/api/leads.js" },
-    { "source": "/api/leads/export", "destination": "/api/leads.js" },
     { "source": "/api/analytics", "destination": "/api/analytics.js" },
     { "source": "/api/health", "destination": "/api/health.js" },
-    { "source": "/api/send-outreach", "destination": "/api/send-outreach.js" },
-    { "source": "/api/call", "destination": "/api/call.js" },
-    { "source": "/api/call-log", "destination": "/api/call-log.js" }
+    { "source": "/api/send-outreach", "destination": "/api/send-outreach.js" }
   ],
   "redirects": [
     {
-      "source": "/(.*)",
-      "destination": "https://focusrunner.io/$1",
+      "source": "/(.*)", "destination": "https://focusrunner.io/$1",
       "has": [{ "type": "host", "value": "www.focusrunner.com" }],
       "statusCode": 301
     }
