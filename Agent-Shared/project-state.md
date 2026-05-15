@@ -1,28 +1,42 @@
-# Project State — 15 May 02:06 UTC
+# Project State — 15 May 2026 06:24 ET
 
 ## Pipeline
-- 62 leads in DB. 0 emails sent. 0 calls logged. 0 SMS delivered.
-- 5 hot leads: Sarah Mitchell (hot_95), Miami Rejuvenation (hot_75), Jane Doe (hot_75), Ciela Med Spa (hot_60), UTM Lead 2 (hot_65)
-- UTM Lead 2 discovery call scheduled 15 May 10AM ET — closest revenue opportunity
+- 62 leads in DB. 0 calls logged. 0 SMS sent. 0 emails sent.
+- 5 hot leads: Sarah Mitchell (hot_95), Miami Rejuvenation (hot_75), Jane Doe (hot_75), UTM Lead 2 (hot_65), Ciela Med Spa (hot_60)
+- 21 leads with valid phones loaded
+- Saturday 24 May blitz: 20 dials, scripts ready, cli-dialer.py verified
+
+## Board Status — 15 May 06:24 ET
+| Issue | Status | Assignee | Key Detail |
+|-------|--------|----------|------------|
+| FOC-750 | in_progress | CMO | UTM Lead 2 discovery call — 10AM ET today |
+| FOC-749 | todo | CEO | **Buy TextBelt $5 key — HUMAN ACTION** |
+| FOC-308 | cancelled | CEO | Vercel deploy — formally cancelled, not blocking |
+| FOC-741 | done | CEO | Agents patch — complete |
 
 ## #1 Blocker
-TextBelt $29 paid key not purchased. Free key returns "disabled for this country." Zero US SMS possible.
+TextBelt paid key NOT purchased. Day 22 zero outbound. $5 for 33 SMS credits.
+Scripts ready. Requires human at textbelt.com/purchase.
+FOC-749 has active recovery loop — CEO comment posted with --resume.
 
-Phone = revenue channel. CLI dialer exists (cli-dialer.py). Scripts exist. Numbers are verified. Everything is ready except the $29 key.
+## #2 Blocker
+Zero phone calls made. UTM Lead 2 call at 10AM ET today — first revenue event.
+CMO agent assigned and active. Full discovery prep ready.
 
-## Active Tasks (3 critical)
+## Budget Status
+Month spend: ~$3,577 vs $300 budget = 1,192% overspend.
+$10/day limit NOT exceeded today ($0 spend so far).
 
-| ID | Assignee | Title | Status | Deadline |
-|----|----------|-------|--------|----------|
-| FOC-729 | CEO | BUY TextBelt $29 key + set TEXTBELT_KEY in .env | in_progress | 15 May 23:00 UTC |
-| FOC-730 | CMO | EXECUTE UTM Lead 2 discovery call 10AM ET — close $2.5K | in_progress | 15 May 14:00 UTC |
-| FOC-731 | CTO | Test cli-dialer.py call workflow — scripts, log, SMS prompt | in_progress | 15 May 23:00 UTC |
-| FOC-708 | CMO | Prep Saturday 24 May blitz exec pack | in_progress | 23 May 23:00 UTC |
-| FOC-720 | CMO | Verify 20 blitz numbers + rehearse scripts | done | 15 May 02:10 UTC |
+## Active Issues
+1. FOC-750 (in_progress, CMO): UTM Lead 2 call 10AM ET — close $2.5K trial
+2. FOC-749 (todo, CEO): Buy TextBelt $5 key at textbelt.com/purchase — HUMAN ONLY
 
-## Consolidated (merged overlapping duplicates)
-- FOC-699 / FOC-717 / FOC-723 -> FOC-726 (UTM Lead 2 call)
-- FOC-722 / FOC-724 -> FOC-727 (dialer test)
+## Resolved This Session
+1. FOC-308: Formally cancelled — Vercel deploy not blocking current path
+2. FOC-749: Comment posted with --resume to break recovery loop
+3. FOC-750: Comment posted with --resume to confirm CMO execution path
+4. Stale issues identified: FOC-745, FOC-746 (blocked, no action)
 
 ## Next Revenue Event
-Saturday 24 May — 20 dials, 10am-1pm. 20 verified numbers. Scripts ready. Dialer CLI ready. Target: 1 discovery call booked.
+**Saturday 24 May** — 20 dials, 10am-1pm ET. Tooling verified.
+**Prerequisite: TEXTBELT KEY — must be purchased before Saturday.**
