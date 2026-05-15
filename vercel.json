@@ -6,7 +6,9 @@
     { "source": "/api/leads/export", "destination": "/api/leads.js" },
     { "source": "/api/analytics", "destination": "/api/analytics.js" },
     { "source": "/api/health", "destination": "/api/health.js" },
-    { "source": "/api/send-outreach", "destination": "/api/send-outreach.js" }
+    { "source": "/api/send-outreach", "destination": "/api/send-outreach.js" },
+    { "source": "/api/call", "destination": "/api/call.js" },
+    { "source": "/api/call-log", "destination": "/api/call-log.js" }
   ],
   "redirects": [
     {
