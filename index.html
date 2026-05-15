@@ -734,16 +734,14 @@ function closeMenu() {
   </div>
 </footer>
 
-<!-- ===== DUAL FLOATING FABS ===== -->
+<!-- ===== LEAD FORM (standalone, not in widget) ===== -->
 <div class="fab-group">
-  <button class="fab primary" id="fabChat" onclick="toggleChat()" title="Free Practice Growth Audit">💬<span class="dot" id="chatDot"></span></button>
   <div class="fab-secondary" id="fabFormWrap">
     <span class="fab-label">Quick Audit Form</span>
     <button class="fab" id="fabForm" onclick="toggleLeadForm()" title="Quick Audit Form">✉</button>
   </div>
 </div>
 
-<!-- ===== LEAD FORM OVERLAY ===== -->
 <div class="lead-form-overlay" id="leadFormOverlay" onclick="toggleLeadForm()"></div>
 <div class="lead-form-window" id="leadFormWindow">
   <div class="lead-form-window-header">
@@ -798,18 +796,6 @@ function closeMenu() {
       <p style="color:var(--phos);font-weight:700;margin-bottom:8px;">Audit Request Received!</p>
       <p style="font-size:12px;color:var(--ink-dim);">We'll text your personalized Patient Acquisition Audit within 24 hours. Check your phone.</p>
     </div>
-  </div>
-</div>
-
-<div class="chat-window" id="chatWindow">
-  <div class="chat-window-header">
-    &gt;_ Free Practice Audit
-    <button class="chat-window-close" onclick="toggleChat()">×</button>
-  </div>
-  <div class="chat-messages" id="chatMessages"></div>
-  <div class="chat-input-area" id="chatInputArea">
-    <input type="text" class="chat-input" id="chatInput" placeholder="Type your answer..." onkeydown="if(event.key==='Enter')sendMessage()">
-    <button class="chat-send" onclick="sendMessage()">→</button>
   </div>
 </div>
 
