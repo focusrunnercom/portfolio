@@ -1,56 +1,308 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FocusRunner | Done-for-You AI Marketing Services</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
-            colors: {
-              'brand-blue': '#0070f3',
-              'brand-cyan': '#7928ca',
-              'dark-primary': '#111111',
-              'dark-secondary': '#1a1a1a',
-              'dark-tertiary': '#2a2a2a',
-              'text-primary': '#f0f0f0',
-              'text-secondary': '#a0a0a0',
-            },
-            animation: {
-              'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
-            },
-            keyframes: {
-              fadeInUp: {
-                '0%': { opacity: '0', transform: 'translateY(20px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
-            },
-          },
-        },
-      }
-    </script>
-<script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0"
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FocusRunner — AI Patient Acquisition System</title>
+<meta name="description" content="AI-powered patient acquisition for med spas, cosmetic dentistry, and elective healthcare. 15+ qualified leads in 30 days or it's free. $2,500 setup + $2,500/mo.">
+<meta property="og:title" content="FocusRunner — AI Patient Acquisition System">
+<meta property="og:description" content="AI-powered patient acquisition for med spas, cosmetic dentistry, and elective healthcare. 15+ qualified leads in 30 days or it's free.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://focusrunner.io">
+<meta property="og:site_name" content="FocusRunner">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FocusRunner — AI Patient Acquisition System">
+<meta name="twitter:description" content="AI-powered patient acquisition. 15+ qualified leads in 30 days or it's free.">
+<link rel="canonical" href="https://focusrunner.io">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='8' fill='%230d120f'/><text x='32' y='46' font-family='monospace' font-size='40' font-weight='bold' fill='%236eff8a' text-anchor='middle'>&gt;_</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e;
+    --ink-faint: #3f4a43; --bg-panel: #0d120f; --bg-2: #0f1412;
+    --line: #1a2620; --line-bright: #2a3f33; --amber: #ffb547; --danger: #ff5c4d;
   }
-}
-</script>
-<script type="text/javascript">
-(function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === "init") { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if (namespace) { cal.ns[namespace] = cal.ns[namespace] || api; } return api; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
-Cal("init");
-</script>
+  html { scroll-behavior: smooth; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+  .wrap-narrow { max-width: 800px; margin: 0 auto; padding: 0 32px; }
+
+  /* ===== NAV ===== */
+  nav { position: sticky; top: 0; z-index: 100; background: var(--bg-panel); border-bottom: 1px solid var(--line); }
+  .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { color: var(--phos); font-weight: 700; font-size: 15px; text-decoration: none; }
+  .logo-text { color: var(--ink); }
+  .nav-links { display: flex; gap: 24px; align-items: center; }
+  .nav-links a { color: var(--ink-dim); text-decoration: none; font-size: 13px; transition: color .15s; }
+  .nav-links a:hover { color: var(--phos); }
+  .nav-cta { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--line); color: var(--ink); text-decoration: none; font-size: 12px; font-weight: 500; }
+  .nav-cta:hover { background: var(--line-bright); }
+
+  .hamburger { display: none; background: none; border: none; color: var(--ink); font-size: 22px; cursor: pointer; padding: 4px 8px; font-family: 'JetBrains Mono', monospace; }
+
+  /* Dropdown */
+  .dropdown { position: relative; }
+  .dropdown-toggle { cursor: pointer; user-select: none; }
+  .dropdown-toggle::after { content: ' ▾'; font-size: 10px; }
+  .dropdown-menu { display: none; position: absolute; top: 100%; left: -12px; background: var(--bg-panel); border: 1px solid var(--line-bright); min-width: 300px; z-index: 101; padding: 4px 0; }
+  .dropdown:hover .dropdown-menu { display: block; }
+  .dropdown-menu .dd-header { padding: 8px 16px 4px; font-size: 10px; color: var(--ink-faint); letter-spacing: .5px; }
+  .dropdown-menu .dd-item { display: block; padding: 8px 16px; font-size: 12px; color: var(--ink-dim); text-decoration: none; transition: background .1s; }
+  .dropdown-menu .dd-item:hover { background: var(--bg-2); color: var(--phos); }
+  .dropdown-menu .dd-item .case-tag { font-size: 10px; color: var(--phos); display: block; margin-bottom: 1px; }
+  .dropdown-menu .dd-divider { height: 1px; background: var(--line); margin: 4px 0; }
+  .dropdown-menu .dd-faint { font-size: 10px; color: var(--ink-faint); padding: 6px 16px; font-style: italic; }
+
+  /* ===== SECTIONS ===== */
+  section { padding: 80px 0; }
+  section + section { border-top: 1px solid var(--line); }
+  .section-intro { text-align: center; margin-bottom: 48px; }
+  .section-intro h2 { font-size: clamp(22px, 3.5vw, 30px); font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .section-intro p { color: var(--ink-faint); font-size: 14px; }
+
+  /* ===== HERO ===== */
+  .hero { padding: 100px 0 80px; text-align: center; border-top: none; }
+  .hero-topline { display: inline-block; padding: 4px 12px; background: var(--line); color: var(--phos); font-size: 11px; font-weight: 500; letter-spacing: .5px; margin-bottom: 24px; }
+  .hero-title { font-size: clamp(32px, 6vw, 56px); font-weight: 700; color: var(--ink); line-height: 1.15; margin-bottom: 16px; letter-spacing: -1px; }
+  .hero-title em { color: var(--phos); font-style: normal; }
+  .hero-subtitle { font-size: clamp(16px, 2.5vw, 20px); color: var(--ink-dim); font-weight: 400; margin-bottom: 12px; }
+  .hero-sub { font-size: 14px; color: var(--ink-faint); margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.7; }
+  .hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; text-decoration: none; transition: all .15s; cursor: pointer; }
+  .btn-primary { background: var(--phos); color: #000; border: none; font-weight: 700; }
+  .btn-primary:hover { background: #8affa0; }
+  .btn-secondary { background: transparent; color: var(--ink); border: 1px solid var(--line-bright); }
+  .btn-secondary:hover { border-color: var(--phos); color: var(--phos); }
+
+  /* ===== TERMINAL ===== */
+  .terminal { max-width: 700px; margin: 0 auto; border: 1px solid var(--line-bright); background: #080b09; }
+  .terminal-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .terminal-dots { display: flex; gap: 6px; }
+  .terminal-dots span { width: 10px; height: 10px; display: block; }
+  .terminal-dots span:nth-child(1) { background: var(--danger); }
+  .terminal-dots span:nth-child(2) { background: var(--amber); }
+  .terminal-dots span:nth-child(3) { background: var(--phos); }
+  .terminal-title { color: var(--ink-faint); }
+  .terminal-body { padding: 16px 14px; font-size: 13px; line-height: 1.8; }
+  .line { display: block; position: relative; }
+  .prompt { color: var(--phos); }
+  .cmd { color: var(--ink); }
+  .comment { color: var(--ink-faint); }
+  .out { color: var(--ink-dim); }
+  .ok { color: var(--phos); }
+  .warn { color: var(--amber); }
+  .cursor { display: inline-block; width: 8px; height: 16px; background: var(--phos); animation: blink 1s step-end infinite; vertical-align: text-bottom; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ===== FEATURES ===== */
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .feature { background: var(--bg-panel); padding: 32px 24px; display: flex; flex-direction: column; gap: 8px; }
+  .feature-num { font-size: 12px; color: var(--phos); font-weight: 700; }
+  .feature h3 { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .feature p { font-size: 13px; color: var(--ink-dim); line-height: 1.6; }
+
+  /* ===== STACK ===== */
+  .stack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .stack-card { background: var(--bg-panel); padding: 32px 24px; }
+  .stack-card.featured { background: #0a140d; border: 1px solid var(--phos-dim); margin: -1px; }
+  .stack-card .tag { display: inline-block; padding: 2px 8px; background: var(--phos); color: #000; font-size: 10px; font-weight: 700; margin-bottom: 12px; }
+  .stack-card h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .stack-card .price { font-size: 32px; font-weight: 700; color: var(--phos); margin: 8px 0; }
+  .stack-card .price span { font-size: 14px; color: var(--ink-dim); font-weight: 400; }
+  .stack-card .desc { font-size: 13px; color: var(--ink-dim); margin-bottom: 16px; line-height: 1.5; }
+  .stack-card .features { list-style: none; }
+  .stack-card .features li { font-size: 12px; color: var(--ink-dim); padding: 4px 0; }
+  .stack-card .features li::before { content: '✓ '; color: var(--phos); }
+
+  /* ===== MANIFESTO ===== */
+  .manifesto-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .manifesto-item { background: var(--bg-panel); padding: 32px 24px; }
+  .manifesto-num { font-size: 12px; color: var(--phos); font-weight: 700; margin-bottom: 8px; }
+  .manifesto-item h3 { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .manifesto-item p { font-size: 13px; color: var(--ink-dim); line-height: 1.6; }
+
+  /* ===== TABLE ===== */
+  .compare-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); }
+  .compare-table th { text-align: left; padding: 14px 16px; font-size: 12px; font-weight: 700; color: var(--ink-dim); border-bottom: 1px solid var(--line); background: var(--bg-2); }
+  .compare-table td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--line); }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .num { color: var(--phos); font-weight: 700; font-size: 22px; }
+  .compare-table .txt { color: var(--ink); }
+  .compare-table .toks { color: var(--ink-dim); font-size: 12px; }
+
+  /* ===== NICHES ===== */
+  .niche-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .niche-item { background: var(--bg-panel); padding: 24px 20px; text-align: center; }
+  .niche-item .icon { font-size: 24px; margin-bottom: 8px; }
+  .niche-item h4 { font-size: 14px; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
+  .niche-item p { font-size: 12px; color: var(--ink-faint); }
+
+  /* ===== TEAM ===== */
+  .org-tree { font-size: 13px; line-height: 2; padding: 32px; background: var(--bg-2); border: 1px solid var(--line); margin-bottom: 48px; }
+  .org-tree .branch { margin-left: 32px; border-left: 1px solid var(--line); padding-left: 16px; }
+  .org-tree .node { padding: 2px 0; }
+  .org-tree .commander { color: var(--phos); font-weight: 700; }
+  .org-tree .ceo { color: var(--amber); font-weight: 700; }
+  .org-tree .pi { color: var(--phos); }
+  .org-tree .td { color: var(--amber); font-weight: 600; }
+  .org-tree .label { color: var(--ink-faint); font-size: 11px; margin-left: 8px; }
+  .agent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .agent-card { background: var(--bg-panel); padding: 28px 20px; }
+  .agent-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .agent-card h3 { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .agent-card .role { font-size: 12px; color: var(--phos); font-weight: 500; margin-bottom: 8px; }
+  .agent-card .desc { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+
+  /* ===== CASE STUDIES — EXPANDABLE CARDS ===== */
+  .case-card { background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; transition: border-color .2s; cursor: pointer; }
+  .case-card:hover { border-color: var(--line-bright); }
+  .case-header { display: flex; align-items: flex-start; gap: 24px; padding: 28px; }
+  .case-img { width: 64px; height: 64px; flex-shrink: 0; background: var(--line); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--ink-faint); }
+  .case-info { flex: 1; min-width: 0; }
+  .case-info .case-tag { font-size: 11px; color: var(--phos); font-weight: 500; margin-bottom: 6px; }
+  .case-info h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .case-info .case-sub { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+  .case-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--phos); background: none; border: none; cursor: pointer; margin-top: 8px; transition: color .15s; }
+  .case-toggle:hover { color: #8affa0; }
+  .case-toggle .chevron { display: inline-block; transition: transform .3s ease; font-size: 10px; }
+  .case-card.open .chevron { transform: rotate(180deg); }
+  .case-body { max-height: 0; overflow: hidden; transition: max-height .4s ease, padding .4s ease; }
+  .case-card.open .case-body { max-height: 3000px; }
+  .case-body-inner { padding: 0 28px 28px; }
+  .case-metrics { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
+  .case-metric { font-size: 12px; color: var(--ink-dim); }
+  .case-metric strong { color: var(--phos); font-size: 15px; }
+
+  .client-box { background: var(--bg-panel); border: 1px solid var(--line); padding: 20px; margin: 20px 0; }
+  .client-box p { margin-bottom: 4px; }
+  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin: 24px 0; }
+  .metric-box { text-align: center; background: var(--bg-panel); padding: 20px 10px; }
+  .metric-box .val { font-size: 24px; font-weight: 700; color: var(--phos); }
+  .metric-box .lbl { color: var(--ink-faint); font-size: 11px; margin-top: 4px; line-height: 1.4; }
+  .phase-list { margin: 16px 0; }
+  .phase { display: flex; justify-content: space-between; align-items: center; background: var(--bg-panel); border: 1px solid var(--line); padding: 14px 16px; margin-bottom: 4px; }
+  .phase-name { font-size: 13px; color: var(--ink); font-weight: 500; }
+  .phase-del { font-size: 11px; color: var(--ink-faint); display: block; margin-top: 2px; }
+  .phase-dur { font-size: 12px; color: var(--phos); font-weight: 500; }
+  blockquote { border-left: 2px solid var(--phos); padding: 16px 20px; color: var(--ink-dim); font-size: 13px; font-style: italic; background: var(--bg-panel); margin: 24px 0; }
+  blockquote strong { color: var(--ink); display: block; margin-top: 12px; font-style: normal; font-size: 12px; }
+  td.up { color: var(--phos); }
+
+  /* ===== CTA ===== */
+  .final-cta { padding: 100px 0; text-align: center; }
+  .final-cta h2 { font-size: clamp(24px, 4vw, 36px); font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+  .final-cta p { color: var(--ink-dim); margin-bottom: 32px; font-size: 14px; }
+
+  /* ===== FOOTER ===== */
+  footer { border-top: 1px solid var(--line); padding: 40px 0; }
+  .footer-grid { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .footer-col { font-size: 12px; color: var(--ink-faint); }
+  .footer-col a { color: var(--ink-dim); text-decoration: none; margin-left: 16px; }
+  .footer-col a:hover { color: var(--phos); }
+
+  @media (max-width: 768px) {
+    .hamburger { display: block; }
+    .nav-links { display: none; flex-direction: column; position: absolute; top: 56px; left: 0; right: 0; background: var(--bg-panel); border-bottom: 1px solid var(--line); padding: 12px 32px; gap: 12px; z-index: 100; }
+    .nav-links.mobile-open { display: flex; }
+    .nav-cta { padding: 4px 10px; font-size: 11px; }
+  }
+  @media (max-width: 640px) {
+    .nav-links { display: none; }
+    section { padding: 48px 0; }
+    .hero { padding: 64px 0 48px; }
+    .hero-ctas { flex-direction: column; align-items: center; }
+    .btn { width: 100%; justify-content: center; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+    .chat-window { right: 8px; bottom: 80px; width: calc(100vw - 16px); max-width: 360px; }
+    .lead-form-window { width: calc(100vw - 16px); max-width: 400px; }
+  }
+
+  /* ===== LEAD CAPTURE CHAT WIDGET ===== */
+  .chat-fab {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    width: 56px; height: 56px; border-radius: 0; border: 1px solid var(--phos);
+    background: var(--bg-panel); color: var(--phos);
+    font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: transform .15s, box-shadow .15s; font-family: 'JetBrains Mono', monospace;
+  }
+  .chat-fab:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(110,255,138,0.15); }
+  .chat-fab .dot { 
+    position: absolute; top: -4px; right: -4px; width: 12px; height: 12px;
+    background: var(--phos); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  
+  .chat-window {
+    position: fixed; bottom: 92px; right: 24px; z-index: 998;
+    width: 340px; max-height: 480px; background: var(--bg-panel);
+    border: 1px solid var(--line-bright); display: none; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .chat-window.open { display: flex; }
+  .chat-window-header {
+    padding: 14px 16px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; font-weight: 700; color: var(--phos);
+  }
+  .chat-window-close { background: none; border: none; color: var(--ink-faint); cursor: pointer; font-size: 18px; font-family: 'JetBrains Mono', monospace; }
+  .chat-window-close:hover { color: var(--danger); }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; max-height: 300px; }
+  .chat-msg { font-size: 12px; line-height: 1.5; max-width: 85%; padding: 10px 14px; }
+  .chat-msg.bot { background: var(--bg-2); color: var(--ink); align-self: flex-start; border: 1px solid var(--line); }
+  .chat-msg.user { background: var(--phos-dim); color: var(--ink); align-self: flex-end; }
+  .chat-input-area { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; }
+  .chat-input { flex: 1; background: var(--bg-2); border: 1px solid var(--line); color: var(--ink); padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; outline: none; }
+  .chat-input:focus { border-color: var(--phos); }
+  .chat-send { background: var(--phos); color: #000; border: none; padding: 10px 16px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+  .chat-send:hover { background: #8affa0; }
+  .chat-option { display: block; width: 100%; text-align: left; background: var(--bg-2); border: 1px solid var(--line); color: var(--ink); padding: 10px 14px; margin: 4px 0; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: border-color .15s; }
+  .chat-option:hover { border-color: var(--phos); color: var(--phos); }
+
+  /* ===== LEAD FORM OVERLAY & WINDOW ===== */
+  .lead-form-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6); z-index: 997;
+  }
+  .lead-form-overlay.open { display: block; }
+  .lead-form-window {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 998; width: 420px; max-width: calc(100vw - 32px);
+    background: var(--bg-panel); border: 1px solid var(--line-bright);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6); display: none;
+  }
+  .lead-form-window.open { display: block; }
+  .lead-form-window-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 14px; font-weight: 700; color: var(--phos);
+  }
+  .lead-form-window-close {
+    background: none; border: none; color: var(--ink-faint);
+    cursor: pointer; font-size: 20px; font-family: 'JetBrains Mono', monospace;
+  }
+  .lead-form-window-close:hover { color: var(--danger); }
+  .lead-form-body { padding: 20px; }
+
+  /* ===== DUAL FLOATING FABS ===== */
+  .fab-group { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column-reverse; gap: 12px; align-items: flex-end; }
+  .fab-secondary { display: flex; align-items: center; gap: 8px; }
+  .fab-label { font-size: 11px; color: var(--ink-faint); background: var(--bg-panel); border: 1px solid var(--line); padding: 4px 10px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
+  .fab-secondary:hover .fab-label { opacity: 1; }
+  .fab {
+    width: 48px; height: 48px; border-radius: 0; border: 1px solid var(--line-bright);
+    background: var(--bg-panel); color: var(--ink-dim);
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .15s; font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+  }
+  .fab:hover { border-color: var(--phos); color: var(--phos); }
+  .fab.primary {
+    width: 56px; height: 56px; border-color: var(--phos); color: var(--phos); font-size: 24px; position: relative;
+  }
+  .fab.primary:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(110,255,138,0.15); }
+</style>
 </head>
 <body>
 
@@ -482,7 +734,301 @@ function closeMenu() {
   </div>
 </footer>
 
+<!-- ===== DUAL FLOATING FABS ===== -->
+<div class="fab-group">
+  <button class="fab primary" id="fabChat" onclick="toggleChat()" title="Free Practice Growth Audit">💬<span class="dot" id="chatDot"></span></button>
+  <div class="fab-secondary" id="fabFormWrap">
+    <span class="fab-label">Quick Audit Form</span>
+    <button class="fab" id="fabForm" onclick="toggleLeadForm()" title="Quick Audit Form">✉</button>
+  </div>
+</div>
 
-<script src="/fr-widget.js" data-client="client_miami"></script>
+<!-- ===== LEAD FORM OVERLAY ===== -->
+<div class="lead-form-overlay" id="leadFormOverlay" onclick="toggleLeadForm()"></div>
+<div class="lead-form-window" id="leadFormWindow">
+  <div class="lead-form-window-header">
+    &gt;_ Free Practice Audit
+    <button class="lead-form-window-close" onclick="toggleLeadForm()">×</button>
+  </div>
+  <div class="lead-form-body" id="leadFormBody">
+    <p style="font-size:12px;color:var(--ink-faint);padding:0 0 16px;">Tell us about your practice. We'll text you a personalized audit within 24 hours — free.</p>
+    <div class="lead-form-fields" id="leadFormFields">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Your Name</label>
+        <input type="text" id="lfName" placeholder="e.g. Sarah" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Phone Number</label>
+        <input type="tel" id="lfPhone" placeholder="+1 (555) 123-4567" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Practice Name</label>
+        <input type="text" id="lfPractice" placeholder="e.g. Glow Aesthetics Miami" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="form-group">
+          <label>Practice Type</label>
+          <select id="lfNiche" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;cursor:pointer;">
+            <option value="med_spa">Med Spa</option>
+            <option value="cosmetic_dentistry">Cosmetic Dentistry</option>
+            <option value="plastic_surgery">Plastic Surgery</option>
+            <option value="hair_transplant">Hair Transplant</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Patients / Month</label>
+          <select id="lfVolume" style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;cursor:pointer;">
+            <option value="under_10">Under 10</option>
+            <option value="10_30">10–30</option>
+            <option value="30_60">30–60</option>
+            <option value="60_plus">60+</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>What's your biggest challenge?</label>
+        <textarea id="lfMessage" placeholder="e.g. Low website traffic, leads going cold, need more bookings..." style="background:var(--bg-panel);border:1px solid var(--line);color:var(--ink);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:100%;min-height:60px;resize:vertical;"></textarea>
+      </div>
+      <button class="btn btn-primary" id="lfSubmit" onclick="submitLeadForm()" style="width:100%;justify-content:center;font-size:13px;">→ Get My Free Audit</button>
+      <div id="lfStatus" style="font-size:12px;padding:10px 14px;display:none;margin-top:8px;"></div>
+    </div>
+    <div id="leadFormSuccess" style="display:none;padding:32px 0;text-align:center;">
+      <div style="font-size:32px;margin-bottom:12px;color:var(--phos);">✓</div>
+      <p style="color:var(--phos);font-weight:700;margin-bottom:8px;">Audit Request Received!</p>
+      <p style="font-size:12px;color:var(--ink-dim);">We'll text your personalized Patient Acquisition Audit within 24 hours. Check your phone.</p>
+    </div>
+  </div>
+</div>
+
+<div class="chat-window" id="chatWindow">
+  <div class="chat-window-header">
+    &gt;_ Free Practice Audit
+    <button class="chat-window-close" onclick="toggleChat()">×</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-area" id="chatInputArea">
+    <input type="text" class="chat-input" id="chatInput" placeholder="Type your answer..." onkeydown="if(event.key==='Enter')sendMessage()">
+    <button class="chat-send" onclick="sendMessage()">→</button>
+  </div>
+</div>
+
+<script>
+// AI-Powered Chat Widget — calls /api/chat for GPT-4o qualification
+var chatMessages = [];
+var leadData = {};
+var chatActive = false;
+var chatQualified = false;
+
+function toggleChat() {
+  var w = document.getElementById('chatWindow');
+  var isOpen = w.classList.contains('open');
+  if (isOpen) { w.classList.remove('open'); }
+  else { w.classList.add('open'); if (!chatActive) startChat(); }
+}
+
+function addMsg(text, cls) {
+  var msgs = document.getElementById('chatMessages');
+  var div = document.createElement('div');
+  div.className = 'chat-msg ' + cls;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addOptions(opts) {
+  var msgs = document.getElementById('chatMessages');
+  opts.forEach(function(o) {
+    var btn = document.createElement('button');
+    btn.className = 'chat-option';
+    btn.textContent = o.label;
+    btn.onclick = function() {
+      // Remove all option buttons after selection
+      var allOpts = msgs.querySelectorAll('.chat-option');
+      allOpts.forEach(function(el) { el.remove(); });
+      addMsg(o.label, 'user');
+      leadData[o.field] = o.value || o.label;
+      if (o.next) o.next();
+    };
+    msgs.appendChild(btn);
+  });
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function startChat() {
+  chatActive = true;
+  addMsg("Hey — I'm FocusRunner's AI acquisition consultant. Let's run a quick audit on your patient pipeline. Ready?", 'bot');
+  addOptions([
+    {label: "Yes — let's do this", field: 'started', value: true, next: askNiche},
+    {label: "Just browsing", field: 'started', value: false, next: function(){
+      addMsg('No worries — the case studies above show exactly what we deliver. Ping us when you are ready to scale.', 'bot');
+    }}
+  ]);
+}
+
+function askNiche() {
+  addMsg("What type of practice do you run?", 'bot');
+  addOptions([
+    {label: "💉 Med Spa", field: 'niche', value: 'med_spa', next: askVolume},
+    {label: "🦷 Cosmetic Dentistry", field: 'niche', value: 'cosmetic_dentistry', next: askVolume},
+    {label: "🔪 Plastic Surgery", field: 'niche', value: 'plastic_surgery', next: askVolume},
+    {label: "💇 Hair Transplant", field: 'niche', value: 'hair_transplant', next: askVolume},
+    {label: "Other", field: 'niche', value: 'other', next: askVolume}
+  ]);
+}
+
+function askVolume() {
+  addMsg("Roughly how many new patients do you see per month?", 'bot');
+  addOptions([
+    {label: "Under 10", field: 'volume', value: 'under_10', next: askName},
+    {label: "10–30", field: 'volume', value: '10_30', next: askName},
+    {label: "30–60", field: 'volume', value: '30_60', next: askName},
+    {label: "60+", field: 'volume', value: '60_plus', next: askName}
+  ]);
+}
+
+function askName() {
+  document.getElementById('chatInputArea').style.display = 'flex';
+  addMsg("Great — what's your name?", 'bot');
+  chatMessages = [{role: 'assistant', content: "What's your name and what's your biggest challenge with patient acquisition right now?"}];
+}
+
+function handleName(text) {
+  leadData.name = text;
+  addMsg("And your best phone number? We'll text you the audit results.", 'bot');
+}
+
+function handlePhone(text) {
+  leadData.phone = text;
+  addMsg("Last one — what's your practice called?", 'bot');
+}
+
+function handlePractice(text) {
+  leadData.practice = text;
+  document.getElementById('chatInputArea').style.display = 'none';
+  addMsg("Perfect. Give me a moment — I'm analyzing your market position...", 'bot');
+  sendToAI();
+}
+
+function sendToAI() {
+  // Build the conversation history for the AI
+  var convo = [
+    {role: 'user', content: 'My name is ' + leadData.name + '. I run ' + leadData.practice + ', a ' + leadData.niche.replace(/_/g,' ') + ' practice seeing ' + leadData.volume.replace(/_/g,' ') + ' patients/month.'}
+  ];
+
+  fetch('/api/chat', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({messages: convo, userData: leadData})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) { addMsg("Hmm, I hit a snag. Try refreshing or email us at hello@focusrunner.com.", 'bot'); return; }
+    addMsg(data.reply, 'bot');
+
+    var q = data.qualification;
+    if (q && q.classification === 'qualified') {
+      chatQualified = true;
+      addMsg("🎯 Based on your responses, you're a strong fit for our AI Patient Acquisition System!", 'bot');
+      addMsg("→ Book your free audit call: https://focusrunner.com", 'bot');
+    }
+
+    // Submit lead to webhook
+    fetch('/api/webhook', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(Object.assign({}, leadData, {
+        qualification: q,
+        source: 'chat_widget'
+      }))
+    }).catch(function(){});
+
+    if (q) {
+      addMsg("1. Our AI analyzes your market within 24 hours.\n2. We'll text you a personalized Patient Acquisition Audit.\n3. You'll see exactly how many patients you're missing — and what it would cost to capture them.\n\nNo commitment. No pressure. Just data.", 'bot');
+      addMsg("In the meantime, check out our case studies above ↑", 'bot');
+    }
+
+    console.log('Lead captured:', leadData, q);
+  })
+  .catch(function(err) {
+    addMsg("I'm having trouble connecting. Don't worry — your info is saved. We'll reach out within 24 hours.", 'bot');
+    console.error('Chat API error:', err);
+  });
+}
+
+function sendMessage() {
+  var input = document.getElementById('chatInput');
+  var text = input.value.trim();
+  if (!text) return;
+  addMsg(text, 'user');
+  input.value = '';
+
+  if (!leadData.name) {
+    handleName(text);
+  } else if (!leadData.phone) {
+    handlePhone(text);
+  } else if (!leadData.practice) {
+    handlePractice(text);
+  }
+}
+
+// Lead form functions
+function toggleLeadForm() {
+  var w = document.getElementById('leadFormWindow');
+  var o = document.getElementById('leadFormOverlay');
+  w.classList.toggle('open');
+  o.classList.toggle('open');
+}
+
+function submitLeadForm() {
+  var name = document.getElementById('lfName').value.trim();
+  var phone = document.getElementById('lfPhone').value.trim();
+  var practice = document.getElementById('lfPractice').value.trim();
+  var niche = document.getElementById('lfNiche').value;
+  var volume = document.getElementById('lfVolume').value;
+  var message = document.getElementById('lfMessage').value.trim();
+  var btn = document.getElementById('lfSubmit');
+  var status = document.getElementById('lfStatus');
+
+  if (!name || !phone || !practice) {
+    status.style.display = 'block';
+    status.style.background = 'rgba(255,92,77,0.08)';
+    status.style.border = '1px solid #5c2a24';
+    status.style.color = '#ff5c4d';
+    status.textContent = 'Please fill in name, phone, and practice.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  fetch('/api/webhook', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, phone: phone, practice: practice, niche: niche, volume: volume, message: message, source: 'lead_form'})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    document.getElementById('leadFormFields').style.display = 'none';
+    document.getElementById('leadFormSuccess').style.display = 'block';
+    setTimeout(function() {
+      var w = document.getElementById('leadFormWindow');
+      var o = document.getElementById('leadFormOverlay');
+      w.classList.remove('open');
+      o.classList.remove('open');
+    }, 4000);
+  })
+  .catch(function(err) {
+    status.style.display = 'block';
+    status.style.background = 'rgba(255,92,77,0.08)';
+    status.style.border = '1px solid #5c2a24';
+    status.style.color = '#ff5c4d';
+    status.textContent = 'Something went wrong. Email us at hello@focusrunner.com';
+    btn.disabled = false;
+    btn.textContent = '→ Get My Free Audit';
+  });
+}
+</script>
+
 </body>
 </html>
