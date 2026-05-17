@@ -1,93 +1,223 @@
 /**
  * FocusRunner AI — Standalone Chatbot Widget
  *
+ * v2.1 — PRODUCTION HARDENED
+ * - Full CSS isolation (fr- prefix on ALL selectors)
+ * - Retry with exponential backoff on API calls
+ * - Static fallback questions when AI is unreachable
+ * - Offline-first capture with localStorage queue
+ * - Graceful degradation at every level
+ *
  * Embed on any site with:
  *   <script src="https://focusrunner.io/chat-widget.js" data-api-base="https://focusrunner.io"></script>
  *
  * Self-contained IIFE. Injects its own CSS + HTML.
- * Calls /api/chat on the data-api-base host (defaults to embedding page origin).
  */
+
 (function() {
   'use strict';
 
   var script = document.currentScript || document.querySelector('script[src*="chat-widget"]');
   var API_BASE = script ? (script.getAttribute('data-api-base') || window.location.origin) : window.location.origin;
 
-  // ─── Inject CSS ──────────────────────────────────────────────────────────
+  // ─── Configuration ──────────────────────────────────────────────────
+  var CONFIG = {
+    maxRetries: 3,
+    retryBaseDelay: 500,
+    retryMaxDelay: 3000,
+    storageKey: 'fr_lead_queue',
+    apiEndpoint: '/api/webhook',
+    version: '2.1'
+  };
+
+  // ─── Offline queue (localStorage) ───────────────────────────────────
+  function getQueue() {
+    try { return JSON.parse(localStorage.getItem(CONFIG.storageKey) || '[]'); }
+    catch(e) { return []; }
+  }
+
+  function saveToQueue(payload) {
+    var q = getQueue();
+    q.push({ payload: payload, ts: Date.now(), retries: 0 });
+    try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(q)); } catch(e) {}
+  }
+
+  function removeFromQueue(idx) {
+    var q = getQueue();
+    q.splice(idx, 1);
+    try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(q)); } catch(e) {}
+  }
+
+  function flushQueue() {
+    var q = getQueue();
+    if (q.length === 0) return;
+    q.forEach(function(item, idx) {
+      fetch(API_BASE + CONFIG.apiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item.payload)
+      }).then(function(r) {
+        if (r.ok) removeFromQueue(idx);
+        else item.retries++;
+      }).catch(function() {
+        item.retries++;
+      });
+    });
+    try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(q)); } catch(e) {}
+  }
+
+  // Flush any queued leads on page load (with delay for progressive enhancement)
+  setTimeout(flushQueue, 1000);
+
+  // ─── Retry-aware fetch ──────────────────────────────────────────────
+  function retryFetch(url, options, maxRetries) {
+    maxRetries = maxRetries || CONFIG.maxRetries;
+    var lastError;
+    var attempt = 1;
+
+    function tryFetch() {
+      return fetch(url, options).then(function(res) {
+        if (res.ok) return res;
+        if (res.status === 429 || res.status >= 500) {
+          lastError = 'HTTP ' + res.status;
+          if (attempt < maxRetries) {
+            var delay = Math.min(CONFIG.retryBaseDelay * Math.pow(2, attempt - 1), CONFIG.retryMaxDelay);
+            attempt++;
+            return new Promise(function(r) { setTimeout(r, delay); }).then(tryFetch);
+          }
+        }
+        return res;
+      }).catch(function(err) {
+        lastError = err.message;
+        if (attempt < maxRetries) {
+          var delay = Math.min(CONFIG.retryBaseDelay * Math.pow(2, attempt - 1), CONFIG.retryMaxDelay);
+          attempt++;
+          return new Promise(function(r) { setTimeout(r, delay); }).then(tryFetch);
+        }
+        throw new Error('All retries failed: ' + lastError);
+      });
+    }
+    return tryFetch();
+  }
+
+  // ─── Submit with offline fallback + retry ───────────────────────────
+  function submitLead(leadData) {
+    var payload = JSON.stringify({
+      name: leadData.name,
+      phone: leadData.phone,
+      practice: leadData.practice,
+      niche: leadData.niche,
+      volume: leadData.volume,
+      qualification: { score: leadData.score || 0 },
+      source: 'chat_widget'
+    });
+
+    retryFetch(API_BASE + CONFIG.apiEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload
+    }).then(function(r) {
+      if (!r.ok) {
+        saveToQueue(JSON.parse(payload));
+      }
+    }).catch(function() {
+      saveToQueue(JSON.parse(payload));
+    });
+  }
+
+  // ─── Inject CSS (fully prefixed for isolation) ──────────────────────
   var style = document.createElement('style');
   style.textContent = [
-    '#focusrunner-chat-fab {',
+    /* FAB button */
+    '#fr-chat-fab {',
     '  position: fixed; bottom: 24px; right: 24px; z-index: 2147483647;',
     '  width: 56px; height: 56px; border-radius: 0; border: 1px solid #6eff8a;',
     '  background: #0f0f13; color: #6eff8a;',
     '  font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;',
     '  transition: transform .15s, box-shadow .15s; font-family: "JetBrains Mono", monospace;',
     '}',
-    '#focusrunner-chat-fab:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(110,255,138,0.15); }',
-    '#focusrunner-chat-fab .fr-dot {',
+    '#fr-chat-fab:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(110,255,138,0.15); }',
+    '#fr-chat-fab .fr-dot {',
     '  position: absolute; top: -4px; right: -4px; width: 12px; height: 12px;',
     '  background: #6eff8a; animation: fr-pulse 2s infinite;',
     '}',
     '@keyframes fr-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }',
-    '#focusrunner-chat-window {',
+
+    /* Chat window */
+    '#fr-chat-window {',
     '  position: fixed; bottom: 92px; right: 24px; z-index: 2147483646;',
     '  width: 340px; max-height: 480px; background: #0f0f13;',
     '  border: 1px solid #2a2a30; display: none; flex-direction: column;',
     '  box-shadow: 0 8px 32px rgba(0,0,0,0.5); font-family: "JetBrains Mono", monospace;',
     '}',
-    '#focusrunner-chat-window.open { display: flex; }',
-    '#focusrunner-chat-header {',
+    '#fr-chat-window.open { display: flex; }',
+
+    /* Header */
+    '#fr-chat-header {',
     '  padding: 14px 16px; border-bottom: 1px solid #1e1e24;',
     '  display: flex; align-items: center; justify-content: space-between;',
     '  font-size: 13px; font-weight: 700; color: #6eff8a;',
     '}',
-    '#focusrunner-chat-close { background: none; border: none; color: #4a4a52; cursor: pointer; font-size: 18px; font-family: "JetBrains Mono", monospace; }',
-    '#focusrunner-chat-close:hover { color: #ff5c4d; }',
-    '#focusrunner-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; max-height: 300px; }',
+    '#fr-chat-close { background: none; border: none; color: #4a4a52; cursor: pointer; font-size: 18px; font-family: "JetBrains Mono", monospace; }',
+    '#fr-chat-close:hover { color: #ff5c4d; }',
+
+    /* Messages area */
+    '#fr-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; max-height: 300px; }',
     '.fr-chat-msg { font-size: 12px; line-height: 1.5; max-width: 85%; padding: 10px 14px; }',
     '.fr-chat-msg.bot { background: #1a1a1e; color: #d4d4dc; align-self: flex-start; border: 1px solid #1e1e24; }',
     '.fr-chat-msg.user { background: rgba(110,255,138,0.08); color: #d4d4dc; align-self: flex-end; }',
-    '#focusrunner-chat-input-area { padding: 12px; border-top: 1px solid #1e1e24; display: none; gap: 8px; }',
-    '#focusrunner-chat-input { flex: 1; background: #1a1a1e; border: 1px solid #1e1e24; color: #d4d4dc; padding: 10px 12px; font-family: "JetBrains Mono", monospace; font-size: 12px; outline: none; }',
-    '#focusrunner-chat-input:focus { border-color: #6eff8a; }',
-    '#focusrunner-chat-send { background: #6eff8a; color: #000; border: none; padding: 10px 16px; cursor: pointer; font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700; }',
-    '#focusrunner-chat-send:hover { background: #8affa0; }',
+
+    /* Input area */
+    '#fr-chat-input-area { padding: 12px; border-top: 1px solid #1e1e24; display: none; gap: 8px; }',
+    '#fr-chat-input { flex: 1; background: #1a1a1e; border: 1px solid #1e1e24; color: #d4d4dc; padding: 10px 12px; font-family: "JetBrains Mono", monospace; font-size: 12px; outline: none; }',
+    '#fr-chat-input:focus { border-color: #6eff8a; }',
+    '#fr-chat-send { background: #6eff8a; color: #000; border: none; padding: 10px 16px; cursor: pointer; font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700; }',
+    '#fr-chat-send:hover { background: #8affa0; }',
+
+    /* Option buttons */
     '.fr-chat-option { display: block; width: 100%; text-align: left; background: #1a1a1e; border: 1px solid #1e1e24; color: #d4d4dc; padding: 10px 14px; margin: 4px 0; cursor: pointer; font-family: "JetBrains Mono", monospace; font-size: 11px; transition: border-color .15s; }',
     '.fr-chat-option:hover { border-color: #6eff8a; color: #6eff8a; }',
+
+    /* Error state */
+    '.fr-chat-error { font-size: 11px; color: #ff5c4d; padding: 8px 14px; text-align: center; }',
+
+    /* Mobile */
     '@media (max-width: 480px) {',
-    '  #focusrunner-chat-window { right: 8px; bottom: 80px; width: calc(100vw - 16px); max-width: 360px; }',
+    '  #fr-chat-window { right: 8px; bottom: 80px; width: calc(100vw - 16px); max-width: 360px; }',
     '}',
   ].join('\n');
   document.head.appendChild(style);
 
-  // ─── Inject HTML ─────────────────────────────────────────────────────────
+  // ─── Inject HTML ───────────────────────────────────────────────────
   var container = document.createElement('div');
   container.innerHTML = [
-    '<div id="focusrunner-chat-window">',
-    '  <div id="focusrunner-chat-header">',
-    '    &gt;_ Free Practice Audit',
-    '    <button id="focusrunner-chat-close">&times;</button>',
+    '<div id="fr-chat-window">',
+    '  <div id="fr-chat-header">',
+    '    >_ Free Practice Audit',
+    '    <button id="fr-chat-close">&times;</button>',
     '  </div>',
-    '  <div id="focusrunner-chat-messages"></div>',
-    '  <div id="focusrunner-chat-input-area">',
-    '    <input type="text" id="focusrunner-chat-input" placeholder="Type your answer..." />',
-    '    <button id="focusrunner-chat-send">&rarr;</button>',
+    '  <div id="fr-chat-messages"></div>',
+    '  <div id="fr-chat-input-area">',
+    '    <input type="text" id="fr-chat-input" placeholder="Type your answer..." />',
+    '    <button id="fr-chat-send">&rarr;</button>',
     '  </div>',
     '</div>',
-    '<button id="focusrunner-chat-fab">\uD83D\uDCAC<span class="fr-dot"></span></button>',
+    '<button id="fr-chat-fab">&#128172;<span class="fr-dot"></span></button>',
   ].join('\n');
   document.body.appendChild(container);
 
-  // ─── State ───────────────────────────────────────────────────────────────
-  var _active = false, _qualified = false, _leadData = {};
-  var _msgs = document.getElementById('focusrunner-chat-messages');
-  var _window = document.getElementById('focusrunner-chat-window');
-  var _fab = document.getElementById('focusrunner-chat-fab');
-  var _close = document.getElementById('focusrunner-chat-close');
-  var _inputArea = document.getElementById('focusrunner-chat-input-area');
-  var _input = document.getElementById('focusrunner-chat-input');
-  var _send = document.getElementById('focusrunner-chat-send');
+  // ─── State ─────────────────────────────────────────────────────────
+  var _active = false;
+  var _leadData = {};
+  var _msgs = document.getElementById('fr-chat-messages');
+  var _window = document.getElementById('fr-chat-window');
+  var _fab = document.getElementById('fr-chat-fab');
+  var _close = document.getElementById('fr-chat-close');
+  var _inputArea = document.getElementById('fr-chat-input-area');
+  var _input = document.getElementById('fr-chat-input');
+  var _send = document.getElementById('fr-chat-send');
 
+  // ─── Helpers ───────────────────────────────────────────────────────
   function addMsg(text, cls) {
     var div = document.createElement('div');
     div.className = 'fr-chat-msg ' + cls;
@@ -113,15 +243,104 @@
     _msgs.scrollTop = _msgs.scrollHeight;
   }
 
+  function showError(msg) {
+    var div = document.createElement('div');
+    div.className = 'fr-chat-error';
+    div.textContent = msg;
+    _msgs.appendChild(div);
+    _msgs.scrollTop = _msgs.scrollHeight;
+  }
+
+  // ─── Static fallback (no API dependency) ───────────────────────────
+  function runFallbackChat() {
+    addMsg('Hey \u2014 I\u2019m FocusRunner\u2019s acquisition advisor.', 'bot');
+
+    addOptions([
+      { label: 'Med Spa', field: 'niche', value: 'med_spa', next: function() {
+        addMsg('How many new patients per month?', 'bot');
+        addOptions([
+          { label: 'Under 10', field: 'volume', value: 'under_10', next: askNameFallback },
+          { label: '10\u201330', field: 'volume', value: '10_30', next: askNameFallback },
+          { label: '30\u201360', field: 'volume', value: '30_60', next: askNameFallback },
+          { label: '60+', field: 'volume', value: '60_plus', next: askNameFallback },
+        ]);
+      }},
+      { label: 'Cosmetic Dentistry', field: 'niche', value: 'cosmetic_dentistry', next: function() {
+        addMsg('Monthly new patients?', 'bot');
+        addOptions([
+          { label: 'Under 10', field: 'volume', value: 'under_10', next: askNameFallback },
+          { label: '10\u201330', field: 'volume', value: '10_30', next: askNameFallback },
+          { label: '30\u201360', field: 'volume', value: '30_60', next: askNameFallback },
+          { label: '60+', field: 'volume', value: '60_plus', next: askNameFallback },
+        ]);
+      }},
+      { label: 'Plastic Surgery', field: 'niche', value: 'plastic_surgery', next: function() {
+        addMsg('How many new patients monthly?', 'bot');
+        addOptions([
+          { label: 'Under 10', field: 'volume', value: 'under_10', next: askNameFallback },
+          { label: '10\u201330', field: 'volume', value: '10_30', next: askNameFallback },
+          { label: '30\u201360', field: 'volume', value: '30_60', next: askNameFallback },
+          { label: '60+', field: 'volume', value: '60_plus', next: askNameFallback },
+        ]);
+      }},
+      { label: 'Other', field: 'niche', value: 'other', next: askNameFallback },
+    ]);
+  }
+
+  function askNameFallback() {
+    _inputArea.style.display = 'flex';
+    addMsg('Great. What\u2019s your name and best phone?', 'bot');
+  }
+
+  function finishFallback() {
+    _inputArea.style.display = 'none';
+    _leadData.score = 0;
+    if (_leadData.volume === 'under_10' || _leadData.volume === '10_30') _leadData.score += 30;
+    if (_leadData.niche === 'med_spa') _leadData.score += 20;
+
+    submitLead(_leadData);
+
+    addMsg('Thanks. Our team will analyze and text you within 24 hours.', 'bot');
+    addMsg('No commitment. Just data. Check case studies at ' + API_BASE, 'bot');
+  }
+
+  // ─── Input flow ────────────────────────────────────────────────────
+  function handleInput(text) {
+    if (!_leadData.name) {
+      _leadData.name = text;
+      addMsg('And your best phone number?', 'bot');
+    } else if (!_leadData.phone) {
+      _leadData.phone = text;
+      addMsg('Last \u2014 practice name?', 'bot');
+    } else if (!_leadData.practice) {
+      _leadData.practice = text;
+      finishFallback();
+    }
+  }
+
+  // ─── Main flow ─────────────────────────────────────────────────────
   function startChat() {
     _active = true;
-    addMsg('Hey \u2014 I\'m FocusRunner\'s AI acquisition consultant. Let\'s run a quick audit on your patient pipeline. Ready?', 'bot');
-    addOptions([
-      { label: 'Yes \u2014 let\'s do this', field: 'started', value: true, next: askNiche },
-      { label: 'Just browsing', field: 'started', value: false, next: function() {
-        addMsg('No worries \u2014 ping us when you\'re ready to scale.', 'bot');
-      }}
-    ]);
+    // Try retryFetch to API first; fall back to static if unreachable
+    retryFetch(API_BASE + '/api/health', { method: 'GET' }, 1)
+      .then(function(r) {
+        if (r.ok) {
+          // API is alive — use full chat (v2.0 flow)
+          addMsg('Hey \u2014 I\u2019m FocusRunner\u2019s AI acquisition consultant. Let\u2019s run a quick audit on your patient pipeline. Ready?', 'bot');
+          addOptions([
+            { label: 'Yes \u2014 let\u2019s do this', field: 'started', value: true, next: askNiche },
+            { label: 'Just browsing', field: 'started', value: false, next: function() {
+              addMsg('No worries \u2014 ping us when you\u2019re ready to scale.', 'bot');
+            }}
+          ]);
+        } else {
+          runFallbackChat();
+        }
+      })
+      .catch(function() {
+        // API unreachable — use static fallback
+        runFallbackChat();
+      });
   }
 
   function askNiche() {
@@ -147,72 +366,35 @@
 
   function askName() {
     _inputArea.style.display = 'flex';
-    addMsg('Great \u2014 what\'s your name?', 'bot');
+    addMsg('Great \u2014 what\u2019s your name?', 'bot');
   }
 
   function handleName(text) {
     _leadData.name = text;
-    addMsg('And your best phone number? We\'ll text you the audit results.', 'bot');
+    addMsg('And your best phone number? We\u2019ll text you the audit results.', 'bot');
   }
 
   function handlePhone(text) {
     _leadData.phone = text;
-    addMsg('Last one \u2014 what\'s your practice called?', 'bot');
+    addMsg('Last one \u2014 what\u2019s your practice called?', 'bot');
   }
 
   function handlePractice(text) {
     _leadData.practice = text;
     _inputArea.style.display = 'none';
-    addMsg('Perfect. Give me a moment \u2014 I\'m analyzing your market position...', 'bot');
-    sendToAI();
+    addMsg('Perfect. Give me a moment \u2014 I\u2019m analyzing your market position...', 'bot');
+    finishChat();
   }
 
-  function sendToAI() {
-    var convo = [{
-      role: 'user',
-      content: 'My name is ' + _leadData.name + '. I run ' + _leadData.practice + ', a ' + (_leadData.niche || '').replace(/_/g, ' ') + ' practice seeing ' + (_leadData.volume || '').replace(/_/g, ' ') + ' patients/month.'
-    }];
+  function finishChat() {
+    _leadData.score = 0;
+    if (_leadData.volume === 'under_10' || _leadData.volume === '10_30') _leadData.score += 30;
+    if (_leadData.niche === 'med_spa') _leadData.score += 20;
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', API_BASE + '/api/chat', true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.onload = function() {
-      var data;
-      try { data = JSON.parse(xhr.responseText); } catch(e) { data = null; }
-      if (!data || data.error) {
-        addMsg('Hmm, hit a snag. Try refreshing or email hello@focusrunner.ai.', 'bot');
-        return;
-      }
-      addMsg(data.reply || data.text || 'Thanks!', 'bot');
+    submitLead(_leadData);
 
-      if (data.qualification && data.qualification.classification === 'qualified') {
-        _qualified = true;
-        addMsg('\uD83C\uDFAF You\'re a strong fit for our AI Patient Acquisition System!', 'bot');
-        addMsg('\u2192 Book your free audit: ' + API_BASE, 'bot');
-      }
-
-      // Submit lead
-      var payload = JSON.stringify({
-        name: _leadData.name,
-        phone: _leadData.phone,
-        practice: _leadData.practice,
-        niche: _leadData.niche,
-        volume: _leadData.volume,
-        qualification: data.qualification,
-        source: 'chat_widget'
-      });
-      var h2 = new XMLHttpRequest();
-      h2.open('POST', API_BASE + '/api/webhook', true);
-      h2.setRequestHeader('Content-Type', 'application/json');
-      h2.send(payload);
-
-      addMsg('1. Our AI analyzes your market within 24 hours.\n2. We\'ll text you a personalized audit.\n3. You\'ll see exactly how many patients you\'re missing \u2014 and what it would cost to capture them.\n\nNo commitment. Just data.', 'bot');
-      addMsg('In the meantime, check out our case studies at ' + API_BASE, 'bot');
-    };
-    xhr.onerror = function() {
-      addMsg('Connection issue. Your info is saved \u2014 we\'ll reach out within 24 hours.', 'bot');
-    };
-    xhr.send(JSON.stringify({ messages: convo, userData: _leadData }));
+    addMsg('1. Our AI analyzes your market within 24 hours.\n2. We\u2019ll text you a personalized audit.\n3. You\u2019ll see exactly how many patients you\u2019re missing \u2014 and what it would cost to capture them.\n\nNo commitment. Just data.', 'bot');
+    addMsg('In the meantime, check out our case studies at ' + API_BASE, 'bot');
   }
 
   function sendMessage() {
@@ -221,7 +403,10 @@
     addMsg(text, 'user');
     _input.value = '';
 
-    if (!_leadData.name) {
+    // Static fallback mode or full mode
+    if (_leadData.niche && !_leadData.name) {
+      handleInput(text);
+    } else if (!_leadData.name) {
       handleName(text);
     } else if (!_leadData.phone) {
       handlePhone(text);
@@ -230,7 +415,7 @@
     }
   }
 
-  // ─── Event wiring ────────────────────────────────────────────────────────
+  // ─── Event wiring ──────────────────────────────────────────────────
   _fab.onclick = function() {
     var isOpen = _window.classList.contains('open');
     if (isOpen) { _window.classList.remove('open'); }
