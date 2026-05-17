@@ -342,9 +342,9 @@ function notifyTelegram(lead, classification) {
     return;
   }
 
-  var emoji = { hot: '\uD83D\uDD34', warm: '\uD83D\uDFE0', cold: '\uD83D\uDD35' }[classification] || '\u26AA';
+  var badge = { hot: '[HOT]', warm: '[WARM]', cold: '[COLD]' }[classification] || '[LEAD]';
 
-  var text = emoji + ' NEW LEAD: ' + classification.toUpperCase() + ' ' + emoji + '\n\n' +
+  var text = badge + ' NEW LEAD: ' + classification.toUpperCase() + '\n\n' +
     'Practice: ' + (lead.name || lead.practice || 'Unknown') + '\n' +
     'Phone: ' + (lead.phone || '—') + '\n' +
     'Email: ' + (lead.email || '—') + '\n' +
