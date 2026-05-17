@@ -342,21 +342,16 @@ function notifyTelegram(lead, classification) {
     return;
   }
 
-  var emoji = { hot: '\u{1F534}', warm: '\u{1F7E0}', cold: '\u{1F535}' }[classification] || '\u26AA';
-  var esc = function(s) { return String(s || '').replace(/[_*[\\]()~`>#+\\-=|{}.!]/g, '\\\\$&'); };
+  var emoji = { hot: '\uD83D\uDD34', warm: '\uD83D\uDFE0', cold: '\uD83D\uDD35' }[classification] || '\u26AA';
 
-  var text = [
-    emoji + ' *NEW LEAD — ' + classification.toUpperCase() + '* ' + emoji,
-    '',
-    '*Practice:* ' + esc(lead.name || lead.practice || 'Unknown'),
-    '*Phone:* ' + esc(lead.phone || '—'),
-    '*Email:* ' + esc(lead.email || '—'),
-    '*Volume:* ' + esc(lead.volume || '—') + ' patients/mo',
-    '*Ad Spend:* ' + esc(lead.ad_spend || '—'),
-    '*Score:* ' + (lead.qualification?.score || '—') + '/100',
-    '',
-    '_Source: focusrunner.io chat widget_',
-  ].join('\\n');
+  var text = emoji + ' NEW LEAD: ' + classification.toUpperCase() + ' ' + emoji + '\n\n' +
+    'Practice: ' + (lead.name || lead.practice || 'Unknown') + '\n' +
+    'Phone: ' + (lead.phone || '—') + '\n' +
+    'Email: ' + (lead.email || '—') + '\n' +
+    'Volume: ' + (lead.volume || '—') + ' patients/mo\n' +
+    'Ad Spend: ' + (lead.ad_spend || '—') + '\n' +
+    'Score: ' + (lead.qualification?.score || '—') + '/100\n\n' +
+    '— focusrunner.io chat widget';
 
   fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
     method: 'POST',
@@ -364,7 +359,6 @@ function notifyTelegram(lead, classification) {
     body: JSON.stringify({
       chat_id: chatId,
       text: text,
-      parse_mode: 'MarkdownV2',
       disable_web_page_preview: true,
     }),
   }).then(function(r) {
