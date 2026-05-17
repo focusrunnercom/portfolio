@@ -131,5 +131,43 @@ module.exports = async function handler(req, res) {
   if (leadData.name || leadData.phone) {
     notifyLead({ name: leadData.name, phone: leadData.phone, email: leadData.email, practice: leadData.practice, source: leadData.source, qualification: { classification: 'qualified', score: 50 } }).catch(function(err) { console.warn('[webhook] Notify failed:', err.message); });
   }
+
+  // Fire-and-forget: Telegram notification
+  notifyTelegram(leadData);
+
   return sendJson(res, { success: ghlSuccess, lead_id: ghlResult?.contact?.id || ghlResult?.id || null, message: ghlSuccess ? 'Lead received and forwarded' : 'Lead received but GHL forwarding failed' }, ghlSuccess ? 200 : 202);
+}
+
+// ─── Telegram Notification ────────────────────────────────────────────────
+
+function notifyTelegram(lead) {
+  var botToken = process.env.TELEGRAM_BOT_TOKEN;
+  var chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!botToken || !chatId) {
+    console.warn('[webhook] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — skipping Telegram');
+    return;
+  }
+
+  var text = '[NEW LEAD]\n\n' +
+    'Name: ' + (lead.name || 'Unknown') + '\n' +
+    'Phone: ' + (lead.phone || '—') + '\n' +
+    'Email: ' + (lead.email || '—') + '\n' +
+    'Practice: ' + (lead.practice || '—') + '\n' +
+    'Source: ' + (lead.source || 'chat_widget') + '\n\n' +
+    '— focusrunner.io';
+
+  fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: text,
+      disable_web_page_preview: true,
+    }),
+  }).then(function(r) {
+    if (!r.ok) console.warn('[webhook] Telegram failed:', r.status);
+    else console.log('[webhook] Telegram sent');
+  }).catch(function(err) {
+    console.warn('[webhook] Telegram error:', err.message);
+  });
 };
