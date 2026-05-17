@@ -277,6 +277,9 @@ function forwardToDestinations(lead, classification) {
       console.warn('[chat] GHL network error:', err.message);
     });
   }
+
+  // 2. Telegram notification
+  notifyTelegram(lead, classification);
 }
 
 // ─── Email Notification (fire-and-forget) ──────────────────────────────────
@@ -326,6 +329,49 @@ function notifyLeadEmail(lead, result) {
     if (!r.ok) console.warn('[chat] Notif failed:', r.status);
   }).catch(function(err) {
     console.warn('[chat] Notif error:', err.message);
+  });
+}
+
+// ─── Telegram Notification (fire-and-forget) ────────────────────────────────
+
+function notifyTelegram(lead, classification) {
+  var botToken = process.env.TELEGRAM_BOT_TOKEN;
+  var chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!botToken || !chatId) {
+    console.warn('[chat] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — skipping Telegram');
+    return;
+  }
+
+  var emoji = { hot: '\u{1F534}', warm: '\u{1F7E0}', cold: '\u{1F535}' }[classification] || '\u26AA';
+  var esc = function(s) { return String(s || '').replace(/[_*[\\]()~`>#+\\-=|{}.!]/g, '\\\\$&'); };
+
+  var text = [
+    emoji + ' *NEW LEAD — ' + classification.toUpperCase() + '* ' + emoji,
+    '',
+    '*Practice:* ' + esc(lead.name || lead.practice || 'Unknown'),
+    '*Phone:* ' + esc(lead.phone || '—'),
+    '*Email:* ' + esc(lead.email || '—'),
+    '*Volume:* ' + esc(lead.volume || '—') + ' patients/mo',
+    '*Ad Spend:* ' + esc(lead.ad_spend || '—'),
+    '*Score:* ' + (lead.qualification?.score || '—') + '/100',
+    '',
+    '_Source: focusrunner.io chat widget_',
+  ].join('\\n');
+
+  fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: text,
+      parse_mode: 'MarkdownV2',
+      disable_web_page_preview: true,
+    }),
+  }).then(function(r) {
+    if (!r.ok) console.warn('[chat] Telegram failed:', r.status);
+    else console.log('[chat] Telegram sent');
+  }).catch(function(err) {
+    console.warn('[chat] Telegram error:', err.message);
   });
 }
 
