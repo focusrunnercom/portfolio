@@ -132,15 +132,15 @@ module.exports = async function handler(req, res) {
     notifyLead({ name: leadData.name, phone: leadData.phone, email: leadData.email, practice: leadData.practice, source: leadData.source, qualification: { classification: 'qualified', score: 50 } }).catch(function(err) { console.warn('[webhook] Notify failed:', err.message); });
   }
 
-  // Fire-and-forget: Telegram notification
-  notifyTelegram(leadData);
+  // Telegram notification — await so Vercel doesn't kill it
+  try { await notifyTelegram(leadData); } catch (err) { console.warn('[webhook] Telegram failed:', err.message); }
 
   return sendJson(res, { success: ghlSuccess, lead_id: ghlResult?.contact?.id || ghlResult?.id || null, message: ghlSuccess ? 'Lead received and forwarded' : 'Lead received but GHL forwarding failed' }, ghlSuccess ? 200 : 202);
 }
 
 // ─── Telegram Notification ────────────────────────────────────────────────
 
-function notifyTelegram(lead) {
+async function notifyTelegram(lead) {
   var botToken = process.env.TELEGRAM_BOT_TOKEN;
   var chatId = process.env.TELEGRAM_CHAT_ID;
   if (!botToken || !chatId) {
@@ -156,7 +156,7 @@ function notifyTelegram(lead) {
     'Source: ' + (lead.source || 'chat_widget') + '\n\n' +
     '— focusrunner.io';
 
-  fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
+  var res = await fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -164,10 +164,12 @@ function notifyTelegram(lead) {
       text: text,
       disable_web_page_preview: true,
     }),
-  }).then(function(r) {
-    if (!r.ok) console.warn('[webhook] Telegram failed:', r.status);
-    else console.log('[webhook] Telegram sent');
-  }).catch(function(err) {
-    console.warn('[webhook] Telegram error:', err.message);
   });
+
+  if (!res.ok) {
+    var errText = await res.text().catch(function() { return ''; });
+    throw new Error('Telegram API ' + res.status + ': ' + errText.slice(0, 200));
+  }
+
+  console.log('[webhook] Telegram sent');
 };
