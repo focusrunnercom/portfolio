@@ -121,7 +121,7 @@ async function notifyLead(lead, classification, score) {
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json', 'User-Agent': 'FocusRunner/1.0' },
       body: JSON.stringify({
         from: 'FocusRunner Leads <leads@focusrunner.io>',
         to: recipient,

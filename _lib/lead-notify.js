@@ -175,6 +175,7 @@ module.exports = async function handler(req, res) {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        'User-Agent': 'FocusRunner/1.0',
       },
       body: JSON.stringify({
         from: FROM_EMAIL,

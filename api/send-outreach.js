@@ -28,7 +28,6 @@ function corsHeaders() {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
   };
-}
 
 function escapeHtml(str) {
   if (typeof str !== 'string') return String(str || '');
@@ -57,6 +56,7 @@ function resendSend(apiKey, email, subject, html) {
         'Authorization': 'Bearer ' + apiKey,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(data),
+        'User-Agent': 'FocusRunner/1.0',
       },
     };
     var req = https.request(opts, function(res) {

@@ -2,6 +2,7 @@
  * FocusRunner Med Spa Lead Qualification Chat Widget
  * Self-contained — paste <script src="/chat-widget.js"></script> and it works.
  * Style: Matches focusrunner.io terminal-native design (JetBrains Mono, phosphor green).
+ * v2.0 — Added offline capture queue + retry mechanism.
  */
 (function() {
   "use strict";
@@ -35,7 +36,77 @@
   function qs(sel) { return document.querySelector(sel); }
   function ce(tag) { return document.createElement(tag); }
 
-  // Data store (does NOT use sessionStorage — fresh every open)
+  // ─── Offline queue ──────────────────────────────────────────
+  var STORAGE_KEY = "fr_lead_queue";
+
+  function getQueue() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+    catch(e) { return []; }
+  }
+
+  function saveToQueue(payload) {
+    var q = getQueue();
+    q.push({ payload: payload, ts: Date.now(), retries: 0 });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(q));
+  }
+
+  function removeFromQueue(idx) {
+    var q = getQueue();
+    q.splice(idx, 1);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(q));
+  }
+
+  function flushQueue() {
+    var q = getQueue();
+    if (q.length === 0) return;
+    q.forEach(function(item, idx) {
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item.payload)
+      }).then(function(r) {
+        if (r.ok) removeFromQueue(idx);
+        else item.retries++;
+      }).catch(function() {
+        item.retries++;
+      });
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(q));
+  }
+
+  // Flush any queued leads on page load
+  flushQueue();
+
+  // ─── Submit with offline fallback ───────────────────────────
+  function submitLead(leadData) {
+    var payload = {
+      name: leadData.name,
+      phone: leadData.phone,
+      practice: leadData.practice,
+      niche: leadData.niche,
+      volume: leadData.volume,
+      ad_spend: leadData.ad_spend,
+      score: leadData.score,
+      source: "chat_widget"
+    };
+
+    var ok = false;
+    fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).then(function(r) {
+      if (r.ok) ok = true;
+    }).catch(function() {
+      // offline — save to queue
+    }).then(function() {
+      if (!ok) {
+        saveToQueue(payload);
+      }
+    });
+  }
+
+  // Data store (fresh every open)
   var lead = { score: 0, step: 0 };
   var msgs;
 
@@ -78,7 +149,7 @@
   input.placeholder = "Type your answer...";
   input.onkeydown = function(e) { if (e.key === "Enter") sendMsg(); };
   var sendBtn = ce("button");
-  sendBtn.textContent = "→";
+  sendBtn.textContent = "\u2192";
   Object.assign(sendBtn.style, {
     background:PRIMARY, color:"#000", border:"none", padding:"8px 14px",
     cursor:"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:"12px", fontWeight:"700"
@@ -154,11 +225,11 @@
 
   function start() {
     lead = { score: 0, step: 1 };
-    addMsg("Hey — I'm FocusRunner's AI acquisition consultant. Quick audit on your patient pipeline. Ready?", "bot");
+    addMsg("Hey \u2014 I'm FocusRunner's AI acquisition consultant. Quick audit on your patient pipeline. Ready?", "bot");
     addOptions([
-      {label: "Yes — let's do this", field: "started", value: true, next: askNiche},
+      {label: "Yes \u2014 let's do this", field: "started", value: true, next: askNiche},
       {label: "Just browsing", field: "started", value: false, next: function(){
-        addMsg("No worries. Check the case studies above — they show exactly what we deliver. Ping us when ready.", "bot");
+        addMsg("No worries. Check the case studies above \u2014 they show exactly what we deliver. Ping us when ready.", "bot");
       }}
     ]);
   }
@@ -166,10 +237,10 @@
   function askNiche() {
     addMsg("What type of practice?", "bot");
     addOptions([
-      {label: "💉 Med Spa", field: "niche", value: "med_spa", next: askVolume},
-      {label: "🦷 Cosmetic Dentistry", field: "niche", value: "cosmetic_dentistry", next: askVolume},
-      {label: "🔪 Plastic Surgery", field: "niche", value: "plastic_surgery", next: askVolume},
-      {label: "💇 Hair Transplant", field: "niche", value: "hair_transplant", next: askVolume},
+      {label: "\uD83D\uDC89 Med Spa", field: "niche", value: "med_spa", next: askVolume},
+      {label: "\uD83E\uDDB7 Cosmetic Dentistry", field: "niche", value: "cosmetic_dentistry", next: askVolume},
+      {label: "\uD83D\uDD2A Plastic Surgery", field: "niche", value: "plastic_surgery", next: askVolume},
+      {label: "\uD83D\uDC87 Hair Transplant", field: "niche", value: "hair_transplant", next: askVolume},
       {label: "Other", field: "niche", value: "other", next: askVolume}
     ]);
   }
@@ -178,8 +249,8 @@
     addMsg("Patients per month?", "bot");
     addOptions([
       {label: "Under 10", field: "volume", value: "under_10", next: askAdSpend},
-      {label: "10–30", field: "volume", value: "10_30", next: askAdSpend},
-      {label: "30–60", field: "volume", value: "30_60", next: askAdSpend},
+      {label: "10\u201330", field: "volume", value: "10_30", next: askAdSpend},
+      {label: "30\u201360", field: "volume", value: "30_60", next: askAdSpend},
       {label: "60+", field: "volume", value: "60_plus", next: askAdSpend}
     ]);
   }
@@ -187,9 +258,9 @@
   function askAdSpend() {
     addMsg("Monthly marketing spend?", "bot");
     addOptions([
-      {label: "$0 – organic only", field: "ad_spend", value: "0", next: askName},
-      {label: "$1K–$3K", field: "ad_spend", value: "1k_3k", next: askName},
-      {label: "$3K–$10K", field: "ad_spend", value: "3k_10k", next: askName},
+      {label: "$0 \u2013 organic only", field: "ad_spend", value: "0", next: askName},
+      {label: "$1K\u2013$3K", field: "ad_spend", value: "1k_3k", next: askName},
+      {label: "$3K\u2013$10K", field: "ad_spend", value: "3k_10k", next: askName},
       {label: "$10K+", field: "ad_spend", value: "10k_plus", next: askName}
     ]);
   }
@@ -220,21 +291,14 @@
     if (lead.niche === "med_spa") lead.score += 20;
     lead.score = Math.min(100, lead.score);
 
-    fetch(API_URL, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        name: lead.name, phone: lead.phone, practice: lead.practice,
-        niche: lead.niche, volume: lead.volume, ad_spend: lead.ad_spend,
-        score: lead.score, source: "chat_widget"
-      })
-    }).catch(function(){});
+    // Submit with offline fallback
+    submitLead(lead);
 
     setTimeout(function() {
       addMsg("Based on your responses, you're spending real money on acquisition but losing leads to slow response times. That's fixable.", "bot");
       addMsg("Here's what happens next:", "bot");
-      addMsg("1. We audit your market within 24h\n2. Text you a personalized Patient Acquisition Audit\n3. You see exactly how many patients you're missing — and what it costs to capture them.\n\nNo commitment. No pressure. Just data.", "bot");
-      addMsg("→ Book your free audit call: https://focusrunner.com", "bot");
+      addMsg("1. We audit your market within 24h\n2. Text you a personalized Patient Acquisition Audit\n3. You see exactly how many patients you're missing \u2014 and what it costs to capture them.\n\nNo commitment. No pressure. Just data.", "bot");
+      addMsg("\u2192 Book your free audit call: https://focusrunner.com", "bot");
     }, 1200);
   }
 
