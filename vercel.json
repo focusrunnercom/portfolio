@@ -19,6 +19,10 @@
   ],
   "rewrites": [
     {
+      "source": "/public/(.*)",
+      "destination": "/public/$1"
+    },
+    {
       "source": "/api/direct-qualify",
       "destination": "/api/direct-qualify.js"
     },
