@@ -53,6 +53,10 @@
     {
       "source": "/api/send-outreach",
       "destination": "/api/send-outreach.js"
+    },
+    {
+      "source": "/api/resend-webhook",
+      "destination": "/api/resend-webhook.js"
     }
   ],
   "redirects": [
