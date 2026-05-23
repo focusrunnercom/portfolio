@@ -1,13 +1,14 @@
 {
   "functions": {
-    "api/email/*.js": {
+    "api/email.js": {
       "maxDuration": 30
-    },
-    "api/leads/*.js": {
-      "maxDuration": 10
     }
   },
-  "env": {
-    "RESEND_API_KEY": "re_NJTeWdZV_LULP7wz7EAMokqozDTnk94KF"
-  }
+  "rewrites": [
+    { "source": "/api/email/send", "destination": "/api/email" },
+    { "source": "/api/email/batch", "destination": "/api/email" },
+    { "source": "/api/email/webhook", "destination": "/api/email" },
+    { "source": "/api/email/leads", "destination": "/api/email" },
+    { "source": "/api/leads/capture", "destination": "/api/email" }
+  ]
 }

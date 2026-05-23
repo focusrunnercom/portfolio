@@ -793,7 +793,7 @@ function closeMenu() {
         <div class="terminal-title">focusrunner.io/api/email/send</div>
       </div>
       <div class="terminal-body">
-        <span class="line"><span class="prompt">$</span> <span class="cmd">curl -X POST /api/leads/capture</span></span>
+        <span class="line"><span class="prompt">$</span> <span class="cmd">curl -X POST /api/email/leads</span></span>
         <span class="line"><span class="out">{ name: "Dr. Smith", email: "dr@medspa.com" }</span></span>
         <span class="line">&nbsp;</span>
         <span class="line"><span class="ok">→ Welcome email sent</span></span>
@@ -869,7 +869,7 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
   status.style.color = 'var(--ink-dim)';
   status.textContent = '> transmitting...';
   try {
-    var res = await fetch('/api/leads/capture', {
+    var res = await fetch('/api/email/leads', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(Object.fromEntries(new FormData(this)))
