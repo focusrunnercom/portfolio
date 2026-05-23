@@ -16,12 +16,12 @@ export default async function handler(req, res) {
   if (route === 'leads') return handleLeads(req, res, apiKey);
   if (route === 'email') return handleLeads(req, res, apiKey);
 
-  // Query-based routing: /api/email?type=send|batch|webhook|leads
-  const type = url.searchParams.get('type');
-  if (type === 'send') return handleSend(req, res, apiKey);
-  if (type === 'batch') return handleBatch(req, res, apiKey);
-  if (type === 'webhook') return handleWebhook(req, res);
-  if (type === 'leads') return handleLeads(req, res, apiKey);
+  // Body-based routing: { action: "send"|"batch"|"webhook" } field
+  if (req.body && typeof req.body === 'object') {
+    if (req.body.action === 'send') return handleSend(req, res, apiKey);
+    if (req.body.action === 'batch') return handleBatch(req, res, apiKey);
+    if (req.body.action === 'webhook') return handleWebhook(req, res);
+  }
 
   // Default: POST to /api/email = lead capture
   return handleLeads(req, res, apiKey);
