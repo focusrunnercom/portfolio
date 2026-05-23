@@ -1,34 +1,42 @@
 /**
  * /api/email — Catch-all email handler
- * Routes: POST /send, /batch, /webhook, /leads
+ * Routes: body.action = "send"|"batch"|"webhook"|"leads"
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.RESEND_API_KEY;
+
+  // Parse body (Vercel may or may not auto-parse)
+  let body = req.body;
+  if (!body || typeof body !== 'object' || Object.keys(body).length === 0) {
+    try { body = JSON.parse(await readBody(req)); } catch (_) { body = {}; }
+  }
+
   const url = new URL(req.url, 'https://focusrunner.io');
   const path = url.pathname.replace(/\/+$/, '') || '';
   const route = path.split('/').pop();
 
-  if (route === 'send') return handleSend(req, res, apiKey);
-  if (route === 'batch') return handleBatch(req, res, apiKey);
-  if (route === 'webhook') return handleWebhook(req, res);
-  if (route === 'leads') return handleLeads(req, res, apiKey);
-  if (route === 'email') return handleLeads(req, res, apiKey);
-
-  // Body-based routing: { action: "send"|"batch"|"webhook" } field
-  if (req.body && typeof req.body === 'object') {
-    if (req.body.action === 'send') return handleSend(req, res, apiKey);
-    if (req.body.action === 'batch') return handleBatch(req, res, apiKey);
-    if (req.body.action === 'webhook') return handleWebhook(req, res);
-  }
+  if (route === 'send' || body.action === 'send') return handleSend(res, apiKey, body);
+  if (route === 'batch' || body.action === 'batch') return handleBatch(res, apiKey, body);
+  if (route === 'webhook' || body.action === 'webhook') return handleWebhook(res, body);
+  if (route === 'leads' || route === 'email' || body.action === 'leads') return handleLeads(res, apiKey, body);
 
   // Default: POST to /api/email = lead capture
-  return handleLeads(req, res, apiKey);
+  return handleLeads(res, apiKey, body);
 }
 
-async function handleSend(req, res, apiKey) {
-  const { to, subject, html, text, from, template, tags } = req.body;
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', c => { data += c; if (data.length > 1e6) req.destroy(); });
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
+}
+
+async function handleSend(res, apiKey, body) {
+  const { to, subject, html, text, from, template, tags } = body;
   if (!to) return res.status(400).json({ error: 'Missing "to"' });
 
   const payload = {
@@ -53,8 +61,8 @@ async function handleSend(req, res, apiKey) {
   } catch (e) { return res.status(500).json({ error: e.message }); }
 }
 
-async function handleBatch(req, res, apiKey) {
-  const { emails } = req.body;
+async function handleBatch(res, apiKey, body) {
+  const { emails } = body;
   if (!emails || !Array.isArray(emails)) return res.status(400).json({ error: 'Missing "emails" array' });
   if (emails.length > 100) return res.status(400).json({ error: 'Max 100 emails' });
 
@@ -77,8 +85,8 @@ async function handleBatch(req, res, apiKey) {
   } catch (e) { return res.status(500).json({ error: e.message }); }
 }
 
-async function handleWebhook(req, res) {
-  const evt = req.body;
+async function handleWebhook(res, body) {
+  const evt = body;
   console.log('[webhook]', evt?.type, evt?.data?.email_id);
   try {
     await fetch('http://127.0.0.1:3100/api/agents/me/inbox-lite', {
@@ -89,8 +97,8 @@ async function handleWebhook(req, res) {
   return res.status(200).json({ received: true, type: evt?.type });
 }
 
-async function handleLeads(req, res, apiKey) {
-  const { name, email, practice, message } = req.body;
+async function handleLeads(res, apiKey, body) {
+  const { name, email, practice, message } = body;
   if (!email) return res.status(400).json({ error: 'Email required' });
 
   const welcomeHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="background:#0f172a;color:#e2e8f0;font-family:Arial,sans-serif;padding:40px"><div style="max-width:600px;margin:0 auto"><h1 style="color:#6eff8a">Welcome to FocusRunner</h1><p>Hi ${name || 'there'},</p><p>Thanks for reaching out. We help med spa owners acquire practices using AI-powered automation.</p><p><strong>What happens next:</strong></p><ol><li>Our team reviews your inquiry within 24 hours</li><li>We'll send you a personalized acquisition strategy</li><li>Schedule a call to discuss your goals</li></ol><p style="margin-top:30px;padding:20px;background:#1e293b;border-radius:8px"><strong>FocusRunner AI</strong><br>$2.5K setup · $2.5K/mo · 15 leads/30 day guarantee</p><p style="color:#94a3b8;font-size:12px;margin-top:30px">FocusRunner AI · Miami, FL<br><a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:#94a3b8">Unsubscribe</a></p></div></body></html>`;
