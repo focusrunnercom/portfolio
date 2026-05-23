@@ -783,7 +783,7 @@ function closeMenu() {
   <div class="wrap-narrow">
     <div class="section-intro">
       <div class="hero-topline">NEW</div>
-      <h2>email marketing_</h2>
+      <h2>Email Marketing</h2>
       <p>Automated email marketing. Built on Resend. Deployed on Vercel. Managed by AI.</p>
     </div>
 
@@ -812,8 +812,7 @@ function closeMenu() {
     </div>
 
     <div style="text-align:center;">
-      <a href="#start" class="btn btn-primary">Launch Campaign &rarr;</a>
-      <a href="https://github.com/focusrunnercom/portfolio" target="_blank" class="btn btn-secondary" style="margin-left:12px;">View API Docs</a>
+      <a href="#start" class="btn btn-secondary">Launch Campaign &rarr;</a>
     </div>
   </div>
 </section>
@@ -823,7 +822,7 @@ function closeMenu() {
   <div class="wrap-narrow">
     <div class="section-intro">
       <div class="hero-topline">GET STARTED</div>
-      <h2>launch_your_campaign_</h2>
+      <h2>Launch Your Campaign</h2>
       <p>Tell us about your target. We'll build your first email sequence — free audit included.</p>
     </div>
 
@@ -838,7 +837,7 @@ function closeMenu() {
           <input name="email" type="email" placeholder="> your@email.com" required style="background:transparent;border:1px solid var(--line-bright);color:var(--ink);padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;">
           <input name="practice" placeholder="> practice_name (optional)" style="background:transparent;border:1px solid var(--line-bright);color:var(--ink);padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;">
           <textarea name="message" placeholder="> what_are_you_looking_for?" rows="2" style="background:transparent;border:1px solid var(--line-bright);color:var(--ink);padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;resize:vertical;"></textarea>
-          <button type="submit" style="background:var(--phos);color:#000;border:none;padding:10px 24px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;">send_lead() &rarr;</button>
+          <button type="submit" style="background:var(--phos);color:#000;border:none;padding:10px 24px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;">Apply</button>
         </form>
         <span id="email-lead-status" style="display:none;margin-top:10px;font-size:12px;"></span>
       </div>
@@ -874,7 +873,7 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
     status.style.color = 'var(--danger)';
     status.textContent = '> ERR: ' + err.message + '. Try again or email leads@focusrunner.io';
   }
-  btn.textContent = 'send_lead() →';
+  btn.textContent = 'Apply';
   btn.disabled = false;
 });
 </script>
