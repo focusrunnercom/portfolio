@@ -869,7 +869,7 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
   status.style.color = 'var(--ink-dim)';
   status.textContent = '> transmitting...';
   try {
-    var res = await fetch('/api/email/leads', {
+            var res = await fetch('/api/email', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(Object.fromEntries(new FormData(this)))

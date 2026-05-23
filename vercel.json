@@ -20,11 +20,7 @@
     { "source": "/api/instagram", "destination": "/api/instagram.js" },
     { "source": "/api/send-outreach", "destination": "/api/send-outreach.js" },
     { "source": "/api/resend-webhook", "destination": "/api/resend-webhook.js" },
-    { "source": "/api/email/send", "destination": "/api/email" },
-    { "source": "/api/email/batch", "destination": "/api/email" },
-    { "source": "/api/email/webhook", "destination": "/api/email" },
-    { "source": "/api/email/leads", "destination": "/api/email" },
-    { "source": "/api/leads/capture", "destination": "/api/email" }
+    { "source": "/api/email", "destination": "/api/email.js" }
   ],
   "redirects": [
     { "source": "/(.*)", "destination": "https://focusrunner.io/$1", "has": [{"type": "host", "value": "www.focusrunner.com"}], "statusCode": 301 }

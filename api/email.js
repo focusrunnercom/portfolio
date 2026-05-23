@@ -13,9 +13,17 @@ export default async function handler(req, res) {
   if (route === 'batch') return handleBatch(req, res, apiKey);
   if (route === 'webhook') return handleWebhook(req, res);
   if (route === 'leads') return handleLeads(req, res, apiKey);
-  if (route === 'email') return handleLeads(req, res, apiKey);
+    if (route === 'email') return handleLeads(req, res, apiKey);
 
-  return res.status(404).json({ error: 'Route not found', available: ['send','batch','webhook','leads'] });
+  // Query-based routing: /api/email?type=send|batch|webhook|leads
+  const type = req.query?.type;
+  if (type === 'send') return handleSend(req, res, apiKey);
+  if (type === 'batch') return handleBatch(req, res, apiKey);
+  if (type === 'webhook') return handleWebhook(req, res);
+  if (type === 'leads') return handleLeads(req, res, apiKey);
+
+  // Default: POST to /api/email = lead capture
+  return handleLeads(req, res, apiKey);
 }
 
 async function handleSend(req, res, apiKey) {
