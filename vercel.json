@@ -1,94 +1,13 @@
 {
-  "builds": [
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
+  "functions": {
+    "api/email/*.js": {
+      "maxDuration": 30
     },
-    {
-      "src": "*.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "api/*.js",
-      "use": "@vercel/node"
+    "api/leads/*.js": {
+      "maxDuration": 10
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/public/(.*)",
-      "destination": "/public/$1"
-    },
-    {
-      "source": "/api/direct-qualify",
-      "destination": "/api/direct-qualify.js"
-    },
-    {
-      "source": "/api/chat",
-      "destination": "/api/chat.js"
-    },
-    {
-      "source": "/api/webhook",
-      "destination": "/api/webhook.js"
-    },
-    {
-      "source": "/api/leads",
-      "destination": "/api/leads.js"
-    },
-    {
-      "source": "/api/analytics",
-      "destination": "/api/analytics.js"
-    },
-    {
-      "source": "/api/health",
-      "destination": "/api/health.js"
-    },
-    {
-      "source": "/api/instagram",
-      "destination": "/api/instagram.js"
-    },
-    {
-      "source": "/api/send-outreach",
-      "destination": "/api/send-outreach.js"
-    },
-    {
-      "source": "/api/resend-webhook",
-      "destination": "/api/resend-webhook.js"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "destination": "https://focusrunner.io/$1",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.focusrunner.com"
-        }
-      ],
-      "statusCode": 301
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "POST, OPTIONS, GET"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, X-Client-Id"
-        }
-      ]
-    }
-  ]
+  },
+  "env": {
+    "RESEND_API_KEY": "re_NJTeWdZV_LULP7wz7EAMokqozDTnk94KF"
+  }
 }
