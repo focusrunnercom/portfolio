@@ -6,17 +6,18 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.RESEND_API_KEY;
-  const path = req.url?.split('?')[0]?.replace(/\/+$/, '') || '';
+  const url = new URL(req.url, 'https://focusrunner.io');
+  const path = url.pathname.replace(/\/+$/, '') || '';
   const route = path.split('/').pop();
 
   if (route === 'send') return handleSend(req, res, apiKey);
   if (route === 'batch') return handleBatch(req, res, apiKey);
   if (route === 'webhook') return handleWebhook(req, res);
   if (route === 'leads') return handleLeads(req, res, apiKey);
-    if (route === 'email') return handleLeads(req, res, apiKey);
+  if (route === 'email') return handleLeads(req, res, apiKey);
 
   // Query-based routing: /api/email?type=send|batch|webhook|leads
-  const type = req.query?.type;
+  const type = url.searchParams.get('type');
   if (type === 'send') return handleSend(req, res, apiKey);
   if (type === 'batch') return handleBatch(req, res, apiKey);
   if (type === 'webhook') return handleWebhook(req, res);
