@@ -1011,15 +1011,15 @@ function closeMenu() {
 <section id="start">
   <div class="wrap-narrow">
     <div class="section-intro">
-      <div class="hero-topline">GET STARTED</div>
-      <h2>Launch Today</h2>
-      <p>Tell us about your target. We'll build your Business Fully Automated — free audit included.</p>
+      <div class="hero-topline">AUTOMATE YOUR PIPELINE</div>
+      <h2>Deploy Your Patient Acquisition System</h2>
+      <p>Tell us about your practice and target market. We'll design a custom AI automation workflow — free acquisition audit included.</p>
     </div>
 
     <div class="terminal" style="max-width:600px;">
       <div class="terminal-bar">
         <div class="terminal-dots"><span></span><span></span><span></span></div>
-        <div class="terminal-title">lead-capture.json</div>
+        <div class="terminal-title">acquisition-pipeline.json</div>
       </div>
       <div class="terminal-body">
         <form id="email-lead-form" style="display:flex;flex-direction:column;gap:12px;">
@@ -1054,7 +1054,7 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
     var json = await res.json();
     if (res.ok && json.success) {
       status.style.color = 'var(--phos)';
-      status.textContent = '> OK. Check your inbox. Strategy incoming within 24h.';
+      status.textContent = '> OK. Check your inbox. Your custom acquisition workflow arrives within 24h.';
       this.reset();
     } else {
       throw new Error(json.error || 'fail');
