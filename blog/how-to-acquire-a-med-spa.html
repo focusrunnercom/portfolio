@@ -54,7 +54,7 @@
 <style>
   :root { --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e; --ink-faint: #3f4a43; --bg-panel: #0d120f; --bg-2: #0f1412; --line: #1a2620; --line-bright: #2a3f33; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.8; -webkit-font-smoothing: antialiased; }
+  body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 15px; line-height: 1.8; -webkit-font-smoothing: antialiased; }
   .wrap { max-width: 800px; margin: 0 auto; padding: 0 24px; }
   nav { position: sticky; top: 0; z-index: 100; background: var(--bg-panel); border-bottom: 1px solid var(--line); }
   .nav-inner { max-width: 800px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
@@ -76,11 +76,17 @@
   .cta-box { border: 1px solid var(--phos-dim); padding: 24px; margin: 40px 0; text-align: center; background: var(--bg-2); }
   .cta-box h3 { color: var(--phos); font-size: 18px; margin-bottom: 8px; }
   .cta-box p { color: var(--ink-dim); font-size: 13px; margin-bottom: 16px; }
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; text-decoration: none; transition: all .15s; cursor: pointer; background: var(--phos); color: #000; border: none; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; min-height: 44px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; text-decoration: none; transition: all .15s; cursor: pointer; background: var(--phos); color: #000; border: none; }
   .btn:hover { background: #8affa0; }
   footer { border-top: 1px solid var(--line); padding: 32px 0; margin-top: 60px; text-align: center; font-size: 12px; color: var(--ink-faint); }
   footer a { color: var(--ink-dim); text-decoration: none; margin: 0 10px; }
   footer a:hover { color: var(--phos); }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 16px; }
+    .btn { min-height: 48px; padding: 12px 24px; width: 100%; justify-content: center; }
+  }
 </style>
 <script type="application/ld+json">
 {
