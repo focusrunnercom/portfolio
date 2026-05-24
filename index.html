@@ -1148,7 +1148,7 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
       </div>
     </div>
     <div style="text-align:center;margin-top:24px;">
-      <a href="/faq.html" class="btn" style="background:transparent;color:var(--phos);border:1px solid var(--phos-dim);">Read Full FAQ — 12 Questions →</a>
+      <a href="/faq.html" class="btn faq-read-more" style="background:transparent;color:var(--phos);border:1px solid var(--phos-dim);">Read Full FAQ — 12 Questions →</a>
     </div>
   </div>
 </section>
@@ -1157,6 +1157,8 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
   .faq-item.open .faq-a { display:block !important; }
   .faq-item.open .faq-arrow { transform:rotate(45deg); }
   .faq-q:hover { background:var(--bg-2); }
+  .faq-read-more:hover { border-color:var(--phos) !important; box-shadow: 0 0 12px rgba(110,255,138,0.2); transform:translateY(-1px); }
+  .faq-read-more { transition: all .2s ease; }
 </style>
 
 <!-- ===== FOOTER ===== -->
