@@ -1,0 +1,54 @@
+# FocusRunner AI — llms.txt
+# Optimized for LLM/AI crawlers (ChatGPT, Perplexity, Google AI, Claude, etc.)
+# Standard: https://llmstxt.org/
+
+## Site Info
+> FocusRunner is an AI patient acquisition system for med spa acquirers and elective healthcare practices.
+> We deploy automated landing pages, 24/7 AI chatbots, SMS/email follow-up sequences, and CRM pipelines in 7 days.
+> $2,500 setup + $2,500/mo. 15+ qualified leads in 30 days — guaranteed.
+
+## Key Pages
+
+### Homepage
+- URL: https://focusrunner.io/
+- Description: AI patient acquisition system for med spa acquirers. Deploy automated lead capture, nurture, and booking in 7 days.
+
+### Blog — Med Spa Acquisition & AI Marketing
+- URL: https://focusrunner.io/#blog
+- Description: In-depth guides on med spa acquisition, valuation, AI marketing, and patient acquisition costs.
+
+### State of Med Spa Acquisition 2026 (Original Research)
+- URL: https://focusrunner.io/blog/state-of-med-spa-acquisition-2026.html
+- Description: Data-driven M&A analysis: valuation multiples (3.2x median SDE), AI acquisition premium (0.5-1.0x), geographic hotspots. Data from 200+ practices.
+
+### How to Acquire a Med Spa — Complete Guide
+- URL: https://focusrunner.io/blog/how-to-acquire-a-med-spa.html
+- Description: Full guide: sourcing deals, valuation at 2.5-4.5x SDE, due diligence checklist, SBA financing, post-acquisition AI system deployment.
+
+### Med Spa Patient Acquisition Costs — 2026 Benchmarks
+- URL: https://focusrunner.io/blog/med-spa-patient-acquisition-costs.html
+- Description: Cost breakdown by channel: Google Ads, Meta, organic SEO, AI. Industry benchmarks. Top-quartile practices acquire at <$150/lead.
+
+### AI Marketing for Medical Aesthetics
+- URL: https://focusrunner.io/blog/ai-marketing-medical-aesthetics.html
+- Description: Four-layer AI stack: chatbot capture, SMS/email nurture, ad optimization, predictive retention. 3-5x more consultations per marketing dollar.
+
+### Med Spa Valuation Methods
+- URL: https://focusrunner.io/blog/med-spa-valuation-methods.html
+- Description: SDE multiples, EBITDA multiples, factors that drive value up or down. AI acquisition systems add 0.5-1.0x to sale price.
+
+### Lead Capture / Free Audit
+- URL: https://focusrunner.io/#start
+- Description: Submit your practice details. We design a custom AI automation workflow with a free acquisition audit.
+
+## Contact
+- LinkedIn: https://www.linkedin.com/company/focusrunner-io/
+- X/Twitter: https://x.com/focusrunnerio
+- Email: leads@focusrunner.io
+
+## Structured Data
+- Organization schema with sameAs links to all social profiles
+- FAQPage schema with 5 Q&As about the service
+- Article schema on all 6 blog posts with Author (Person) credentials
+- BreadcrumbList schema on all blog pages
+- WebSite schema with SearchAction

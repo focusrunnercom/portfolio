@@ -3,6 +3,7 @@
     { "src": "*.html", "use": "@vercel/static" },
     { "src": "*.js", "use": "@vercel/static" },
     { "src": "*.txt", "use": "@vercel/static" },
+    { "src": "llms.txt", "use": "@vercel/static" },
     { "src": "*.xml", "use": "@vercel/static" },
     { "src": "blog/*.html", "use": "@vercel/static" },
     { "src": "*.css", "use": "@vercel/static" },
