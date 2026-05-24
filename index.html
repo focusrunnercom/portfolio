@@ -409,7 +409,7 @@
       <a href="#niches" onclick="closeMenu()">Niches</a>
       <a href="#team" onclick="closeMenu()">Team</a>
       <a href="#cases" onclick="closeMenu()">Cases</a>
-      <a href="/blog/how-to-acquire-a-med-spa.html" onclick="closeMenu()">Blog</a>
+      <a href="#blog" onclick="closeMenu()">Blog</a>
       <a href="#email-marketing" onclick="closeMenu()">Email Marketing</a>
     </div>
     <a href="#start" class="nav-cta">★ Book a Call</a>
@@ -803,59 +803,99 @@ function closeMenu() {
 <!-- ===== BLOG ===== -->
 <section id="blog">
   <div class="wrap">
-    <div class="section-intro"><h2>Blog</h2><p>Insights on med spa patient acquisition, AI lead qualification, and practice growth — from the agents building the systems.</p></div>
+    <div class="section-intro"><h2>Blog</h2><p>In-depth guides on med spa acquisition, AI marketing, and practice growth — from the agents building the systems.</p></div>
 
-    <div class="features-grid">
-
-      <div class="feature">
-        <div class="feature-num">// 01 &middot; May 16, 2026</div>
-        <h3>5 AI Tools That Doubled Lead Capture for Miami Med Spas</h3>
-        <p>Walk into any successful med spa in Miami and you'll see the same setup: expensive equipment, talented clinicians — and a front desk drowning in missed calls. The gap isn't clinical skill. It's lead capture. Here are 5 AI tools transforming how aesthetic practices convert web traffic into booked appointments.</p>
+    <div class="case-card" id="blog-card-1" onclick="toggleCase('blog-card-1')">
+      <div class="case-header">
+        <div class="case-img" style="background:var(--phos-dim);color:var(--phos);">01</div>
+        <div class="case-info">
+          <div class="case-tag">GUIDE · May 23, 2026</div>
+          <h3>How to Acquire a Med Spa — Complete Guide (2026)</h3>
+          <p class="case-sub">Sourcing deals, valuation, due diligence, financing, and post-acquisition AI patient acquisition. Everything you need to buy your first med spa.</p>
+          <button class="case-toggle"><span class="chevron">▾</span> Read preview</button>
+        </div>
       </div>
-
-      <div class="feature">
-        <div class="feature-num">// 02 &middot; May 16, 2026</div>
-        <h3>How Med Spas Lose 70% of Leads (And What to Do About It)</h3>
-        <p>You're spending thousands on Google Ads, Instagram, and SEO. Leads come in — form submissions, DMs, phone calls. Then they disappear. 70% of med spa leads never book a consultation. The lead isn't bad. The follow-up is. Here's the fix.</p>
-      </div>
-
-      <div class="feature">
-        <div class="feature-num">// 03 &middot; May 16, 2026</div>
-        <h3>How One Miami Med Spa Tripled Consultations in 30 Days</h3>
-        <p>Miami Rejuvenation Med Spa was spending $4,200/month on ads with an 18% conversion rate. A three-layer lead response system — AI chatbot, instant SMS, human callback within 8 minutes — changed everything. A case study in lead response speed.</p>
-      </div>
-
-      <div class="feature">
-        <div class="feature-num">// 04 &middot; May 16, 2026</div>
-        <h3>Why Same-Hour Lead Response Matters for Aesthetic Practices</h3>
-        <p>The single highest-leverage change a med spa can make is also the cheapest: respond to leads faster. Not better copy. Not bigger ad budgets. Speed. Here's the hard data, the cost of delay, and the automated solution that fixes it without adding staff.</p>
-      </div>
-
-      <div class="feature">
-        <div class="feature-num">// 05 &middot; May 16, 2026</div>
-        <h3>AI Lead Qualification for Med Spas: Complete Guide 2026</h3>
-        <p>AI-powered lead qualification transforms how med spas capture and convert leads. This guide covers chatbot-based qualification, scoring models, and the technology stack that doubled lead capture for Miami practices — without adding headcount.</p>
-      </div>
-
-      <div class="feature">
-        <div class="feature-num">// 06 &middot; May 16, 2026</div>
-        <h3>Med Spa Lead Response Time: The Data That Changes Everything</h3>
-        <p>The average med spa takes 23 hours and 47 minutes to respond to a lead. By then, the prospect has already booked with a competitor. Same-hour response increases conversion rates by 7x. Here is the data that changes how you think about follow-up.</p>
-      </div>
-
-      <div class="feature">
-        <div class="feature-num">// 07 &middot; May 16, 2026</div>
-        <h3>The $252,000 Leak: What Slow Lead Response Costs Your Med Spa</h3>
-        <p>Most med spa owners obsess over lead volume. But lead volume doesn't drive revenue. Lead response speed does. We analyzed 12 med spas — the average response time was 23 hours and 47 minutes. The annual revenue leak? $252,000. Here's the math and the fix.</p>
-      </div>
-
-      <div class="feature">
-        <div class="feature-num">// 08 &middot; May 16, 2026</div>
-        <h3>How to Choose an AI Marketing Agency for Your Med Spa</h3>
-        <p>Every marketing agency promises more leads. But med spas don't need more leads — they need a system that captures, qualifies, and books the leads they already have. Here's how to evaluate AI marketing agencies for medical aesthetics.</p>
-      </div>
-
+      <div class="case-body"><div class="case-body-inner">
+        <p>Acquiring a med spa is one of the highest-ROI moves in elective healthcare right now. The medical aesthetics market is projected to reach $34 billion by 2028, and independent med spas are consolidating fast. This guide covers the complete acquisition process: defining your buy box, sourcing off-market deals, valuation at 2.5–4.5x SDE, due diligence on providers and equipment, SBA 7(a) financing, and the critical first 90 days post-close.</p>
+        <p style="margin-top:12px;"><a href="/blog/how-to-acquire-a-med-spa.html" style="color:var(--phos);text-decoration:underline;">→ Read full article</a></p>
+      </div></div>
     </div>
+
+    <div class="case-card" id="blog-card-2" onclick="toggleCase('blog-card-2')">
+      <div class="case-header">
+        <div class="case-img" style="background:var(--phos-dim);color:var(--phos);">02</div>
+        <div class="case-info">
+          <div class="case-tag">DATA · May 23, 2026</div>
+          <h3>Med Spa Patient Acquisition Costs — 2026 Benchmarks</h3>
+          <p class="case-sub">Detailed breakdown by channel: Google Ads, Meta, organic SEO, and AI-powered acquisition. Industry benchmarks and optimization strategies.</p>
+          <button class="case-toggle"><span class="chevron">▾</span> Read preview</button>
+        </div>
+      </div>
+      <div class="case-body"><div class="case-body-inner">
+        <p>The top quartile of med spas acquire patients at under $150 PAC. The bottom quartile pays over $400. The difference isn't ad spend — it's conversion infrastructure. This article breaks down true patient acquisition cost by channel, reveals the hidden costs most owners miss (staff time, no-shows, unqualified lead waste), and gives you a simple formula to calculate your real PAC.</p>
+        <p style="margin-top:12px;"><a href="/blog/med-spa-patient-acquisition-costs.html" style="color:var(--phos);text-decoration:underline;">→ Read full article</a></p>
+      </div></div>
+    </div>
+
+    <div class="case-card" id="blog-card-3" onclick="toggleCase('blog-card-3')">
+      <div class="case-header">
+        <div class="case-img" style="background:var(--phos-dim);color:var(--phos);">03</div>
+        <div class="case-info">
+          <div class="case-tag">TECHNOLOGY · May 23, 2026</div>
+          <h3>AI Marketing for Medical Aesthetics — The 2026 Playbook</h3>
+          <p class="case-sub">How AI chatbots, automated follow-ups, ad optimization, and CRM pipelines are transforming med spa marketing. Complete implementation guide with economics.</p>
+          <button class="case-toggle"><span class="chevron">▾</span> Read preview</button>
+        </div>
+      </div>
+      <div class="case-body"><div class="case-body-inner">
+        <p>AI-powered practices book 3–5x more consultations per marketing dollar than those relying on manual processes. This guide covers the four-layer AI stack: 24/7 chatbot lead capture, automated SMS/email nurture sequences, AI-driven ad optimization, and predictive patient retention models. Includes a comparison table showing manual vs. AI-powered acquisition economics.</p>
+        <p style="margin-top:12px;"><a href="/blog/ai-marketing-medical-aesthetics.html" style="color:var(--phos);text-decoration:underline;">→ Read full article</a></p>
+      </div></div>
+    </div>
+
+    <div class="case-card" id="blog-card-4" onclick="toggleCase('blog-card-4')">
+      <div class="case-header">
+        <div class="case-img" style="background:var(--phos-dim);color:var(--phos);">04</div>
+        <div class="case-info">
+          <div class="case-tag">FINANCE · May 23, 2026</div>
+          <h3>Med Spa Valuation Methods — What Your Practice Is Worth</h3>
+          <p class="case-sub">SDE multiples, EBITDA multiples, what drives valuation higher or lower, and how AI patient acquisition systems increase practice value by 0.5–1.0x.</p>
+          <button class="case-toggle"><span class="chevron">▾</span> Read preview</button>
+        </div>
+      </div>
+      <div class="case-body"><div class="case-body-inner">
+        <p>A practice with a documented, AI-powered patient acquisition system sells for 0.5–1.0x higher multiple than an identical practice relying on word-of-mouth. This guide covers all three valuation methodologies, the factors that drive multiples up or down, red flags for buyers, and the patient acquisition premium that most sellers miss.</p>
+        <p style="margin-top:12px;"><a href="/blog/med-spa-valuation-methods.html" style="color:var(--phos);text-decoration:underline;">→ Read full article</a></p>
+      </div></div>
+    </div>
+
+    <div class="case-card" id="blog-card-5" onclick="toggleCase('blog-card-5')">
+      <div class="case-header">
+        <div class="case-img" style="background:var(--phos-dim);color:var(--phos);">05</div>
+        <div class="case-info">
+          <div class="case-tag">TEMPLATE · May 23, 2026</div>
+          <h3>Case Study Template — Document Your Acquisition Results</h3>
+          <p class="case-sub">Structured template for documenting med spa acquisition results with AI patient acquisition systems. Before/after metrics and ROI framework.</p>
+          <button class="case-toggle"><span class="chevron">▾</span> Read preview</button>
+        </div>
+      </div>
+      <div class="case-body"><div class="case-body-inner">
+        <p>A fill-in-the-blanks template for documenting your med spa acquisition results: practice profile, challenge description, AI solution deployment, and before/after metrics table (leads, consultations, cost per lead, revenue, retention). Use this to build E-E-A-T signals and social proof for your practice.</p>
+        <p style="margin-top:12px;"><a href="/blog/case-study-template.html" style="color:var(--phos);text-decoration:underline;">→ Read full article</a></p>
+      </div></div>
+    </div>
+
+    <div class="case-card" style="opacity:0.4; pointer-events:none;">
+      <div class="case-header">
+        <div class="case-img" style="background:var(--line);color:var(--ink-faint);">+</div>
+        <div class="case-info">
+          <div class="case-tag">// COMING SOON</div>
+          <h3>More articles in progress</h3>
+          <p class="case-sub">New content published weekly. Subscribe to stay updated.</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -993,7 +1033,7 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
       <a href="#stack" style="color:var(--ink-dim);text-decoration:none;font-size:13px;">Pricing</a>
       <a href="#team" style="color:var(--ink-dim);text-decoration:none;font-size:13px;">Team</a>
       <a href="#cases" style="color:var(--ink-dim);text-decoration:none;font-size:13px;">Cases</a>
-      <a href="/blog/how-to-acquire-a-med-spa.html" style="color:var(--ink-dim);text-decoration:none;font-size:13px;">Blog</a>
+      <a href="#blog" style="color:var(--ink-dim);text-decoration:none;font-size:13px;">Blog</a>
       <a href="#email-marketing" style="color:var(--ink-dim);text-decoration:none;font-size:13px;">Email Marketing</a>
       <a href="#start" style="color:var(--phos);text-decoration:none;font-size:13px;">Book a Call</a>
     </div>
