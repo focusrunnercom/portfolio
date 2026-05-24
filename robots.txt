@@ -1,3 +1,17 @@
 User-agent: *
 Allow: /
 Sitemap: https://focusrunner.io/sitemap.xml
+
+# LLM / AI bot allowlist — per Adam Clarke, "SEO 2026" Ch.11
+User-agent: GPTBot
+Allow: /
+User-agent: CCBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: GrokBot
+Allow: /
