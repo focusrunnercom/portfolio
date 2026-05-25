@@ -58,8 +58,8 @@ jobs:
 
       - name: Smoke test — api/chat.js exports handler
         run: |
-          node -e "
-            const mod = require('./api/chat.js');
+          node --input-type=module -e "
+            const mod = await import('./api/chat.js');
             if (typeof mod.default === 'function') {
               console.log('✓ api/chat.js exports handler function');
             } else {
@@ -70,8 +70,8 @@ jobs:
 
       - name: Smoke test — api/webhook.js exports handler
         run: |
-          node -e "
-            const mod = require('./api/webhook.js');
+          node --input-type=module -e "
+            const mod = await import('./api/webhook.js');
             if (typeof mod.default === 'function') {
               console.log('✓ api/webhook.js exports handler function');
             } else {
