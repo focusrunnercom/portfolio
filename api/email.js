@@ -82,13 +82,24 @@ async function handleInboundWebhook(req, res) {
       return res.status(400).json({ error: 'Missing SVIX headers' });
     }
     try {
-      const crypto = require('crypto');
+      // Use globalThis.crypto (Web Crypto API) for HMAC-SHA256
+      const key = await globalThis.crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(webhookSecret.replace(/^whsec_/, '')),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
       const signedContent = `${id}.${timestamp}.${payload}`;
-      const expected = crypto.createHmac('sha256', webhookSecret.replace(/^whsec_/, '')).update(signedContent).digest('hex');
+      const sigBytes = await globalThis.crypto.subtle.sign(
+        'HMAC', key,
+        new TextEncoder().encode(signedContent)
+      );
+      const expected = Array.from(new Uint8Array(sigBytes)).map(b => b.toString(16).padStart(2,'0')).join('');
       const parts = signature.split(',');
       const match = parts.some(p => {
         const [ver, sig] = (p || '').trim().split('=');
-        return ver === 'v1' && crypto.timingSafeEqual(Buffer.from(sig || ''), Buffer.from(expected));
+        return ver === 'v1' && sig === expected;
       });
       if (!match) return res.status(401).json({ error: 'Invalid signature' });
     } catch (err) {
