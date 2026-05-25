@@ -125,7 +125,11 @@ async function notifyLead(lead, classification, score) {
       body: JSON.stringify({
         from: 'FocusRunner Leads <leads@focusrunner.io>',
         to: recipient,
-        subject: 'New Lead: ' + name + ' \u2014 ' + classification.toUpperCase() + ' (' + score + '/100)',
+        subject: 'New Lead: ' + name + ' — ' + classification.toUpperCase() + ' (' + score + '/100)',
+        headers: {
+          'List-Unsubscribe': '<mailto:leads@focusrunner.io>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
         html: '<div style="font-family:sans-serif;max-width:560px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden">' +
           '<div style="background:#0f172a;color:#fff;padding:24px 32px"><h1 style="margin:0">New Lead Captured</h1>' +
           '<p style="opacity:.7">direct-qualify</p>' +

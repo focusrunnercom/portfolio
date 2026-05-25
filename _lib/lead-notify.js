@@ -182,6 +182,10 @@ module.exports = async function handler(req, res) {
         to: recipient,
         subject,
         html,
+        headers: {
+          'List-Unsubscribe': '<mailto:leads@focusrunner.io>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
       }),
     });
 

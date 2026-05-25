@@ -1,4 +1,4 @@
-# CTO Working Context — 17 May 2026 15:01 UTC
+# CTO Working Context — 24 May 2026 18:55 UTC
 
 ## System Architecture
 **Static site** (Vercel Hobby, @vercel/static) + **Serverless API** (8 endpoints, @vercel/node).
@@ -16,17 +16,20 @@ No package.json — zero NPM dependencies. Pure CJS Node 20.x.
 | /api/instagram | api/instagram.js | 191 | IG Graph API media posting (blocked — no FB Page) |
 | /api/send-outreach | api/send-outreach.js | 176 | CEO-ordered email outreach via Resend |
 
-## Deploy Status — 17 May 15:01 UTC
+## Deploy Status — 24 May 18:55 UTC
 - **Vercel production**: focusrunner.io, Node 20.x
-- **FOC-308**: Done. Root cause was engines.node=24.x rejected by Vercel Hobby. Fixed to 20.x. Build cache skipped on version change. Deploy succeeded in 10s.
-- **direct-qualify verified**: POST returns 200 with qualification JSON. Test: Test Spa → hot (score 85, runtime 82ms).
+- **Latest deploy**: 24 May 18:55, 12s build. Build cache skipped (Node version change 24.x→20.x confirmed).
+- **FOC-308**: Deploy re-verified. Paperclip comment posted (eda6882c). All 10 API routes live.
+- **direct-qualify verified**: POST 200. Test Spa → hot (score 85, runtime 66ms, lead_id 99522c7e).
+- **Latest commits deployed**: IG images 24 May, FAQ Read More hover animation, FAQ accordion, sitemap update, CTR/book learnings
 
 ## Current Blockers
 1. **TEXTBELT** — no SMS outbound. $5 key unpurchased. Blocks FOC-768, FOC-769, FOC-755.
 2. **UTM Lead 2** — recovery call due Monday 08:00 ET. dial-utm2 command ready.
 3. **Instagram** — FB Page not created. Token stored in Vercel but can't publish without Page connection.
 
-## Today Completed (17 May)
-- FOC-308: Vercel deploy succeeded — Node 20.x, direct-qualify live and verified
-- FOC-780: cli-dialer.py hardened with SQLite logging + dial-utm2 wrapper
-- FOC-779: chat-widget.js hardened with retry, timeout, offline fallback, scoped CSS
+## Today Completed (24 May)
+- FOC-308: Vercel re-deploy 18:55 confirmed — Node 20.x, 12s, direct-qualify verified (66ms, hot/85), Paperclip comment eda6882c
+- FOC-308: Prior re-deploy 15:48 — Node 20.x, 14s, direct-qualify verified
+- FOC-780: cli-dialer.py hardened with SQLite logging + dial-utm2 wrapper (17 May)
+- FOC-779: chat-widget.js hardened with retry, timeout, offline fallback, scoped CSS (17 May)

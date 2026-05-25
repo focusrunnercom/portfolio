@@ -63,6 +63,10 @@ async function notifyLead(lead, opts = {}) {
         to: recipient,
         subject,
         html,
+        headers: {
+          'List-Unsubscribe': '<mailto:leads@focusrunner.io>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
       }),
     });
 
