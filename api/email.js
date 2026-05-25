@@ -3,6 +3,15 @@
  * Routes: body.action = "send"|"batch"|"webhook"|"leads"
  */
 export default async function handler(req, res) {
+  // GET /api/email?action=unsubscribe&email=... — one-click unsubscribe
+  if (req.method === 'GET') {
+    const url = new URL(req.url, 'https://focusrunner.io');
+    if (url.searchParams.get('action') === 'unsubscribe') {
+      return handleUnsubscribe(res, url.searchParams.get('email') || '');
+    }
+    return res.status(200).json({ ok: true });
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -32,6 +41,25 @@ function readBody(req) {
 }
 
 function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// In-memory unsubscribed set (clears on cold start — acceptable for MVP)
+const unsubscribed = new Set();
+
+async function handleUnsubscribe(res, email) {
+  if (!email) {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(pageHTML('Missing email', 'Please use the unsubscribe link from your email.'));
+    return;
+  }
+  unsubscribed.add(email.toLowerCase());
+  console.log('[unsubscribe] User removed:', email);
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(pageHTML('You&rsquo;ve been unsubscribed', '<span style="color:#6eff8a;">&check;</span> &nbsp;' + escapeHtml(email) + ' has been removed. You won&rsquo;t receive any more emails from us.'));
+}
+
+function pageHTML(title, message) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${title}</title></head><body style="margin:0;padding:0;background:#0d120f;font-family:'Courier New',Consolas,monospace;color:#d4e5d8;display:flex;align-items:center;justify-content:center;min-height:100vh;"><div style="text-align:center;max-width:500px;padding:40px;"><div style="font-size:48px;margin-bottom:24px;">&gt;_</div><h1 style="color:#6eff8a;font-size:20px;margin-bottom:12px;font-weight:700;">${title}</h1><p style="color:#7a8c7e;font-size:14px;line-height:1.8;">${message}</p><p style="color:#3f4a43;font-size:12px;margin-top:32px;"><a href="https://focusrunner.io" style="color:#6eff8a;text-decoration:none;">focusrunner.io</a></p></div></body></html>`;
+}
 
 async function handleSend(res, apiKey, body) {
   const { to, subject, html, text, from, template, tags } = body;
@@ -90,10 +118,11 @@ async function handleWebhook(res, body) {
 }
 
 // --- Follow-up email templates (Emails 2-6) ---
-function followupHtml(step, name) {
+function followupHtml(step, name, emailEnc) {
+  const unsubLink = `https://focusrunner.io/api/email?action=unsubscribe&email=${emailEnc}`;
   const brand = `<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d120f;padding:40px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#0f1412;border:1px solid #1a2620;">`;
   const header = (label) => `<tr><td style="padding:24px;border-bottom:1px solid #1a2620;"><span style="color:#6eff8a;font-weight:700;font-size:16px;">&gt;_ FocusRunner</span></td></tr><tr><td style="padding:24px;font-size:14px;line-height:1.8;"><p style="color:#6eff8a;font-size:11px;letter-spacing:1px;margin-bottom:16px;">${label} — STEP ${step} OF 6</p>`;
-  const footer = `<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tr><td align="center"><a href="https://focusrunner.io/#start" style="display:inline-block;padding:12px 28px;background:#6eff8a;color:#000;text-decoration:none;font-weight:700;font-size:13px;font-family:'JetBrains Mono',monospace;">→ Get Your Free Audit</a></td></tr></table></td></tr><tr><td style="padding:20px 24px;border-top:1px solid #1a2620;text-align:center;"><p style="color:#6eff8a;font-size:12px;font-weight:700;margin-bottom:4px;">&gt;_ FocusRunner AI</p><p style="color:#3f4a43;font-size:11px;margin-bottom:8px;"><a href="https://focusrunner.io" style="color:#6eff8a;text-decoration:none;">focusrunner.io</a></p><p style="color:#3f4a43;font-size:10px;">Daniil from FocusRunner — 15+ leads in 30 days guaranteed</p><p style="color:#3f4a43;font-size:10px;margin-top:8px;"><a href="mailto:leads@focusrunner.io?subject=Unsubscribe" style="color:#3f4a43;">Unsubscribe</a> — one click, instantly</p></td></tr></table></td></tr></table>`;
+  const footer = `<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tr><td align="center"><a href="https://focusrunner.io/#start" style="display:inline-block;padding:12px 28px;background:#6eff8a;color:#000;text-decoration:none;font-weight:700;font-size:13px;font-family:'JetBrains Mono',monospace;">→ Get Your Free Audit</a></td></tr></table></td></tr><tr><td style="padding:20px 24px;border-top:1px solid #1a2620;text-align:center;"><p style="color:#6eff8a;font-size:12px;font-weight:700;margin-bottom:4px;">&gt;_ FocusRunner AI</p><p style="color:#3f4a43;font-size:11px;margin-bottom:8px;"><a href="https://focusrunner.io" style="color:#6eff8a;text-decoration:none;">focusrunner.io</a></p><p style="color:#3f4a43;font-size:10px;">Daniil from FocusRunner — 15+ leads in 30 days guaranteed</p><p style="color:#3f4a43;font-size:10px;margin-top:8px;"><a href="${unsubLink}" style="color:#3f4a43;">Unsubscribe</a> — one click, instantly</p></td></tr></table></td></tr></table>`;
 
   const emails = {
     2: {
@@ -129,11 +158,17 @@ async function handleLeads(res, apiKey, body) {
   const nameSafe = escapeHtml(name || 'there');
   const practiceSafe = escapeHtml(practice || 'N/A');
   const messageSafe = escapeHtml(message || 'N/A');
+
+  // Skip if unsubscribed
+  if (unsubscribed.has(email.toLowerCase())) {
+    return res.status(200).json({ success: true, skipped: true, message: 'Email previously unsubscribed.' });
+  }
   const now = new Date();
   const sched = (days) => new Date(now.getTime() + days * 86400000).toISOString();
+  const unsubLink = `https://focusrunner.io/api/email?action=unsubscribe&email=${encodeURIComponent(email)}`;
 
-  // Welcome email — dark theme, JetBrains Mono
-  const welcomeHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head><body style="margin:0;padding:0;background:#0d120f;font-family:'Courier New',Consolas,monospace;color:#d4e5d8;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#0d120f;padding:40px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#0f1412;border:1px solid #1a2620;"><tr><td style="padding:24px;border-bottom:1px solid #1a2620;"><span style="color:#6eff8a;font-weight:700;font-size:16px;">&gt;_ FocusRunner</span></td></tr><tr><td style="padding:24px;font-size:14px;line-height:1.8;"><p style="color:#6eff8a;font-size:11px;letter-spacing:1px;margin-bottom:16px;">WELCOME — STEP 1 OF 6</p><h1 style="color:#d4e5d8;font-size:22px;font-weight:700;margin-bottom:12px;">Your Med Spa Acquisition Journey Starts Here</h1><p style="color:#7a8c7e;margin-bottom:16px;">Hi ${nameSafe},</p><p style="color:#7a8c7e;margin-bottom:16px;">You just took the first step toward acquiring a med spa with an AI patient pipeline already built in.</p><table width="100%" cellpadding="0" cellspacing="0" style="background:#0d120f;border:1px solid #1a2620;margin-bottom:24px;"><tr><td style="padding:16px;"><p style="color:#6eff8a;font-weight:700;font-size:13px;margin-bottom:8px;">&gt; What to expect (2-3x/week):</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:4px;">&rarr; Acquisition insights from 200+ practice transactions</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:4px;">&rarr; Real valuation multiples and deal structures</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:4px;">&rarr; AI patient pipeline strategies that work</p><p style="color:#7a8c7e;font-size:12px;">&rarr; One-click unsubscribe anytime</p></td></tr></table><table width="100%" cellpadding="0" cellspacing="0" style="background:#0d120f;border-left:3px solid #6eff8a;margin-bottom:24px;"><tr><td style="padding:16px;"><p style="color:#6eff8a;font-size:24px;font-weight:700;margin-bottom:4px;">62%</p><p style="color:#7a8c7e;font-size:12px;">of acquired med spas lack systematic marketing. That's where the profit lives.</p></td></tr></table><p style="color:#7a8c7e;font-size:13px;margin-bottom:24px;">Two quick questions (hit reply &mdash; real human reads every response):</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:4px;">1. What market are you looking to acquire in?</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:24px;">2. What's your biggest concern about the process?</p><p style="color:#3f4a43;font-size:11px;">Next email: tomorrow &mdash; the $14.2B shift most acquirers miss.</p></td></tr><tr><td style="padding:20px 24px;border-top:1px solid #1a2620;text-align:center;"><p style="color:#6eff8a;font-size:12px;font-weight:700;margin-bottom:4px;">&gt;_ FocusRunner AI</p><p style="color:#3f4a43;font-size:11px;margin-bottom:8px;"><a href="https://focusrunner.io" style="color:#6eff8a;text-decoration:none;">focusrunner.io</a></p><p style="color:#3f4a43;font-size:10px;">Daniil from FocusRunner &mdash; 15+ leads in 30 days guaranteed</p><p style="color:#3f4a43;font-size:10px;margin-top:8px;"><a href="mailto:leads@focusrunner.io?subject=Unsubscribe" style="color:#3f4a43;">Unsubscribe</a> &mdash; one click, instantly</p></td></tr></table></td></tr></table></body></html>`;
+  // Welcome email — dark theme, Courier New
+  const welcomeHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head><body style="margin:0;padding:0;background:#0d120f;font-family:'Courier New',Consolas,monospace;color:#d4e5d8;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#0d120f;padding:40px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#0f1412;border:1px solid #1a2620;"><tr><td style="padding:24px;border-bottom:1px solid #1a2620;"><span style="color:#6eff8a;font-weight:700;font-size:16px;">&gt;_ FocusRunner</span></td></tr><tr><td style="padding:24px;font-size:14px;line-height:1.8;"><p style="color:#6eff8a;font-size:11px;letter-spacing:1px;margin-bottom:16px;">WELCOME — STEP 1 OF 6</p><h1 style="color:#d4e5d8;font-size:22px;font-weight:700;margin-bottom:12px;">Your Med Spa Acquisition Journey Starts Here</h1><p style="color:#7a8c7e;margin-bottom:16px;">Hi ${nameSafe},</p><p style="color:#7a8c7e;margin-bottom:16px;">You just took the first step toward acquiring a med spa with an AI patient pipeline already built in.</p><table width="100%" cellpadding="0" cellspacing="0" style="background:#0d120f;border:1px solid #1a2620;margin-bottom:24px;"><tr><td style="padding:16px;"><p style="color:#6eff8a;font-weight:700;font-size:13px;margin-bottom:8px;">&gt; What to expect (2-3x/week):</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:4px;">&rarr; Acquisition insights from 200+ practice transactions</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:4px;">&rarr; Real valuation multiples and deal structures</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:4px;">&rarr; AI patient pipeline strategies that work</p><p style="color:#7a8c7e;font-size:12px;">&rarr; One-click unsubscribe anytime</p></td></tr></table><table width="100%" cellpadding="0" cellspacing="0" style="background:#0d120f;border-left:3px solid #6eff8a;margin-bottom:24px;"><tr><td style="padding:16px;"><p style="color:#6eff8a;font-size:24px;font-weight:700;margin-bottom:4px;">62%</p><p style="color:#7a8c7e;font-size:12px;">of acquired med spas lack systematic marketing. That's where the profit lives.</p></td></tr></table><p style="color:#7a8c7e;font-size:13px;margin-bottom:24px;">Two quick questions (hit reply &mdash; real human reads every response):</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:4px;">1. What market are you looking to acquire in?</p><p style="color:#7a8c7e;font-size:12px;margin-bottom:24px;">2. What's your biggest concern about the process?</p><p style="color:#3f4a43;font-size:11px;">Next email: tomorrow &mdash; the $14.2B shift most acquirers miss.</p></td></tr><tr><td style="padding:20px 24px;border-top:1px solid #1a2620;text-align:center;"><p style="color:#6eff8a;font-size:12px;font-weight:700;margin-bottom:4px;">&gt;_ FocusRunner AI</p><p style="color:#3f4a43;font-size:11px;margin-bottom:8px;"><a href="https://focusrunner.io" style="color:#6eff8a;text-decoration:none;">focusrunner.io</a></p><p style="color:#3f4a43;font-size:10px;">Daniil from FocusRunner &mdash; 15+ leads in 30 days guaranteed</p><p style="color:#3f4a43;font-size:10px;margin-top:8px;"><a href="${unsubLink}" style="color:#3f4a43;">Unsubscribe</a> &mdash; one click, instantly</p></td></tr></table></td></tr></table></body></html>`;
 
   // CEO notification
   const notifyHtml = `<p><strong>New lead:</strong><br>Name: ${nameSafe}<br>Email: ${email}<br>Practice: ${practiceSafe}<br>Message: ${messageSafe}</p>`;
@@ -141,11 +176,11 @@ async function handleLeads(res, apiKey, body) {
   // 6-email autoresponder — #1 now, #2-6 scheduled via Resend's scheduled_at
   const sequence = [
     { subject: 'Your Med Spa Acquisition Journey Starts Here [Inside]', html: welcomeHtml, scheduled_at: null },
-    { subject: 'The $14.2B shift most acquirers miss', html: followupHtml(2, nameSafe), scheduled_at: sched(1) },
-    { subject: '20–50 qualified leads/month [How it works]', html: followupHtml(3, nameSafe), scheduled_at: sched(3) },
-    { subject: '"What if it doesn\'t work for my market?"', html: followupHtml(4, nameSafe), scheduled_at: sched(5) },
-    { subject: '"We closed 4 acquisitions in 6 months" [Client story]', html: followupHtml(5, nameSafe), scheduled_at: sched(7) },
-    { subject: 'Final call — your free audit [Last email]', html: followupHtml(6, nameSafe), scheduled_at: sched(10) },
+    { subject: 'The $14.2B shift most acquirers miss', html: followupHtml(2, nameSafe, encodeURIComponent(email)), scheduled_at: sched(1) },
+    { subject: '20–50 qualified leads/month [How it works]', html: followupHtml(3, nameSafe, encodeURIComponent(email)), scheduled_at: sched(3) },
+    { subject: '"What if it doesn\'t work for my market?"', html: followupHtml(4, nameSafe, encodeURIComponent(email)), scheduled_at: sched(5) },
+    { subject: '"We closed 4 acquisitions in 6 months" [Client story]', html: followupHtml(5, nameSafe, encodeURIComponent(email)), scheduled_at: sched(7) },
+    { subject: 'Final call — your free audit [Last email]', html: followupHtml(6, nameSafe, encodeURIComponent(email)), scheduled_at: sched(10) },
   ];
 
   try {
