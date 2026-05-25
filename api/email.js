@@ -12,6 +12,11 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // Resend Inbound webhook — POST with JSON body and SVIX headers
+  if (req.method === 'POST' && req.headers.get('svix-id')) {
+    return handleInboundWebhook(req, res);
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -60,7 +65,45 @@ async function handleUnsubscribe(res, email) {
 function pageHTML(title, message) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${title}</title></head><body style="margin:0;padding:0;background:#0d120f;font-family:'Courier New',Consolas,monospace;color:#d4e5d8;display:flex;align-items:center;justify-content:center;min-height:100vh;"><div style="text-align:center;max-width:500px;padding:40px;"><div style="font-size:48px;margin-bottom:24px;">&gt;_</div><h1 style="color:#6eff8a;font-size:20px;margin-bottom:12px;font-weight:700;">${title}</h1><p style="color:#7a8c7e;font-size:14px;line-height:1.8;">${message}</p><p style="color:#3f4a43;font-size:12px;margin-top:32px;"><a href="https://focusrunner.io" style="color:#6eff8a;text-decoration:none;">focusrunner.io</a></p></div></body></html>`;
 }
+`;
 
+// --- Resend Inbound: Forward all inbound email to Gmail ---
+async function handleInboundWebhook(req, res) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const payload = await req.text();
+  let parsed;
+  try { parsed = JSON.parse(payload); } catch(e) { return res.status(400).json({ error: 'Invalid JSON' }); }
+  if (parsed.type !== 'email.received') return res.status(200).json({ message: 'skipped', event: parsed.type });
+
+  const emailId = parsed.data?.email_id;
+  if (!emailId) return res.status(400).json({ error: 'No email_id' });
+
+  try {
+    const { data: email, error: emailErr } = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    }).then(r => r.json());
+    if (emailErr || !email) throw new Error(emailErr?.message || 'Failed to fetch email');
+
+    const { data, error: sendErr } = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'FocusRunner Inbound <leads@focusrunner.io>',
+        to: ['focusrunnercom@gmail.com'],
+        subject: '[INBOUND] ' + (parsed.data.subject || '(no subject)'),
+        html: email.html || `<pre>${email.text || 'No content'}</pre>`,
+        text: email.text || 'No text content',
+      })
+    }).then(r => r.json());
+    if (sendErr) throw new Error(sendErr.message);
+    return res.status(200).json({ message: 'Forwarded', id: data?.id });
+  } catch (err) {
+    console.error('[inbound-forward]', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+// --- handleSend ---
 async function handleSend(res, apiKey, body) {
   const { to, subject, html, text, from, template, tags } = body;
   if (!to) return res.status(400).json({ error: 'Missing "to"' });
