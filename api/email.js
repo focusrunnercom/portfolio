@@ -149,53 +149,58 @@ async function handleLeads(res, apiKey, body) {
   ];
 
   try {
-    // Send all 6 + CEO notification in parallel
-    const fetches = [
-      // CEO notification
-      fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'User-Agent': 'focusrunner/1.0' },
-        body: JSON.stringify({
-          from: 'FocusRunner <leads@focusrunner.io>',
-          to: ['focusrunnercom@gmail.com'],
-          subject: `New Lead: ${name || email} – ${practice || 'No practice'}`,
-          html: notifyHtml,
-          tags: [{ name: 'type', value: 'lead-notification' }]
-        })
-      }),
-      // 6 autoresponder emails
-      ...sequence.map(e => fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'User-Agent': 'focusrunner/1.0' },
-        body: JSON.stringify({
-          from: 'Daniil from FocusRunner <leads@focusrunner.io>',
-          to: [email],
-          subject: e.subject,
-          html: e.html,
-          scheduled_at: e.scheduled_at || undefined,
-          headers: {
-            'List-Unsubscribe': '<mailto:leads@focusrunner.io>',
-            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-          },
-          tags: [{ name: 'type', value: 'autoresponder' }, { name: 'step', value: String(sequence.indexOf(e) + 1) }]
-        })
-      }))
-    ];
+    // Send CEO notification + 6 autoresponder emails sequentially (debugging)
+    const sendOne = async (payload, label) => {
+      try {
+        const r = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'User-Agent': 'focusrunner/1.0' },
+          body: JSON.stringify(payload)
+        });
+        const body = await r.json().catch(() => '');
+        return { ok: r.ok, status: r.status, label, id: body?.id, error: body?.message || body?.name || null };
+      } catch (err) {
+        return { ok: false, status: 0, label, error: err.message };
+      }
+    };
 
-    const results = await Promise.allSettled(fetches);
-    const sent = results.filter(r => r.status === 'fulfilled').length - 1; // minus CEO notification
-    const errors = results.filter(r => r.status === 'rejected');
+    const results = [];
 
-    if (errors.length > 1) { // more than just CEO notification failure
-      console.error('[email] Some emails failed:', errors.map(e => e.reason?.message).join(', '));
+    // 1. CEO notification
+    results.push(await sendOne({
+      from: 'FocusRunner <leads@focusrunner.io>',
+      to: ['focusrunnercom@gmail.com'],
+      subject: `New Lead: ${name || email} – ${practice || 'No practice'}`,
+      html: notifyHtml,
+      tags: [{ name: 'type', value: 'lead-notification' }]
+    }, 'CEO notify'));
+
+    // 2-7. Autoresponder sequence
+    for (let i = 0; i < sequence.length; i++) {
+      const e = sequence[i];
+      results.push(await sendOne({
+        from: 'Daniil from FocusRunner <leads@focusrunner.io>',
+        to: [email],
+        subject: e.subject,
+        html: e.html,
+        scheduled_at: e.scheduled_at || undefined,
+        headers: {
+          'List-Unsubscribe': '<mailto:leads@focusrunner.io>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+        tags: [{ name: 'type', value: 'autoresponder' }, { name: 'step', value: String(i + 1) }]
+      }, `Email ${i + 1}`));
     }
 
+    const failed = results.filter(r => !r.ok);
+    const sent = results.filter(r => r.ok).length - 1; // minus CEO
+
     return res.status(200).json({
-      success: true,
+      success: failed.length === 0,
       scheduled: sent,
-      sequence: '6-email autoresponder activated',
-      next: sequence[1].scheduled_at ? new Date(sequence[1].scheduled_at).toLocaleDateString() : 'tomorrow',
-      message: 'Check your inbox. 6 emails queued — #1 arriving now.'
+      total: results.length,
+      failed: failed.map(f => ({ label: f.label, status: f.status, error: f.error })),
+      message: failed.length === 0 ? `Check your inbox. 6 emails queued — #1 arriving now.` : `${failed.length} email(s) failed. Check details.`
     });
   } catch (e) {
     return res.status(500).json({ error: e.message });
