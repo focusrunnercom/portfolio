@@ -183,6 +183,7 @@
 
     /* Mobile */
     '@media (max-width: 480px) {',
+    '  #fr-chat-fab { bottom: 20px; right: 16px; }',
     '  #fr-chat-window { right: 8px; bottom: 80px; width: calc(100vw - 16px); max-width: 360px; }',
     '}',
   ].join('\n');
