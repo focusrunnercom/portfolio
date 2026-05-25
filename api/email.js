@@ -67,14 +67,38 @@ function pageHTML(title, message) {
 }
 `;
 
-// --- Resend Inbound: Forward all inbound email to Gmail ---
+// --- Resend Inbound: Verify + Forward all inbound email to Gmail ---
 async function handleInboundWebhook(req, res) {
   const apiKey = process.env.RESEND_API_KEY;
+  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
   const payload = await req.text();
+
+  // SVIX signature verification
+  if (webhookSecret) {
+    const id = req.headers.get('svix-id');
+    const timestamp = req.headers.get('svix-timestamp');
+    const signature = req.headers.get('svix-signature');
+    if (!id || !timestamp || !signature) {
+      return res.status(400).json({ error: 'Missing SVIX headers' });
+    }
+    try {
+      const crypto = require('crypto');
+      const signedContent = `${id}.${timestamp}.${payload}`;
+      const expected = crypto.createHmac('sha256', webhookSecret.replace(/^whsec_/, '')).update(signedContent).digest('hex');
+      const parts = signature.split(',');
+      const match = parts.some(p => {
+        const [ver, sig] = (p || '').trim().split('=');
+        return ver === 'v1' && crypto.timingSafeEqual(Buffer.from(sig || ''), Buffer.from(expected));
+      });
+      if (!match) return res.status(401).json({ error: 'Invalid signature' });
+    } catch (err) {
+      return res.status(401).json({ error: 'Verification failed' });
+    }
+  }
+
   let parsed;
   try { parsed = JSON.parse(payload); } catch(e) { return res.status(400).json({ error: 'Invalid JSON' }); }
   if (parsed.type !== 'email.received') return res.status(200).json({ message: 'skipped', event: parsed.type });
-
   const emailId = parsed.data?.email_id;
   if (!emailId) return res.status(400).json({ error: 'No email_id' });
 
