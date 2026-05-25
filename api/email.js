@@ -166,7 +166,7 @@ async function handleLeads(res, apiKey, body) {
 
     const results = [];
 
-    // 1. CEO notification
+    // 1. CEO notification (no delay needed)
     results.push(await sendOne({
       from: 'FocusRunner <leads@focusrunner.io>',
       to: ['focusrunnercom@gmail.com'],
@@ -175,9 +175,10 @@ async function handleLeads(res, apiKey, body) {
       tags: [{ name: 'type', value: 'lead-notification' }]
     }, 'CEO notify'));
 
-    // 2-7. Autoresponder sequence
+    // 2-7. Autoresponder sequence — 200ms between each to avoid Resend 5/s rate limit
     for (let i = 0; i < sequence.length; i++) {
       const e = sequence[i];
+      if (i > 0) await new Promise(r => setTimeout(r, 200));
       results.push(await sendOne({
         from: 'Daniil from FocusRunner <leads@focusrunner.io>',
         to: [email],
