@@ -65,7 +65,6 @@ async function handleUnsubscribe(res, email) {
 function pageHTML(title, message) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${title}</title></head><body style="margin:0;padding:0;background:#0d120f;font-family:'Courier New',Consolas,monospace;color:#d4e5d8;display:flex;align-items:center;justify-content:center;min-height:100vh;"><div style="text-align:center;max-width:500px;padding:40px;"><div style="font-size:48px;margin-bottom:24px;">&gt;_</div><h1 style="color:#6eff8a;font-size:20px;margin-bottom:12px;font-weight:700;">${title}</h1><p style="color:#7a8c7e;font-size:14px;line-height:1.8;">${message}</p><p style="color:#3f4a43;font-size:12px;margin-top:32px;"><a href="https://focusrunner.io" style="color:#6eff8a;text-decoration:none;">focusrunner.io</a></p></div></body></html>`;
 }
-`;
 
 // --- Resend Inbound: Forward inbound email to Gmail ---
 async function handleInboundWebhook(req, res) {
