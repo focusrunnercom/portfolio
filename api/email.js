@@ -82,25 +82,44 @@ async function handleInboundWebhook(req, res) {
   const emailId = parsed.data?.email_id;
   if (!emailId) return res.status(400).json({ error: 'No email_id' });
 
+  // Build forwarding email using webhook data. Try to enrich with full body from
+  // the Receiving API, but gracefully fall back to webhook-only data if it fails.
+  let htmlBody, textBody;
   try {
-    const { data: email, error: emailErr } = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+    const resp = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
       headers: { 'Authorization': `Bearer ${apiKey}` }
-    }).then(r => r.json());
-    if (emailErr || !email) throw new Error(emailErr?.message || 'Failed to fetch email');
+    });
+    if (resp.ok) {
+      // Raw API returns the email directly (NOT wrapped in {data:...} like the SDK)
+      const email = await resp.json();
+      htmlBody = email.html;
+      textBody = email.text;
+    }
+  } catch (err) {
+    console.warn('[inbound-forward] Could not fetch full email body, forwarding headers only:', err.message);
+  }
 
-    const { data, error: sendErr } = await fetch('https://api.resend.com/emails', {
+  // Fallback: forward whatever the webhook gave us
+  const subject = parsed.data.subject || '(no subject)';
+  const fromName = parsed.data.from || 'unknown sender';
+  const html = htmlBody || `<p><strong>From:</strong> ${fromName}</p><p><strong>Subject:</strong> ${subject}</p><p><em>(Full body unavailable — check Resend dashboard)</em></p>`;
+  const text = textBody || `From: ${fromName}\nSubject: ${subject}\n\n(Full body unavailable — check Resend dashboard)`;
+
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'FocusRunner Inbound <leads@focusrunner.io>',
         to: ['focusrunnercom@gmail.com'],
-        subject: '[INBOUND] ' + (parsed.data.subject || '(no subject)'),
-        html: email.html || `<pre>${email.text || 'No content'}</pre>`,
-        text: email.text || 'No text content',
+        subject: '[INBOUND] ' + subject,
+        html,
+        text,
       })
-    }).then(r => r.json());
-    if (sendErr) throw new Error(sendErr.message);
-    return res.status(200).json({ message: 'Forwarded', id: data?.id });
+    });
+    const result = await r.json();
+    if (!r.ok) throw new Error(result.message || 'Send failed');
+    return res.status(200).json({ message: 'Forwarded', id: result.id, enriched: !!htmlBody });
   } catch (err) {
     console.error('[inbound-forward]', err.message);
     return res.status(500).json({ error: err.message });
