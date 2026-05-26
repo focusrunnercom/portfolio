@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
 
   // Resend Inbound webhook — POST with JSON body and SVIX headers
-  if (req.method === 'POST' && req.headers.get('svix-id')) {
+  if (req.method === 'POST' && req.headers['svix-id']) {
     return handleInboundWebhook(req, res);
   }
 
@@ -69,10 +69,10 @@ function pageHTML(title, message) {
 // --- Resend Inbound: Forward inbound email to Gmail ---
 async function handleInboundWebhook(req, res) {
   const apiKey = process.env.RESEND_API_KEY;
-  const payload = await req.text();
+  const payload = await readBody(req);
 
   // Simple auth: check for Resend's SVIX headers
-  if (!req.headers.get('svix-id')) {
+  if (!req.headers['svix-id']) {
     return res.status(403).json({ error: 'Not a Resend webhook' });
   }
 
