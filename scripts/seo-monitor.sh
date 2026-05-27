@@ -24,18 +24,33 @@ mkdir -p "$OUTPUT_DIR"
 
 # ─────────────────────────────────────────────────────────────
 # Helper: Google OAuth2 token refresh
+# Priority: 1) gcloud ADC  2) GOOGLE_REFRESH_TOKEN + client creds
 # ─────────────────────────────────────────────────────────────
 get_google_token() {
-  if [ -z "${GOOGLE_REFRESH_TOKEN:-}" ]; then
-    echo "⚠️  GOOGLE_REFRESH_TOKEN not set — skipping GSC/GA4 API calls" >&2
-    return 1
+  # Method 1: gcloud Application Default Credentials (fastest if configured)
+  if command -v gcloud &>/dev/null; then
+    local gcloud_token
+    gcloud_token=$(gcloud auth application-default print-access-token 2>/dev/null || echo "")
+    if [ -n "$gcloud_token" ] && [ "$gcloud_token" != "ERROR:" ]; then
+      echo "$gcloud_token"
+      return 0
+    fi
   fi
-  curl -s -X POST https://oauth2.googleapis.com/token \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "client_id=${GOOGLE_CLIENT_ID}" \
-    -d "client_secret=${GOOGLE_CLIENT_SECRET}" \
-    -d "refresh_token=${GOOGLE_REFRESH_TOKEN}" \
-    -d "grant_type=refresh_token" | jq -r '.access_token'
+
+  # Method 2: Direct OAuth refresh token
+  if [ -n "${GOOGLE_REFRESH_TOKEN:-}" ] && [ -n "${GOOGLE_CLIENT_ID:-}" ] && [ -n "${GOOGLE_CLIENT_SECRET:-}" ]; then
+    curl -s -X POST https://oauth2.googleapis.com/token \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -d "client_id=${GOOGLE_CLIENT_ID}" \
+      -d "client_secret=${GOOGLE_CLIENT_SECRET}" \
+      -d "refresh_token=${GOOGLE_REFRESH_TOKEN}" \
+      -d "grant_type=refresh_token" | jq -r '.access_token'
+    return 0
+  fi
+
+  echo "⚠️  Google auth not configured — skipping GSC/GA4 API calls" >&2
+  echo "⚠️  Run: python3 scripts/google-oauth-setup.py" >&2
+  return 1
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -257,19 +272,23 @@ MD
     echo "| ⚠️ No GA4 data — credentials not configured | - | - |" >> "$REPORT_FILE"
   fi
 
+  # Pre-generate edge table via jq to avoid heredoc escaping issues
+  local edge_table
+  edge_table=$(echo "$edge_json" | jq -r '
+    "| Check | Status |",
+    "|-------|--------|",
+    "| HTTP/2 | \(if .http2 then "✅" else "❌" end) |",
+    "| Brotli | \(if .brotli then "✅" else "❌" end) |",
+    "| HSTS | \(if .hsts then "✅" else "❌" end) |",
+    "| CDN Cache Hit | \(if .cache_hit then "✅" else "❌" end) |",
+    "| Cache-Control | \(.cache_control // "N/A") |"
+  ')
+
   cat >> "$REPORT_FILE" <<MD
 
 ## 🌐 Vercel Edge Config
 
-$(echo "$edge_json" | jq -r '
-  "| Check | Status |",
-  "|-------|--------|",
-  "| HTTP/2 | \(if .http2 then \"✅\" else \"❌\" end) |",
-  "| Brotli | \(if .brotli then \"✅\" else \"❌\" end) |",
-  "| HSTS | \(if .hsts then \"✅\" else \"❌\" end) |",
-  "| CDN Cache Hit | \(if .cache_hit then \"✅\" else \"❌\" end) |",
-  "| Cache-Control | \(.cache_control // "N/A") |"
-')
+${edge_table}
 
 ---
 
