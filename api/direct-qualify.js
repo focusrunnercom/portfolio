@@ -17,6 +17,7 @@
 
 const { readFileSync, writeFileSync, existsSync } = require('fs');
 const { randomUUID } = require('crypto');
+const { rateLimit, requireAuth, corsHeaders, parseBody } = require('./_middleware');
 
 // =============================================================================
 // Scoring Engine — Chat Mode (practice + volume)
@@ -144,23 +145,15 @@ async function notifyLead(lead, classification, score) {
 }
 
 // =============================================================================
-// HTTP Helpers
+// HTTP Helpers (delegated to _middleware.js)
 // =============================================================================
-
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  };
-}
 
 // =============================================================================
 // Handler
 // =============================================================================
 
 module.exports = async function directQualifyHandler(req, res) {
+  if (!rateLimit(req, res)) return;
   const start = Date.now();
 
   if (req.method === 'OPTIONS') {
@@ -187,15 +180,16 @@ module.exports = async function directQualifyHandler(req, res) {
     return res.end(JSON.stringify({ error: 'Method not allowed' }));
   }
 
-  let body = '';
-  req.on('data', chunk => body += chunk);
-  req.on('end', async () => {
-    let data;
-    try { data = JSON.parse(body); } catch (_) {
-      res.writeHead(400, corsHeaders());
-      return res.end(JSON.stringify({ error: 'Invalid JSON body' }));
-    }
+  if (!requireAuth(req, res)) return;
 
+  let data;
+  try { data = await parseBody(req); } catch (_) {
+    res.writeHead(400, corsHeaders());
+    return res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+  }
+
+  // IIFE block — rest of handler uses data
+  (async () => {
     const { message, name, email, phone, practice, volume, spend, spa_name, ad_spend, booking_rate, timeline, page_url } = data;
 
     // Mode detection: form mode if ad_spend / booking_rate / timeline present
@@ -263,5 +257,5 @@ module.exports = async function directQualifyHandler(req, res) {
       default:
         return res.end(JSON.stringify({ response: STEP_MESSAGES.greeting, next_step: 'ask_volume', requires_input: true, field: 'practice', runtime_ms: Date.now() - start }));
     }
-  });
+  })();
 };

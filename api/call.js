@@ -9,17 +9,11 @@
 
 var https = require('https');
 var fs = require('fs');
-
-var HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json',
-};
+var { rateLimit, corsHeaders, parseBody } = require('./_middleware');
 
 function sendJson(res, data, status) {
   status = status || 200;
-  res.writeHead(status, HEADERS);
+  res.writeHead(status, corsHeaders());
   return res.end(JSON.stringify(data, null, 2));
 }
 
@@ -57,12 +51,16 @@ function logCall(data) {
   }
 }
 
-function handlePost(req, res) {
-  var body = '';
-  req.on('data', function(chunk) { body += chunk; });
-  req.on('end', function() {
+async function handlePost(req, res) {
+  var data;
+  try {
+    data = await parseBody(req);
+  } catch(e) {
+    return sendJson(res, { error: 'Invalid JSON body' }, 400);
+  }
+
+  (function() {
     try {
-      var data = JSON.parse(body);
 
       // If lead+phone+script provided, log the call
       if (data.lead && data.phone) {
@@ -84,14 +82,15 @@ function handlePost(req, res) {
         usage: 'POST with { lead, phone, script, outcome?, notes? }',
       });
     } catch(e) {
-      return sendJson(res, { error: 'Invalid JSON: ' + e.message }, 400);
+      return sendJson(res, { error: 'Invalid request' }, 400);
     }
-  });
+  })();
 }
 
-module.exports = function handler(req, res) {
+module.exports = async function handler(req, res) {
+  if (!rateLimit(req, res)) return;
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, HEADERS);
+    res.writeHead(204, corsHeaders());
     return res.end();
   }
 

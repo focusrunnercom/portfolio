@@ -96,25 +96,17 @@ function generateId() {
 const R = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Content-Type': 'application/json' };
 
 const { notifyLead } = require('../_lib/notify');
+const { rateLimit, corsHeaders, parseBody } = require('./_middleware');
 
 function sendJson(res, data, status) {
   status = status || 200;
-  res.writeHead(status, R);
+  res.writeHead(status, corsHeaders());
   return res.end(JSON.stringify(data));
 }
 
-function parseBody(req) {
-  return new Promise(function(resolve, reject) {
-    if (typeof req.body === 'object' && req.body !== null) return resolve(req.body);
-    var chunks = [];
-    req.on('data', function(c) { chunks.push(c); });
-    req.on('end', function() { try { resolve(JSON.parse(Buffer.concat(chunks).toString() || '{}')); } catch (e) { reject(new Error('Invalid JSON')); } });
-    req.on('error', reject);
-  });
-}
-
 module.exports = async function handler(req, res) {
-  if (req.method === 'OPTIONS') { res.writeHead(204, R); return res.end(); }
+  if (!rateLimit(req, res)) return;
+  if (req.method === 'OPTIONS') { res.writeHead(204, corsHeaders()); return res.end(); }
   if (req.method === 'GET') { return sendJson(res, { status: 'ok', endpoint: '/api/webhook', version: '1.1' }); }
   if (req.method !== 'POST') { return sendJson(res, { error: 'Method not allowed' }, 405); }
   var body;

@@ -5,37 +5,20 @@
  * CJS for Vercel Node 18.x Hobby compat.
  */
 
-var headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, SVIX-Id, SVIX-Timestamp, SVIX-Signature',
-  'Content-Type': 'application/json',
-};
-
-function readBody(req) {
-  return new Promise(function(resolve, reject) {
-    if (typeof req.body === 'object' && req.body !== null) return resolve(req.body);
-    var chunks = [];
-    req.on('data', function(c) { chunks.push(c); });
-    req.on('end', function() {
-      try { resolve(JSON.parse(Buffer.concat(chunks).toString() || '{}')); }
-      catch (e) { reject(new Error('Invalid JSON')); }
-    });
-    req.on('error', reject);
-  });
-}
+var { rateLimit, corsHeaders, parseBody } = require('./_middleware');
 
 module.exports = async function handler(req, res) {
-  if (req.method === 'OPTIONS') { res.writeHead(204, headers); return res.end(); }
+  if (!rateLimit(req, res)) return;
+  if (req.method === 'OPTIONS') { res.writeHead(204, corsHeaders()); return res.end(); }
   if (req.method !== 'POST') {
-    res.writeHead(405, headers);
+    res.writeHead(405, corsHeaders());
     return res.end(JSON.stringify({ error: 'Method not allowed' }));
   }
 
   var body;
-  try { body = await readBody(req); }
+  try { body = await parseBody(req); }
   catch (e) {
-    res.writeHead(400, headers);
+    res.writeHead(400, corsHeaders());
     return res.end(JSON.stringify({ error: 'Invalid JSON body' }));
   }
 
@@ -61,7 +44,7 @@ module.exports = async function handler(req, res) {
     }).catch(function() {});
   } catch (_) {}
 
-  res.writeHead(200, headers);
+  res.writeHead(200, corsHeaders());
   return res.end(JSON.stringify({
     received: true,
     type: eventType,

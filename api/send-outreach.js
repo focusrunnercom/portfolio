@@ -18,16 +18,9 @@
  */
 
 var https = require('https');
+var { rateLimit, corsHeaders, parseBody } = require('./_middleware');
 var FROM_EMAIL = 'FocusRunner AI <hello@focusrunner.io>';
 var DEFAULT_SUBJECT = 'Your free Patient Acquisition Audit — personalized for your med spa';
-
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  };
 
 function escapeHtml(str) {
   if (typeof str !== 'string') return String(str || '');
@@ -74,38 +67,35 @@ function resendSend(apiKey, email, subject, html) {
   });
 }
 
-module.exports = function handler(req, res) {
-  var headers = corsHeaders();
+module.exports = async function handler(req, res) {
+  if (!rateLimit(req, res)) return;
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, headers);
+    res.writeHead(204, corsHeaders());
     res.end();
     return;
   }
 
   if (req.method !== 'POST') {
-    res.writeHead(405, headers);
+    res.writeHead(405, corsHeaders());
     res.end(JSON.stringify({ error: 'Method not allowed' }));
     return;
   }
 
   var apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    res.writeHead(500, headers);
+    res.writeHead(500, corsHeaders());
     res.end(JSON.stringify({ error: 'RESEND_API_KEY not configured' }));
     return;
   }
 
-  var body = '';
-  req.on('data', function(chunk) { body += chunk; });
-  req.on('end', function() {
-    var parsed;
-    try { parsed = JSON.parse(body); }
-    catch(e) {
-      res.writeHead(400, headers);
-      res.end(JSON.stringify({ error: 'Invalid JSON body' }));
-      return;
-    }
+  var parsed;
+  try { parsed = await parseBody(req); }
+  catch(e) {
+    res.writeHead(400, corsHeaders());
+    res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+    return;
+  }
 
     var dryRun = parsed.dryRun === true;
     var targets = parsed.targets || (parsed.target ? [parsed.target] : []);
@@ -127,7 +117,7 @@ module.exports = function handler(req, res) {
       var skipped = results.filter(function(r) { return r.status === 'skipped'; }).length;
       var dryRunCount = results.filter(function(r) { return r.status === 'dry-run'; }).length;
 
-      res.writeHead(200, headers);
+      res.writeHead(200, corsHeaders());
       res.end(JSON.stringify({
         summary: { total: targets.length, sent: sent, failed: failed, skipped: skipped, dryRun: dryRunCount },
         results: results,

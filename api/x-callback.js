@@ -1,7 +1,10 @@
 // X.com OAuth 2.0 callback handler
 // Called after user authorizes the app — exchanges code for token
 
-export default async function handler(req, res) {
+const { rateLimit, corsHeaders } = require('./_middleware');
+
+module.exports = async function handler(req, res) {
+  if (!rateLimit(req, res)) return;
   const { code, state, error, error_description } = req.query;
 
   // OAuth error response from X

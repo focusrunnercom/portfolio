@@ -16,6 +16,7 @@
 
 const { readFileSync, writeFileSync, existsSync } = require('fs');
 const { randomUUID } = require('crypto');
+const { rateLimit, corsHeaders, parseBody } = require('./_middleware');
 
 // ─── Schwartz Framework Questions ──────────────────────────────────────────
 
@@ -369,33 +370,10 @@ function notifyTelegram(lead, classification) {
   });
 }
 
-// ─── HTTP Helpers ──────────────────────────────────────────────────────────
-
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  };
-}
-
-function parseBody(req) {
-  return new Promise(function(resolve, reject) {
-    if (typeof req.body === 'object' && req.body !== null) return resolve(req.body);
-    var chunks = [];
-    req.on('data', function(c) { chunks.push(c); });
-    req.on('end', function() {
-      try { resolve(JSON.parse(Buffer.concat(chunks).toString() || '{}')); }
-      catch (e) { reject(new Error('Invalid JSON')); }
-    });
-    req.on('error', reject);
-  });
-}
-
 // ─── Handler ───────────────────────────────────────────────────────────────
 
 module.exports = async function handler(req, res) {
+  if (!rateLimit(req, res)) return;
   var start = Date.now();
 
   if (req.method === 'OPTIONS') {

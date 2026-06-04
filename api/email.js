@@ -2,9 +2,12 @@
  * /api/email — Catch-all email handler
  * Routes: body.action = "send"|"batch"|"webhook"|"leads"
  */
-export default async function handler(req, res) {
+const { rateLimit, requireAuth, corsHeaders, parseBody } = require('./_middleware');
+
+module.exports = async function handler(req, res) {
   // GET /api/email?action=unsubscribe&email=... — one-click unsubscribe
   if (req.method === 'GET') {
+    if (!rateLimit(req, res)) return;
     const url = new URL(req.url, 'https://focusrunner.io');
     if (url.searchParams.get('action') === 'unsubscribe') {
       return handleUnsubscribe(res, url.searchParams.get('email') || '');
@@ -14,16 +17,20 @@ export default async function handler(req, res) {
 
   // Resend Inbound webhook — POST with JSON body and SVIX headers
   if (req.method === 'POST' && req.headers['svix-id']) {
+    if (!rateLimit(req, res)) return;
     return handleInboundWebhook(req, res);
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  if (!rateLimit(req, res)) return;
+  if (!requireAuth(req, res)) return;
+
   const apiKey = process.env.RESEND_API_KEY;
 
   let body = req.body;
   if (!body || typeof body !== 'object' || Object.keys(body).length === 0) {
-    try { body = JSON.parse(await readBody(req)); } catch (_) { body = {}; }
+    try { body = await parseBody(req); } catch (_) { body = {}; }
   }
 
   const url = new URL(req.url, 'https://focusrunner.io');
@@ -36,14 +43,7 @@ export default async function handler(req, res) {
   return handleLeads(res, apiKey, body);
 }
 
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', c => { data += c; if (data.length > 1e6) req.destroy(); });
-    req.on('end', () => resolve(data));
-    req.on('error', reject);
-  });
-}
+// (readBody replaced by parseBody from ./_middleware.js)
 
 function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -69,7 +69,7 @@ function pageHTML(title, message) {
 // --- Resend Inbound: Forward inbound email to Gmail ---
 async function handleInboundWebhook(req, res) {
   const apiKey = process.env.RESEND_API_KEY;
-  const payload = await readBody(req);
+  const payload = await parseBody(req);
 
   // Simple auth: check for Resend's SVIX headers
   if (!req.headers['svix-id']) {

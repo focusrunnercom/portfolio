@@ -8,17 +8,11 @@
  */
 
 var fs = require('fs');
-
-var HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json',
-};
+var { rateLimit, corsHeaders, parseBody } = require('./_middleware');
 
 function sendJson(res, data, status) {
   status = status || 200;
-  res.writeHead(status, HEADERS);
+  res.writeHead(status, corsHeaders());
   return res.end(JSON.stringify(data, null, 2));
 }
 
@@ -33,9 +27,10 @@ function readLog() {
   }
 }
 
-module.exports = function handler(req, res) {
+module.exports = async function handler(req, res) {
+  if (!rateLimit(req, res)) return;
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, HEADERS);
+    res.writeHead(204, corsHeaders());
     return res.end();
   }
 
@@ -48,11 +43,8 @@ module.exports = function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    var body = '';
-    req.on('data', function(chunk) { body += chunk; });
-    req.on('end', function() {
+    parseBody(req).then(function(data) {
       try {
-        var data = JSON.parse(body);
         var entries = readLog();
 
         // Filter by lead name
@@ -76,6 +68,8 @@ module.exports = function handler(req, res) {
       } catch(e) {
         return sendJson(res, { error: 'Invalid JSON: ' + e.message }, 400);
       }
+    }).catch(function() {
+      return sendJson(res, { error: 'Invalid JSON body' }, 400);
     });
     return;
   }

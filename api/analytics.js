@@ -4,20 +4,13 @@
  * Uses (req, res) callback style for Node.js Serverless Runtime.
  */
 const fs = require('fs');
-const path = require('path');
+const { rateLimit, corsHeaders } = require('./_middleware');
 
 const LEADS_PATH = '/tmp/leads.json';
 
-const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json',
-};
-
 function sendJson(res, data, status) {
   status = status || 200;
-  res.writeHead(status, headers);
+  res.writeHead(status, corsHeaders());
   return res.end(JSON.stringify(data, null, 2));
 }
 
@@ -63,8 +56,9 @@ function getByDay(leads) {
 }
 
 module.exports = function handler(req, res) {
+  if (!rateLimit(req, res)) return;
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, headers);
+    res.writeHead(204, corsHeaders());
     return res.end();
   }
   if (req.method !== 'GET') {

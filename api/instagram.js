@@ -17,6 +17,7 @@
  */
 
 const https = require('https');
+const { rateLimit, corsHeaders } = require('./_middleware');
 
 const TOKEN = process.env.INSTAGRAM_TOKEN || '';
 const API_BASE = 'graph.facebook.com';
@@ -128,6 +129,8 @@ async function createCarouselPost(igUserId, imageUrls, caption) {
 }
 
 module.exports = async function handler(req, res) {
+  if (!rateLimit(req, res)) return;
+
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
