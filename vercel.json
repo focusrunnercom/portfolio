@@ -11,7 +11,8 @@
     { "src": "*.ico", "use": "@vercel/static" },
     { "src": "*.png", "use": "@vercel/static" },
     { "src": "public/**", "use": "@vercel/static" },
-    { "src": "api/*.js", "use": "@vercel/node" }
+    { "src": "api/*.js", "use": "@vercel/node" },
+    { "src": "api/*.py", "use": "@vercel/python" }
   ],
   "rewrites": [
     { "source": "/public/(.*)", "destination": "/public/$1" },
@@ -28,7 +29,8 @@
     { "source": "/api/dashboard", "destination": "/api/dashboard.js" },
     { "source": "/api/call", "destination": "/api/call.js" },
     { "source": "/api/call-log", "destination": "/api/call-log.js" },
-    { "source": "/api/x-callback", "destination": "/api/x-callback.js" }
+    { "source": "/api/x-callback", "destination": "/api/x-callback.js" },
+    { "source": "/api/endpoint", "destination": "/api/endpoint.py" }
   ],
   "redirects": [
     { "source": "/(.*)", "destination": "https://focusrunner.io/$1", "has": [{"type": "host", "value": "www.focusrunner.com"}], "statusCode": 301 }
