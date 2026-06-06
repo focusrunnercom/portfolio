@@ -24,7 +24,6 @@
     { "source": "/api/health", "destination": "/api/health.js" },
     { "source": "/api/instagram", "destination": "/api/instagram.js" },
     { "source": "/api/send-outreach", "destination": "/api/send-outreach.js" },
-    { "source": "/api/resend-webhook", "destination": "/api/resend-webhook.js" },
     { "source": "/api/email", "destination": "/api/email.js" },
     { "source": "/api/dashboard", "destination": "/api/dashboard.js" },
     { "source": "/api/call", "destination": "/api/call.js" },
@@ -36,6 +35,15 @@
     { "source": "/(.*)", "destination": "https://focusrunner.io/$1", "has": [{"type": "host", "value": "www.focusrunner.com"}], "statusCode": 301 }
   ],
   "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
+    },
     {
       "source": "/api/(.*)",
       "headers": [
@@ -60,6 +68,12 @@
       "source": "\\.(xml|txt)$",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    },
+    {
+      "source": "/blog/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=604800, s-maxage=2592000" }
       ]
     }
   ]

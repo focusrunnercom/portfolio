@@ -1,0 +1,466 @@
+# FocusRunner — Free Patient Acquisition Audit Landing Page
+
+This standalone landing page captures email leads for the **Free Patient Acquisition Audit** lead magnet. Drop the HTML below into any page or serve it directly.
+
+---
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index, follow">
+<title>Free Patient Acquisition Audit — FocusRunner | Med Spa Lead Magnet</title>
+<meta name="description" content="Find out why your med spa is losing 5+ patients a month to competitors. Free 3-point audit takes 2 minutes.">
+<meta property="og:title" content="Free Patient Acquisition Audit — FocusRunner">
+<meta property="og:description" content="Stop losing patients to competitors. Get your free 3-point audit in 2 minutes.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://focusrunner.io/audit">
+<meta property="og:site_name" content="FocusRunner">
+<link rel="canonical" href="https://focusrunner.io/audit">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='8' fill='%230d120f'/><text x='32' y='46' font-family='monospace' font-size='40' font-weight='bold' fill='%236eff8a' text-anchor='middle'>&gt;_</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --phos: #6eff8a;
+    --phos-dim: #2a6b38;
+    --ink: #d4e5d8;
+    --ink-dim: #7a8c7e;
+    --ink-faint: #3f4a43;
+    --bg-panel: #0d120f;
+    --bg-2: #0f1412;
+    --line: #1a2620;
+    --line-bright: #2a3f33;
+    --amber: #ffb547;
+    --danger: #ff5c4d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-panel);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== NAV ===== */
+  nav {
+    border-bottom: 1px solid var(--line);
+    padding: 0 20px;
+  }
+  .nav-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  .logo {
+    color: var(--phos);
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .logo-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--phos);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .nav-brand { color: var(--ink-dim); font-size: 13px; }
+
+  /* ===== MAIN ===== */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px 60px;
+    max-width: 960px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ===== HERO ===== */
+  .hero { text-align: center; margin-bottom: 48px; }
+  .badge {
+    display: inline-block;
+    padding: 4px 14px;
+    background: var(--line);
+    color: var(--phos);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: clamp(26px, 5vw, 42px);
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+  }
+  .hero h1 em { color: var(--phos); font-style: normal; }
+
+  .pain-points {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 36px;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .pain-point {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    font-size: 14px;
+    color: var(--ink-dim);
+    padding: 10px 16px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+  }
+  .pain-point .icon { color: var(--danger); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ===== WHAT YOU GET ===== */
+  .preview-box {
+    border: 1px solid var(--line-bright);
+    background: var(--bg-2);
+    padding: 28px 24px;
+    margin: 0 auto 36px;
+    max-width: 520px;
+    text-align: left;
+  }
+  .preview-box h3 {
+    font-size: 12px;
+    color: var(--phos);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+  .preview-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .preview-item:last-child { border-bottom: none; }
+  .preview-num {
+    color: var(--phos);
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+    width: 24px;
+  }
+  .preview-sub {
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 2px;
+  }
+
+  /* ===== FORM ===== */
+  .form-card {
+    background: var(--bg-2);
+    border: 1px solid var(--line-bright);
+    padding: 32px 28px;
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .form-card h2 {
+    font-size: 18px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+  .form-card .form-sub {
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 24px;
+  }
+  .form-group {
+    margin-bottom: 16px;
+    text-align: left;
+  }
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .form-group input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-panel);
+    border: 1px solid var(--line-bright);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus {
+    border-color: var(--phos);
+  }
+  .form-group input::placeholder {
+    color: var(--ink-faint);
+    font-size: 12px;
+  }
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: var(--phos);
+    color: #000;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-submit:hover { background: #8affa0; }
+  .btn-submit .arrow { font-size: 16px; }
+
+  .form-note {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+
+  /* ===== SUCCESS STATE ===== */
+  .success-msg {
+    display: none;
+    text-align: center;
+    padding: 48px 24px;
+    border: 1px solid var(--phos-dim);
+    background: var(--bg-2);
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .success-msg.visible { display: block; }
+  .success-msg .check {
+    font-size: 40px;
+    color: var(--phos);
+    margin-bottom: 16px;
+  }
+  .success-msg h3 { font-size: 20px; color: var(--ink); margin-bottom: 8px; }
+  .success-msg p { font-size: 13px; color: var(--ink-dim); }
+
+  /* ===== TRUST BAR ===== */
+  .trust-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 36px;
+    flex-wrap: wrap;
+  }
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+  .trust-item .dot { color: var(--phos); }
+
+  /* ===== FOOTER ===== */
+  footer {
+    text-align: center;
+    padding: 32px 20px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+  footer a { color: var(--ink-dim); text-decoration: none; }
+  footer a:hover { color: var(--phos); }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    main { padding: 32px 16px 48px; }
+    .form-card { padding: 24px 18px; }
+    .preview-box { padding: 20px 16px; }
+    .hero h1 { font-size: 24px; }
+    .pain-point { font-size: 13px; padding: 8px 12px; }
+    .trust-bar { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="https://focusrunner.io" class="logo" aria-label="FocusRunner home">
+      &gt;_ <span class="logo-dot"></span>
+    </a>
+    <span class="nav-brand">focusrunner.io</span>
+  </div>
+</nav>
+
+<main>
+
+  <div class="hero">
+    <div class="badge">FREE AUDIT — MED SPAS ONLY</div>
+    <h1>Is Your Med Spa <em>Losing 5+ Patients a Month</em> to Competitors?</h1>
+
+    <div class="pain-points">
+      <div class="pain-point">
+        <span class="icon">&#x2715;</span>
+        <span><strong>Empty chairs.</strong> Your treatment rooms sit idle while neighboring clinics book solid.</span>
+      </div>
+      <div class="pain-point">
+        <span class="icon">&#x2715;</span>
+        <span><strong>Invisible online.</strong> Patients search for your exact services but find someone else first.</span>
+      </div>
+      <div class="pain-point">
+        <span class="icon">&#x2715;</span>
+        <span><strong>Booking leaks.</strong> Leads fill out your form then ghost — no follow-up, no capture, no revenue.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT YOU GET -->
+  <div class="preview-box">
+    <h3>&#x25B6; Your Free 3-Point Audit Covers</h3>
+    <div class="preview-item">
+      <span class="preview-num">01</span>
+      <div>
+        <strong>Local Competitor Gap Analysis</strong>
+        <div class="preview-sub">See exactly who is taking your patients and where they beat you.</div>
+      </div>
+    </div>
+    <div class="preview-item">
+      <span class="preview-num">02</span>
+      <div>
+        <strong>Patient Booking Funnel Diagnosis</strong>
+        <div class="preview-sub">We map your entire acquisition flow and flag every leak costing you patients.</div>
+      </div>
+    </div>
+    <div class="preview-item">
+      <span class="preview-num">03</span>
+      <div>
+        <strong>AI Acquisition Readiness Score</strong>
+        <div class="preview-sub">A 1–100 benchmark of how prepared your practice is to deploy AI-powered patient acquisition.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMAIL CAPTURE FORM -->
+  <div class="form-card" id="formCard">
+    <h2>Get Your Free Audit</h2>
+    <p class="form-sub">Takes 2 minutes. No pitch, no spam — just actionable data.</p>
+
+    <form id="auditForm">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" placeholder="Dr. Sarah Chen" required autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label for="email">Work Email</label>
+        <input type="email" id="email" name="email" placeholder="sarah@yourspa.com" required autocomplete="email">
+      </div>
+      <button type="submit" class="btn-submit">
+        Get Your Free Audit <span class="arrow">&rarr;</span>
+      </button>
+    </form>
+
+    <p class="form-note">&#x1F512; We never share your email. Audit results delivered within 24 hours.</p>
+  </div>
+
+  <!-- SUCCESS STATE -->
+  <div class="success-msg" id="successMsg">
+    <div class="check">&#x2714;</div>
+    <h3>Audit Request Received</h3>
+    <p>We'll review your practice and send a personalized 3-point audit within 24 hours. Check your inbox.</p>
+  </div>
+
+  <!-- TRUST -->
+  <div class="trust-bar">
+    <span class="trust-item"><span class="dot">&#x25CF;</span> Free — No Credit Card</span>
+    <span class="trust-item"><span class="dot">&#x25CF;</span> 24-Hour Turnaround</span>
+    <span class="trust-item"><span class="dot">&#x25CF;</span> Used by 40+ Med Spas</span>
+  </div>
+
+</main>
+
+<footer>
+  <a href="https://focusrunner.io">focusrunner.io</a> &mdash; AI Patient Acquisition for Med Spas<br>
+  &copy; 2026 FocusRunner. All rights reserved.
+</footer>
+
+<script>
+  document.getElementById('auditForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    var name = document.getElementById('name').value.trim();
+    var email = document.getElementById('email').value.trim();
+
+    if (!name || !email) return;
+
+    // Hide form, show success
+    document.getElementById('formCard').style.display = 'none';
+    document.getElementById('successMsg').classList.add('visible');
+
+    // Log for analytics — wire to your email backend (Resend, ConvertKit, etc.)
+    console.log('Lead captured:', { name: name, email: email, page: 'med-spa-audit', timestamp: new Date().toISOString() });
+
+    // OPTIONAL: POST to your API endpoint
+    // fetch('https://api.focusrunner.io/audit-leads', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ name: name, email: email, source: 'audit-landing' })
+    // }).catch(function(err) { console.error('Lead submission error:', err); });
+  });
+</script>
+
+</body>
+</html>
+```
+
+---
+
+## Deployment
+
+1. Save the HTML block above as a standalone `.html` file or embed it into your site.
+2. Replace the `console.log` in the `<script>` block with a real `fetch()` POST to your email collection endpoint (Resend, ConvertKit, HubSpot, etc.).
+3. **Vercel:** drop it as `/audit.html` in the portfolio repo — it auto-deploys to `https://focusrunner.io/audit`.
+4. Test on mobile before promoting on social / ads.
+
+## Design Notes
+
+- **Branding:** JetBrains Mono, dark terminal palette (`#0d120f` bg, `#6eff8a` green accent), matching focusrunner.io.
+- **Mobile-responsive:** single-column layout, fluid typography, touch-friendly 44px+ tap targets.
+- **No external dependencies:** zero JS frameworks, zero CSS libraries. One font from Google Fonts (preconnected).
+- **Email backend left as a stub** — agents should wire this to Resend API (see [FOC-1132](/FOC/issues/FOC-1132) for email infra).
