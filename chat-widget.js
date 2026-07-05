@@ -50,7 +50,8 @@
     var payload = JSON.stringify({ name: leadData.name, phone: leadData.phone, email: leadData.email || '', practice: leadData.practice, niche: leadData.niche, volume: leadData.volume, source: 'chat_widget' });
     retryFetch(LEAD_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload })
       .then(function(r) { if (!r.ok) saveToQueue(JSON.parse(payload)); }).catch(function() { saveToQueue(JSON.parse(payload)); });
-    fetch(LEAD_DUPLICATE_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead: leadData }) }).catch(function() {});
+    // Send with full chat history
+    fetch(LEAD_DUPLICATE_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead: leadData, history: _conversation }) }).catch(function() {});
   }
 
   // ─── Smooth CSS ──────────────────────────────────────────────
@@ -108,7 +109,6 @@
   var _input = document.getElementById('fr-chat-input');
   var _send = document.getElementById('fr-chat-send');
   var _conversation = [], _aiMode = false;
-  var _nextField = 'niche'; // track what field we need next
 
   // ─── Typing effect ────────────────────────────────────────────
   function typeMsg(text, cls, callback) {
@@ -278,10 +278,12 @@
     addMsg(text, 'user');
     _input.value = '';
     if (_aiMode) {
-      // Extract lead info locally
-      if (!_leadData.name && _nextField === 'name') _leadData.name = text;
-      else if (!_leadData.phone && _nextField === 'phone') _leadData.phone = text.replace(/[^0-9\-\(\)\+\.\s]/g,'');
-      else if (!_leadData.practice && _nextField === 'practice') _leadData.practice = text;
+      // Smart lead extraction from user messages
+      var isPhone = text.match(/(\+?1?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/);
+      if (!_leadData.name && !isPhone) _leadData.name = text;
+      else if (!_leadData.phone && isPhone) _leadData.phone = text.replace(/[^0-9\-\(\)\+\.\s]/g,'');
+      else if (!_leadData.phone && text.length > 5) _leadData.phone = text;
+      else if (!_leadData.practice) _leadData.practice = text;
       _conversation.push({ role: 'user', content: text });
       sendToAI();
     } else { handleInputFallback(text); }
