@@ -47,10 +47,9 @@
   }
 
   function submitLead(leadData) {
-    var payload = JSON.stringify({ name: leadData.name, phone: leadData.phone, email: leadData.email || '', practice: leadData.practice, niche: leadData.niche, volume: leadData.volume, source: 'chat_widget' });
+    var payload = JSON.stringify({ name: leadData.name, phone: leadData.phone, email: leadData.email || '', practice: leadData.practice, source: 'chat_widget' });
     retryFetch(LEAD_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload })
       .then(function(r) { if (!r.ok) saveToQueue(JSON.parse(payload)); }).catch(function() { saveToQueue(JSON.parse(payload)); });
-    // Send with full chat history
     fetch(LEAD_DUPLICATE_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead: leadData, history: _conversation }) }).catch(function() {});
   }
 
@@ -181,13 +180,6 @@
   // ─── Send to AI ──────────────────────────────────────────────
   function sendToAI() {
     if (_conversation.length === 0) return;
-
-    // Check if we have all lead data — submit immediately
-    if (_leadData.name && (_leadData.phone || _leadData.email) && _leadData.practice && !_leadData.submitted) {
-      _leadData.submitted = true;
-      submitLead(_leadData);
-    }
-
     retryFetch(AI_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -197,20 +189,17 @@
       throw new Error('AI API unreachable');
     }).then(function(data) {
       _conversation.push({ role: 'assistant', content: data.reply });
-      // Type out the bot's response
-      typeMsg(data.reply, 'bot', function() {
-        // After typing done, check collected data from server
-        var c = data.collected || {};
-        if (c.name) _leadData.name = c.name;
-        if (c.phone) _leadData.phone = c.phone;
-        if (c.email) _leadData.email = c.email;
-        if (c.practice) _leadData.practice = c.practice;
-        // Submit if complete
-        if (_leadData.name && (_leadData.phone || _leadData.email) && !_leadData.submitted) {
-          _leadData.submitted = true;
-          submitLead(_leadData);
-        }
-      });
+      var c = data.collected || {};
+      if (c.name) _leadData.name = c.name;
+      if (c.email) _leadData.email = c.email;
+      if (c.phone) _leadData.phone = c.phone;
+      if (c.practice) _leadData.practice = c.practice;
+      // Only submit lead when conversation is COMPLETE (all data + AI said goodbye)
+      if (data.complete && !_leadData.submitted) {
+        _leadData.submitted = true;
+        submitLead(_leadData);
+      }
+      typeMsg(data.reply, 'bot', function() { _inputArea.style.display = 'flex'; });
     }).catch(function() { runFallbackChat(); });
   }
 
@@ -280,10 +269,12 @@
     if (_aiMode) {
       // Smart lead extraction from user messages
       var isPhone = text.match(/(\+?1?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/);
-      if (!_leadData.name && !isPhone) _leadData.name = text;
+      var isEmail = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+      if (isEmail && !_leadData.email) _leadData.email = text;
+      else if (!_leadData.name && !isPhone && !isEmail) _leadData.name = text;
       else if (!_leadData.phone && isPhone) _leadData.phone = text.replace(/[^0-9\-\(\)\+\.\s]/g,'');
-      else if (!_leadData.phone && text.length > 5) _leadData.phone = text;
-      else if (!_leadData.practice) _leadData.practice = text;
+      else if (!_leadData.phone && text.length > 5 && !isPhone && !isEmail) _leadData.phone = text;
+      else if (!_leadData.practice && !isEmail) _leadData.practice = text;
       _conversation.push({ role: 'user', content: text });
       sendToAI();
     } else { handleInputFallback(text); }
