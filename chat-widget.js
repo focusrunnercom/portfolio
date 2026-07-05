@@ -1,14 +1,7 @@
 /**
  * FocusRunner AI — Standalone Chatbot Widget
  *
- * v3.0 — AI-POWERED (openai/gpt-4o-mini)
- * - Full AI conversational chat (through GPT-4o-mini)
- * - Static fallback when AI is unreachable
- * - Lead duplication (Telegram + our lead system)
- * - Offline-first capture with localStorage queue
- *
- * Embed on any site with:
- *   <script src="https://focusrunner.io/chat-widget.js"></script>
+ * v3.1 — FIXED conversation loop + friendly greeting
  */
 (function() {
   'use strict';
@@ -19,71 +12,35 @@
   var LEAD_API_ENDPOINT = API_BASE + '/api/webhook';
   var LEAD_DUPLICATE_API_ENDPOINT = 'https://unsub.focusrunner.io/api/capture-lead';
 
-  var CONFIG = {
-    maxRetries: 3,
-    retryBaseDelay: 500,
-    retryMaxDelay: 3000,
-    storageKey: 'fr_lead_queue',
-    version: '3.0'
-  };
+  var CONFIG = { maxRetries: 3, retryBaseDelay: 500, retryMaxDelay: 3000, storageKey: 'fr_lead_queue', version: '3.1' };
 
-  function getQueue() {
-    try { return JSON.parse(localStorage.getItem(CONFIG.storageKey) || '[]'); }
-    catch(e) { return []; }
-  }
-
-  function saveToQueue(payload) {
-    var q = getQueue();
-    q.push({ payload: payload, ts: Date.now(), retries: 0 });
-    try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(q)); } catch(e) {}
-  }
-
-  function removeFromQueue(idx) {
-    var q = getQueue();
-    q.splice(idx, 1);
-    try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(q)); } catch(e) {}
-  }
-
+  function getQueue() { try { return JSON.parse(localStorage.getItem(CONFIG.storageKey) || '[]'); } catch(e) { return []; } }
+  function saveToQueue(payload) { var q = getQueue(); q.push({ payload: payload, ts: Date.now(), retries: 0 }); try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(q)); } catch(e) {} }
+  function removeFromQueue(idx) { var q = getQueue(); q.splice(idx, 1); try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(q)); } catch(e) {} }
   function flushQueue() {
-    var q = getQueue();
-    if (q.length === 0) return;
+    var q = getQueue(); if (q.length === 0) return;
     q.forEach(function(item, idx) {
-      fetch(LEAD_API_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(item.payload)
-      }).then(function(r) {
-        if (r.ok) removeFromQueue(idx);
-        else item.retries++;
-      }).catch(function() { item.retries++; });
+      fetch(LEAD_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.payload) })
+        .then(function(r) { if (r.ok) removeFromQueue(idx); else item.retries++; })
+        .catch(function() { item.retries++; });
     });
     try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(q)); } catch(e) {}
   }
   setTimeout(flushQueue, 1000);
 
   function retryFetch(url, options, maxRetries) {
-    maxRetries = maxRetries || CONFIG.maxRetries;
-    var lastError;
-    var attempt = 1;
+    maxRetries = maxRetries || CONFIG.maxRetries; var lastError; var attempt = 1;
     function tryFetch() {
       return fetch(url, options).then(function(res) {
         if (res.ok) return res;
         if (res.status === 429 || res.status >= 500) {
           lastError = 'HTTP ' + res.status;
-          if (attempt < maxRetries) {
-            var delay = Math.min(CONFIG.retryBaseDelay * Math.pow(2, attempt - 1), CONFIG.retryMaxDelay);
-            attempt++;
-            return new Promise(function(r) { setTimeout(r, delay); }).then(tryFetch);
-          }
+          if (attempt < maxRetries) { var delay = Math.min(CONFIG.retryBaseDelay * Math.pow(2, attempt - 1), CONFIG.retryMaxDelay); attempt++; return new Promise(function(r) { setTimeout(r, delay); }).then(tryFetch); }
         }
         return res;
       }).catch(function(err) {
         lastError = err.message;
-        if (attempt < maxRetries) {
-          var delay = Math.min(CONFIG.retryBaseDelay * Math.pow(2, attempt - 1), CONFIG.retryMaxDelay);
-          attempt++;
-          return new Promise(function(r) { setTimeout(r, delay); }).then(tryFetch);
-        }
+        if (attempt < maxRetries) { var delay = Math.min(CONFIG.retryBaseDelay * Math.pow(2, attempt - 1), CONFIG.retryMaxDelay); attempt++; return new Promise(function(r) { setTimeout(r, delay); }).then(tryFetch); }
         throw new Error('All retries failed: ' + lastError);
       });
     }
@@ -91,31 +48,10 @@
   }
 
   function submitLead(leadData) {
-    var payload = JSON.stringify({
-      name: leadData.name,
-      phone: leadData.phone,
-      email: leadData.email || '',
-      practice: leadData.practice,
-      niche: leadData.niche,
-      volume: leadData.volume,
-      source: 'chat_widget'
-    });
-
-    retryFetch(LEAD_API_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload
-    }).then(function(r) {
-      if (!r.ok) saveToQueue(JSON.parse(payload));
-    }).catch(function() {
-      saveToQueue(JSON.parse(payload));
-    });
-
-    fetch(LEAD_DUPLICATE_API_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lead: leadData })
-    }).catch(function() {});
+    var payload = JSON.stringify({ name: leadData.name, phone: leadData.phone, email: leadData.email || '', practice: leadData.practice, niche: leadData.niche, volume: leadData.volume, source: 'chat_widget' });
+    retryFetch(LEAD_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload })
+      .then(function(r) { if (!r.ok) saveToQueue(JSON.parse(payload)); }).catch(function() { saveToQueue(JSON.parse(payload)); });
+    fetch(LEAD_DUPLICATE_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead: leadData }) }).catch(function() {});
   }
 
   var style = document.createElement('style');
@@ -162,8 +98,7 @@
   ].join('\n');
   document.body.appendChild(container);
 
-  var _active = false;
-  var _leadData = {};
+  var _active = false, _leadData = {};
   var _msgs = document.getElementById('fr-chat-messages');
   var _window = document.getElementById('fr-chat-window');
   var _fab = document.getElementById('fr-chat-fab');
@@ -171,8 +106,7 @@
   var _inputArea = document.getElementById('fr-chat-input-area');
   var _input = document.getElementById('fr-chat-input');
   var _send = document.getElementById('fr-chat-send');
-  var _conversation = [];
-  var _aiMode = false;
+  var _conversation = [], _aiMode = false;
 
   function addMsg(text, cls) {
     var div = document.createElement('div');
@@ -199,14 +133,7 @@
     _msgs.scrollTop = _msgs.scrollHeight;
   }
 
-  function showError(msg) {
-    var div = document.createElement('div');
-    div.className = 'fr-chat-error';
-    div.textContent = msg;
-    _msgs.appendChild(div);
-    _msgs.scrollTop = _msgs.scrollHeight;
-  }
-
+  // ─── FIXED: AI response IS added to conversation history ─────────
   function sendToAI() {
     if (_conversation.length === 0) return;
     retryFetch(AI_API, {
@@ -217,12 +144,9 @@
       if (r.ok) return r.json();
       throw new Error('AI API unreachable');
     }).then(function(data) {
+      // ★ FIX: Add AI response to conversation so it doesn't repeat itself
+      _conversation.push({ role: 'assistant', content: data.reply });
       addMsg(data.reply, 'bot');
-      var newCollected = data.collected || {};
-      if (newCollected.name) _leadData.name = newCollected.name;
-      if (newCollected.phone) _leadData.phone = newCollected.phone;
-      if (newCollected.email) _leadData.email = newCollected.email;
-      if (newCollected.practice) _leadData.practice = newCollected.practice;
       if (_leadData.name && (_leadData.phone || _leadData.email) && !_leadData.submitted) {
         _leadData.submitted = true;
         submitLead(_leadData);
@@ -259,36 +183,30 @@
     ]);
   }
 
-  function askNameFallback() {
-    _inputArea.style.display = 'flex';
-    addMsg('Great. What\u2019s your name and phone?', 'bot');
-  }
-
-  function finishFallback() {
-    _inputArea.style.display = 'none';
-    submitLead(_leadData);
-    addMsg('Thanks. We\u2019ll text you within 24h.', 'bot');
-  }
-
+  function askNameFallback() { _inputArea.style.display = 'flex'; addMsg('Great. What\u2019s your name and phone?', 'bot'); }
+  function finishFallback() { _inputArea.style.display = 'none'; submitLead(_leadData); addMsg('Thanks. We\u2019ll text you within 24h.', 'bot'); }
   function handleInputFallback(text) {
     if (!_leadData.name) { _leadData.name = text; addMsg('Phone?', 'bot'); }
     else if (!_leadData.phone) { _leadData.phone = text; addMsg('Practice name?', 'bot'); }
     else if (!_leadData.practice) { _leadData.practice = text; finishFallback(); }
   }
 
+  // ─── FIXED: AI response added to conversation in startChat too ──
   function startChat() {
-    _active = true;
-    _aiMode = true;
+    _active = true; _aiMode = true;
     retryFetch(AI_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: 'Hi! I have a med spa and need more patients. Can you help?' }], collected: {} })
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'Hi! I run a med spa. Can you help me get more patients?' }], collected: {} })
     }, 2).then(function(r) {
       if (r.ok) return r.json();
       throw new Error('Failed');
     }).then(function(data) {
       _leadData = {};
-      _conversation = [{ role: 'user', content: 'Hi! I have a med spa and need more patients. Can you help?' }];
+      _conversation = [
+        { role: 'user', content: 'Hi! I run a med spa. Can you help me get more patients?' },
+        { role: 'assistant', content: data.reply }  // ★ FIX: AI reply added to history
+      ];
       addMsg(data.reply, 'bot');
       _inputArea.style.display = 'flex';
     }).catch(function() { runFallbackChat(); });
@@ -308,7 +226,6 @@
     if (isOpen) { _window.classList.remove('open'); }
     else { _window.classList.add('open'); if (!_active) startChat(); }
   };
-
   _close.onclick = function() { _window.classList.remove('open'); };
   _send.onclick = sendMessage;
   _input.onkeydown = function(e) { if (e.key === 'Enter') sendMessage(); };
