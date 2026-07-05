@@ -194,10 +194,12 @@
       if (c.email) _leadData.email = c.email;
       if (c.phone) _leadData.phone = c.phone;
       if (c.practice) _leadData.practice = c.practice;
-      // Only submit lead when conversation is COMPLETE (all data + AI said goodbye)
-      if (data.complete && !_leadData.submitted) {
-        _leadData.submitted = true;
-        submitLead(_leadData);
+      // Submit lead ONLY when server says conversation is complete
+      if (data.complete) {
+        if (!_leadData.submitted) {
+          _leadData.submitted = true;
+          submitLead(_leadData);
+        }
       }
       typeMsg(data.reply, 'bot', function() { _inputArea.style.display = 'flex'; });
     }).catch(function() { runFallbackChat(); });
