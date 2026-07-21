@@ -131,6 +131,94 @@
   .stack-card .features li { font-size: 12px; color: var(--ink-dim); padding: 4px 0; }
   .stack-card .features li::before { content: '✓ '; color: var(--phos); }
 
+  /* ===== WORKS WITH STACK ===== */
+  .ww-panel {
+    border: 1px solid var(--line-bright);
+    background: #0a140d;
+    padding: 40px 32px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .ww-kicker {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--line);
+    color: var(--phos);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    margin-bottom: 20px;
+  }
+  .ww-title {
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 12px;
+    line-height: 1.25;
+  }
+  .ww-title em { color: var(--phos); font-style: normal; }
+  .ww-sub {
+    font-size: 14px;
+    color: var(--ink-dim);
+    line-height: 1.7;
+    max-width: 640px;
+    margin-bottom: 24px;
+  }
+  .ww-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .ww-col { background: var(--bg-panel); padding: 20px 18px; }
+  .ww-col h4 {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-faint);
+    letter-spacing: .4px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .ww-col.accent { background: #080f0a; }
+  .ww-col ul { list-style: none; }
+  .ww-col li {
+    font-size: 13px;
+    color: var(--ink-dim);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .ww-col li:last-child { border-bottom: none; }
+  .ww-col li strong { color: var(--ink); font-weight: 500; }
+  .ww-col.accent li strong { color: var(--phos); }
+  .ww-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .ww-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid var(--line-bright);
+    background: var(--bg-2);
+    color: var(--ink-dim);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .ww-note {
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .ww-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  @media (max-width: 640px) {
+    .ww-split { grid-template-columns: 1fr; }
+    .ww-panel { padding: 28px 18px; }
+  }
+
   /* ===== MANIFESTO ===== */
   .manifesto-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
   .manifesto-item { background: var(--bg-panel); padding: 32px 24px; }
@@ -433,6 +521,7 @@
     <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">☰</button>
     <div class="nav-links" id="navLinks">
       <a href="#how-it-works" onclick="closeMenu()">How It Works</a>
+      <a href="#works-with" onclick="closeMenu()">Works With</a>
       <a href="#stack" onclick="closeMenu()">Pricing</a>
       <a href="#niches" onclick="closeMenu()">Niches</a>
       <a href="#team" onclick="closeMenu()">Team</a>
@@ -510,6 +599,61 @@
       <div class="feature"><div class="feature-num">01 // AUDIT</div><h3>Free Patient Acquisition Audit</h3><p>We analyze your market, competitors, and current funnel. You get a report showing exactly how many patients you're leaving on the table — and what it would take to capture them.</p></div>
       <div class="feature"><div class="feature-num">02 // BUILD</div><h3>AI System Deployment</h3><p>Landing page. AI chatbot that qualifies leads 24/7. SMS &amp; email follow-ups. Ad creative. CRM integration. Everything built, tested, and running in 7 days.</p></div>
       <div class="feature"><div class="feature-num">03 // SCALE</div><h3>Leads Arrive. You Close.</h3><p>Qualified leads land in your inbox. The chatbot pre-qualifies — you only talk to people ready to book. We optimize weekly. You focus on the procedure, we handle the pipeline.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== WORKS WITH YOUR STACK ===== -->
+<section id="works-with">
+  <div class="wrap">
+    <div class="section-intro">
+      <h2>Works With Your Stack</h2>
+      <p>We don't rip out your OS. We fill it.</p>
+    </div>
+    <div class="ww-panel">
+      <div class="ww-kicker">// ACQUISITION LAYER · NOT ANOTHER SPA OS</div>
+      <h3 class="ww-title">Your booking software runs the shop.<br><em>We fill the calendar after hours.</em></h3>
+      <p class="ww-sub">
+        Zenoti, Boulevard, Mangomint, Meevo, Phorest, Vagaro — they handle booking, POS, and staff.
+        FocusRunner is the missing layer: lead → qualify in under 2 minutes → SMS hold → show.
+        Complementary. Not a rip-and-replace.
+      </p>
+      <div class="ww-split">
+        <div class="ww-col">
+          <h4>// Their OS owns</h4>
+          <ul>
+            <li><strong>Booking &amp; calendar</strong> — chairs, providers, rooms</li>
+            <li><strong>POS &amp; memberships</strong> — in-clinic ops</li>
+            <li><strong>Staff &amp; payroll</strong> — back office</li>
+            <li><strong>In-app marketing</strong> — when the patient already exists</li>
+          </ul>
+        </div>
+        <div class="ww-col accent">
+          <h4>// FocusRunner owns</h4>
+          <ul>
+            <li><strong>First reply &lt;2 min</strong> — nights &amp; weekends too</li>
+            <li><strong>IG / web / ads intake</strong> — qualify before humans</li>
+            <li><strong>SMS hold on consult</strong> — measure holds, not chats</li>
+            <li><strong>Feeds their calendar</strong> — no new OS to learn</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ww-badges">
+        <span class="ww-badge">Zenoti</span>
+        <span class="ww-badge">Boulevard</span>
+        <span class="ww-badge">Mangomint</span>
+        <span class="ww-badge">Meevo</span>
+        <span class="ww-badge">Phorest</span>
+        <span class="ww-badge">Vagaro</span>
+        <span class="ww-badge">+ your stack</span>
+      </div>
+      <p class="ww-note">
+        Already paying for enterprise spa software? Keep it. Most med spas still lose after-hours web and Instagram leads in the first few minutes — that's the gap we close.
+      </p>
+      <div class="ww-actions">
+        <a href="#start" class="btn btn-primary">Free Audit →</a>
+        <a href="#stack" class="btn btn-secondary">See Pricing</a>
+      </div>
     </div>
   </div>
 </section>
