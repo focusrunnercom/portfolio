@@ -1,318 +1,456 @@
 /**
- * FocusRunner Med Spa Lead Qualification Chat Widget
- * Self-contained — paste <script src="/chat-widget.js"></script> and it works.
- * Style: Matches focusrunner.io terminal-native design (JetBrains Mono, phosphor green).
- * v2.0 — Added offline capture queue + retry mechanism.
+ * FocusRunner AI — Standalone Chatbot Widget
+ *
+ * v3.3 — same-origin /api/chat (never unsub host), OpenRouter-backed API,
+ * typing animation, lead only when complete=true, full transcript on complete.
  */
-(function() {
-  "use strict";
+(function () {
+  'use strict';
 
-  var PRIMARY = "#6eff8a";
-  var BG = "#0d120f";
-  var INK = "#d4e5d8";
-  var INK_DIM = "#7a8c7e";
-  var INK_FAINT = "#3f4a43";
-  var LINE = "#1a2620";
-  var LINE_BRIGHT = "#2a3f33";
-  var DANGER = "#ff5c4d";
-  var API_URL = "https://focusrunner.io/api/webhook";
+  var script = document.currentScript || document.querySelector('script[src*="chat-widget"]');
+  var API_BASE = script
+    ? script.getAttribute('data-api-base') || window.location.origin
+    : window.location.origin;
+  // ALWAYS same-origin portfolio chat — never unsub.focusrunner.io
+  var AI_API = API_BASE + '/api/chat';
+  var LEAD_API_ENDPOINT = API_BASE + '/api/webhook';
 
-  var styleId = "fr-widget-styles";
-  if (!document.getElementById(styleId)) {
-    var s = document.createElement("style");
-    s.id = styleId;
-    s.textContent = [
-      "@keyframes frSlideUp{from{opacity:0;transform:translateY(16px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}",
-      "@keyframes frMsgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}",
-      ".fr-hidden{display:none!important}",
-      ".fr-msg-in{animation:frMsgIn .3s ease-out}",
-      "#fr-widget ::-webkit-scrollbar{width:4px}",
-      "#fr-widget ::-webkit-scrollbar-thumb{background:rgba(110,255,138,.15);border-radius:4px}",
-      "@media(max-width:480px){#fr-chat-fab{bottom:20px;right:16px;}#fr-widget{width:calc(100vw-24px)!important;right:12px!important;bottom:88px!important;max-height:75vh!important}}"
-    ].join("");
-    document.head.appendChild(s);
-  }
-
-  function qs(sel) { return document.querySelector(sel); }
-  function ce(tag) { return document.createElement(tag); }
-
-  // ─── Offline queue ──────────────────────────────────────────
-  var STORAGE_KEY = "fr_lead_queue";
+  var CONFIG = {
+    maxRetries: 3,
+    retryBaseDelay: 500,
+    retryMaxDelay: 3000,
+    storageKey: 'fr_lead_queue',
+    version: '3.3',
+  };
 
   function getQueue() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
-    catch(e) { return []; }
+    try {
+      return JSON.parse(localStorage.getItem(CONFIG.storageKey) || '[]');
+    } catch (e) {
+      return [];
+    }
   }
-
   function saveToQueue(payload) {
     var q = getQueue();
     q.push({ payload: payload, ts: Date.now(), retries: 0 });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(q));
+    try {
+      localStorage.setItem(CONFIG.storageKey, JSON.stringify(q));
+    } catch (e) {}
   }
-
   function removeFromQueue(idx) {
     var q = getQueue();
     q.splice(idx, 1);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(q));
+    try {
+      localStorage.setItem(CONFIG.storageKey, JSON.stringify(q));
+    } catch (e) {}
   }
-
   function flushQueue() {
     var q = getQueue();
     if (q.length === 0) return;
-    q.forEach(function(item, idx) {
-      fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item.payload)
-      }).then(function(r) {
-        if (r.ok) removeFromQueue(idx);
-        else item.retries++;
-      }).catch(function() {
-        item.retries++;
-      });
+    q.forEach(function (item, idx) {
+      fetch(LEAD_API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item.payload),
+      })
+        .then(function (r) {
+          if (r.ok) removeFromQueue(idx);
+          else item.retries++;
+        })
+        .catch(function () {
+          item.retries++;
+        });
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(q));
+    try {
+      localStorage.setItem(CONFIG.storageKey, JSON.stringify(q));
+    } catch (e) {}
+  }
+  setTimeout(flushQueue, 1000);
+
+  function retryFetch(url, options, maxRetries) {
+    maxRetries = maxRetries || CONFIG.maxRetries;
+    var lastError;
+    var attempt = 1;
+    function tryFetch() {
+      return fetch(url, options)
+        .then(function (res) {
+          if (res.ok) return res;
+          if (res.status === 429 || res.status >= 500) {
+            lastError = 'HTTP ' + res.status;
+            if (attempt < maxRetries) {
+              var delay = Math.min(CONFIG.retryBaseDelay * Math.pow(2, attempt - 1), CONFIG.retryMaxDelay);
+              attempt++;
+              return new Promise(function (r) {
+                setTimeout(r, delay);
+              }).then(tryFetch);
+            }
+          }
+          return res;
+        })
+        .catch(function (err) {
+          lastError = err.message;
+          if (attempt < maxRetries) {
+            var delay = Math.min(CONFIG.retryBaseDelay * Math.pow(2, attempt - 1), CONFIG.retryMaxDelay);
+            attempt++;
+            return new Promise(function (r) {
+              setTimeout(r, delay);
+            }).then(tryFetch);
+          }
+          throw new Error('All retries failed: ' + lastError);
+        });
+    }
+    return tryFetch();
   }
 
-  // Flush any queued leads on page load
-  flushQueue();
-
-  // ─── Submit with offline fallback ───────────────────────────
   function submitLead(leadData) {
     var payload = {
-      name: leadData.name,
-      phone: leadData.phone,
-      practice: leadData.practice,
-      niche: leadData.niche,
-      volume: leadData.volume,
-      ad_spend: leadData.ad_spend,
-      score: leadData.score,
-      source: "chat_widget"
+      name: leadData.name || '',
+      phone: leadData.phone || '',
+      email: leadData.email || '',
+      practice: leadData.practice || '',
+      type: leadData.type || '',
+      volume: leadData.volume || '',
+      source: 'chat_widget',
+      history: _conversation,
     };
-
-    var ok = false;
-    fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    }).then(function(r) {
-      if (r.ok) ok = true;
-    }).catch(function() {
-      // offline — save to queue
-    }).then(function() {
-      if (!ok) {
+    retryFetch(LEAD_API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) {
+        if (!r.ok) saveToQueue(payload);
+      })
+      .catch(function () {
         saveToQueue(payload);
+      });
+  }
+
+  // ─── Smooth CSS ──────────────────────────────────────────────
+  var style = document.createElement('style');
+  style.textContent = [
+    '#fr-chat-fab { position: fixed; bottom: 24px; right: 24px; z-index: 2147483647; width: 56px; height: 56px; border-radius: 0; border: 1px solid #6eff8a; background: #0d120f; color: #6eff8a; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease, box-shadow 0.2s ease; font-family: "JetBrains Mono", monospace; }',
+    '#fr-chat-fab:hover { transform: scale(1.08); box-shadow: 0 0 24px rgba(110,255,138,0.25); }',
+    '#fr-chat-fab .fr-dot { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #6eff8a; animation: fr-pulse 2s infinite; }',
+    '@keyframes fr-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }',
+    '@keyframes fr-border-glow { 0%,100% { box-shadow: 0 0 12px rgba(110,255,138,0.3), 0 0 24px rgba(110,255,138,0.1), 0 8px 32px rgba(0,0,0,0.5); border-color: #6eff8a; } 50% { box-shadow: 0 0 20px rgba(110,255,138,0.5), 0 0 40px rgba(110,255,138,0.2), 0 8px 32px rgba(0,0,0,0.5); border-color: #8affa0; } }',
+    '#fr-chat-window { position: fixed; bottom: 92px; right: 24px; z-index: 2147483646; width: 340px; max-height: 520px; background: #0d120f; border: 1px solid #2a3f33; display: none; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.5); font-family: "JetBrains Mono", monospace; opacity: 0; transform: translateY(10px) scale(0.96); transition: opacity 0.25s ease, transform 0.25s ease, border-color 0.25s ease; }',
+    '#fr-chat-window.open { display: flex; opacity: 1; transform: translateY(0) scale(1); animation: fr-border-glow 2.5s ease-in-out infinite; }',
+    '#fr-chat-header { padding: 14px 16px; border-bottom: 1px solid #1a2620; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; color: #6eff8a; }',
+    '#fr-chat-close { background: none; border: none; color: #7a8c7e; cursor: pointer; font-size: 18px; font-family: "JetBrains Mono", monospace; transition: color 0.15s; }',
+    '#fr-chat-close:hover { color: #ff5c4d; }',
+    '#fr-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; max-height: 340px; }',
+    '.fr-chat-msg { font-size: 12px; line-height: 1.5; max-width: 85%; padding: 10px 14px; animation: fr-fadeIn 0.3s ease; }',
+    '.fr-chat-msg.bot { background: #0f1412; color: #d4e5d8; align-self: flex-start; border: 1px solid #1a2620; }',
+    '.fr-chat-msg.user { background: rgba(110,255,138,0.08); color: #d4e5d8; align-self: flex-end; border: 1px solid rgba(110,255,138,0.15); }',
+    '@keyframes fr-fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }',
+    '#fr-chat-input-area { padding: 12px; border-top: 1px solid #1a2620; display: none; gap: 8px; }',
+    '#fr-chat-input { flex: 1; background: #0f1412; border: 1px solid #1a2620; color: #d4e5d8; padding: 10px 12px; font-family: "JetBrains Mono", monospace; font-size: 12px; outline: none; transition: border-color 0.15s; }',
+    '#fr-chat-input:focus { border-color: #6eff8a; }',
+    '#fr-chat-send { background: #6eff8a; color: #000; border: none; padding: 10px 16px; cursor: pointer; font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700; transition: background 0.15s; }',
+    '#fr-chat-send:hover { background: #8affa0; }',
+    '#fr-chat-send:disabled { opacity: 0.5; cursor: wait; }',
+    '.fr-chat-option { display: block; width: 100%; text-align: left; background: #0f1412; border: 1px solid #1a2620; color: #d4e5d8; padding: 10px 14px; margin: 4px 0; cursor: pointer; font-family: "JetBrains Mono", monospace; font-size: 11px; transition: border-color 0.15s, background 0.15s; }',
+    '.fr-chat-option:hover { border-color: #6eff8a; color: #6eff8a; background: rgba(110,255,138,0.05); }',
+    '.fr-chat-error { font-size: 11px; color: #ff5c4d; padding: 8px 14px; text-align: center; }',
+    '.fr-typing { align-self: flex-start; color: #7a8c7e; font-size: 11px; padding: 4px 8px; }',
+    '@media (max-width: 480px) { #fr-chat-fab { bottom: 20px; right: 16px; } #fr-chat-window { right: 8px; bottom: 80px; width: calc(100vw - 16px); max-width: 360px; } }',
+  ].join('\n');
+  document.head.appendChild(style);
+
+  // ─── HTML ────────────────────────────────────────────────────
+  var container = document.createElement('div');
+  container.innerHTML = [
+    '<div id="fr-chat-window">',
+    '  <div id="fr-chat-header">>_ Free Practice Audit<button id="fr-chat-close" type="button">&times;</button></div>',
+    '  <div id="fr-chat-messages"></div>',
+    '  <div id="fr-chat-input-area">',
+    '    <input type="text" id="fr-chat-input" placeholder="Type your message..." autocomplete="off" />',
+    '    <button id="fr-chat-send" type="button">&rarr;</button>',
+    '  </div>',
+    '</div>',
+    '<button id="fr-chat-fab" type="button" aria-label="Open FocusRunner chat">&#128172;<span class="fr-dot"></span></button>',
+  ].join('\n');
+  document.body.appendChild(container);
+
+  // ─── State ────────────────────────────────────────────────────
+  var _active = false;
+  var _leadData = {};
+  var _msgs = document.getElementById('fr-chat-messages');
+  var _window = document.getElementById('fr-chat-window');
+  var _fab = document.getElementById('fr-chat-fab');
+  var _close = document.getElementById('fr-chat-close');
+  var _inputArea = document.getElementById('fr-chat-input-area');
+  var _input = document.getElementById('fr-chat-input');
+  var _send = document.getElementById('fr-chat-send');
+  var _conversation = [];
+  var _aiMode = false;
+  var _busy = false;
+  var _done = false;
+  var _nextField = null;
+
+  function setBusy(b) {
+    _busy = b;
+    _send.disabled = !!b;
+    _input.disabled = !!b;
+  }
+
+  // ─── Typing effect ────────────────────────────────────────────
+  function typeMsg(text, cls, callback) {
+    var div = document.createElement('div');
+    div.className = 'fr-chat-msg ' + cls;
+    _msgs.appendChild(div);
+    var i = 0;
+    function type() {
+      if (i < text.length) {
+        div.textContent += text.charAt(i);
+        i++;
+        _msgs.scrollTop = _msgs.scrollHeight;
+        setTimeout(type, 12 + Math.random() * 18);
+      } else if (callback) {
+        callback();
       }
-    });
+    }
+    type();
   }
-
-  // Data store (fresh every open)
-  var lead = { score: 0, step: 0 };
-  var msgs;
-
-  // ─── WIDGET DOM ────────────────────────────────────
-  var w = ce("div"); w.id = "fr-widget"; w.className = "fr-hidden";
-  Object.assign(w.style, {
-    position:"fixed", bottom:"92px", right:"24px", width:"360px",
-    maxHeight:"520px", background:BG, border:"1px solid "+LINE_BRIGHT,
-    display:"flex", flexDirection:"column", overflow:"hidden",
-    zIndex:"999998", animation:"frSlideUp 0.35s ease-out",
-    fontFamily:"'JetBrains Mono', monospace", fontSize:"12px", boxShadow:"0 8px 32px rgba(0,0,0,0.6)"
-  });
-
-  // Header
-  var hdr = ce("div");
-  Object.assign(hdr.style, {
-    padding:"14px 16px", borderBottom:"1px solid "+LINE,
-    display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0
-  });
-  hdr.innerHTML = '<span style="font-weight:700;color:'+PRIMARY+';">&gt;_ Free Practice Audit</span>'+
-    '<button id="fr-close" style="background:none;border:none;color:'+INK_FAINT+';cursor:pointer;font-size:18px;font-family:\'JetBrains Mono\',monospace;">&times;</button>';
-
-  // Messages
-  msgs = ce("div");
-  Object.assign(msgs.style, {
-    flex:"1", overflowY:"auto", padding:"12px", display:"flex",
-    flexDirection:"column", gap:"8px", maxHeight:"260px"
-  });
-
-  // Input area
-  var inputArea = ce("div");
-  Object.assign(inputArea.style, {
-    padding:"10px 12px", borderTop:"1px solid "+LINE, display:"flex", gap:"8px", flexShrink:0
-  });
-  var input = ce("input");
-  Object.assign(input.style, {
-    flex:"1", background:LINE, border:"1px solid "+LINE_BRIGHT, color:INK,
-    padding:"8px 10px", fontFamily:"'JetBrains Mono',monospace", fontSize:"11px", outline:"none"
-  });
-  input.placeholder = "Type your answer...";
-  input.onkeydown = function(e) { if (e.key === "Enter") sendMsg(); };
-  var sendBtn = ce("button");
-  sendBtn.textContent = "\u2192";
-  Object.assign(sendBtn.style, {
-    background:PRIMARY, color:"#000", border:"none", padding:"8px 14px",
-    cursor:"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:"12px", fontWeight:"700"
-  });
-  sendBtn.onclick = sendMsg;
-  inputArea.appendChild(input); inputArea.appendChild(sendBtn);
-
-  w.appendChild(hdr); w.appendChild(msgs); w.appendChild(inputArea);
-
-  // Options container (for button-based choices)
-  var optsContainer = ce("div");
-  optsContainer.id = "fr-opts";
-  Object.assign(optsContainer.style, { padding:"0 12px 8px", display:"none", flexShrink:0 });
-  w.insertBefore(optsContainer, inputArea);
-
-  // ─── BUTTON ────────────────────────────────────
-  var btn = ce("div"); btn.id = "fr-btn";
-  btn.setAttribute("aria-label", "Open FocusRunner chat");
-  btn.innerHTML = '<span style="font-size:22px;">&gt;_</span>';
-  Object.assign(btn.style, {
-    position:"fixed", bottom:"24px", right:"24px", width:"56px", height:"56px",
-    background:BG, border:"1px solid "+PRIMARY, color:PRIMARY,
-    cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-    fontFamily:"'JetBrains Mono',monospace", transition:"transform .15s, box-shadow .15s",
-    zIndex:"999999"
-  });
-  btn.onmouseover = function(){ this.style.transform="scale(1.05)"; this.style.boxShadow="0 0 20px rgba(110,255,138,0.15)"; };
-  btn.onmouseout  = function(){ this.style.transform="scale(1)"; this.style.boxShadow="none"; };
-
-  // ─── ACTIONS ────────────────────────────────────
-  function toggle() {
-    var open = !w.classList.contains("fr-hidden");
-    w.classList.toggle("fr-hidden");
-    if (!open && lead.step === 0) start();
-  }
-  btn.onclick = toggle;
-  qs("#fr-close") && (qs("#fr-close").onclick = toggle);
 
   function addMsg(text, cls) {
-    var div = ce("div");
-    div.style.cssText = "font-size:11px;line-height:1.5;max-width:85%;padding:8px 12px;"+
-      (cls==="bot" ? "background:"+LINE+";color:"+INK+";align-self:flex-start;border:1px solid "+LINE_BRIGHT+";" :
-       "background:rgba(110,255,138,0.08);color:"+INK+";align-self:flex-end;");
+    var div = document.createElement('div');
+    div.className = 'fr-chat-msg ' + cls;
     div.textContent = text;
-    div.className = "fr-msg-in";
-    msgs.appendChild(div);
-    msgs.scrollTop = msgs.scrollHeight;
+    _msgs.appendChild(div);
+    _msgs.scrollTop = _msgs.scrollHeight;
+  }
+
+  function showTyping() {
+    var el = document.createElement('div');
+    el.className = 'fr-typing';
+    el.id = 'fr-typing';
+    el.textContent = 'typing…';
+    _msgs.appendChild(el);
+    _msgs.scrollTop = _msgs.scrollHeight;
+  }
+  function hideTyping() {
+    var el = document.getElementById('fr-typing');
+    if (el) el.remove();
   }
 
   function addOptions(opts) {
-    optsContainer.innerHTML = "";
-    opts.forEach(function(o) {
-      var b = ce("button");
-      b.textContent = o.label;
-      Object.assign(b.style, {
-        display:"block", width:"100%", textAlign:"left", background:LINE,
-        border:"1px solid "+LINE_BRIGHT, color:INK, padding:"8px 12px", margin:"3px 0",
-        cursor:"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:"11px",
-        transition:"border-color .15s"
-      });
-      b.onmouseover = function(){ this.style.borderColor=PRIMARY; this.style.color=PRIMARY; };
-      b.onmouseout  = function(){ this.style.borderColor=LINE_BRIGHT; this.style.color=INK; };
-      b.onclick = function() {
-        optsContainer.style.display = "none";
-        addMsg(o.label, "user");
-        if (o.field) lead[o.field] = o.value || o.label;
+    opts.forEach(function (o) {
+      var btn = document.createElement('button');
+      btn.className = 'fr-chat-option';
+      btn.type = 'button';
+      btn.textContent = o.label;
+      btn.onclick = function () {
+        var all = _msgs.querySelectorAll('.fr-chat-option');
+        for (var i = 0; i < all.length; i++) all[i].remove();
+        addMsg(o.label, 'user');
+        _leadData[o.field] = o.value || o.label;
+        if (o.nextField) _nextField = o.nextField;
         if (o.next) o.next();
       };
-      optsContainer.appendChild(b);
+      _msgs.appendChild(btn);
     });
-    optsContainer.style.display = "block";
+    _msgs.scrollTop = _msgs.scrollHeight;
   }
 
-  function start() {
-    lead = { score: 0, step: 1 };
-    addMsg("Hey \u2014 I'm FocusRunner's AI acquisition consultant. Quick audit on your patient pipeline. Ready?", "bot");
+  function mergeCollected(c) {
+    if (!c) return;
+    ['type', 'volume', 'name', 'practice', 'email', 'phone'].forEach(function (k) {
+      if (c[k]) _leadData[k] = c[k];
+    });
+  }
+
+  // ─── Send to AI ──────────────────────────────────────────────
+  function sendToAI() {
+    if (_conversation.length === 0 || _done) return;
+    setBusy(true);
+    showTyping();
+    retryFetch(
+      AI_API,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: _conversation, collected: _leadData }),
+      },
+      2
+    )
+      .then(function (r) {
+        if (r.ok) return r.json();
+        throw new Error('AI API unreachable ' + r.status);
+      })
+      .then(function (data) {
+        hideTyping();
+        setBusy(false);
+        var reply = (data && data.reply) || '';
+        mergeCollected(data && data.collected);
+        _conversation.push({ role: 'assistant', content: reply });
+        if (data && data.complete) {
+          _done = true;
+          if (!_leadData.submitted) {
+            _leadData.submitted = true;
+            submitLead(_leadData);
+          }
+        }
+        typeMsg(reply, 'bot', function () {
+          if (!_done) _inputArea.style.display = 'flex';
+          else _inputArea.style.display = 'none';
+        });
+      })
+      .catch(function () {
+        hideTyping();
+        setBusy(false);
+        runFallbackChat();
+      });
+  }
+
+  // ─── Fallback (local option flow if API down) ─────────────────
+  function runFallbackChat() {
+    _aiMode = false;
+    addMsg("Hey—I'm FocusRunner's acquisition advisor. Let's run a quick audit.", 'bot');
     addOptions([
-      {label: "Yes \u2014 let's do this", field: "started", value: true, next: askNiche},
-      {label: "Just browsing", field: "started", value: false, next: function(){
-        addMsg("No worries. Check the case studies above \u2014 they show exactly what we deliver. Ping us when ready.", "bot");
-      }}
+      { label: "Let's do it", field: 'started', value: true, next: askType },
+      {
+        label: 'Just browsing',
+        field: 'started',
+        value: false,
+        next: function () {
+          addMsg('No worries. Ping us when ready to scale.', 'bot');
+        },
+      },
     ]);
   }
 
-  function askNiche() {
-    addMsg("What type of practice?", "bot");
+  function askType() {
+    addMsg('What type of practice?', 'bot');
     addOptions([
-      {label: "\uD83D\uDC89 Med Spa", field: "niche", value: "med_spa", next: askVolume},
-      {label: "\uD83E\uDDB7 Cosmetic Dentistry", field: "niche", value: "cosmetic_dentistry", next: askVolume},
-      {label: "\uD83D\uDD2A Plastic Surgery", field: "niche", value: "plastic_surgery", next: askVolume},
-      {label: "\uD83D\uDC87 Hair Transplant", field: "niche", value: "hair_transplant", next: askVolume},
-      {label: "Other", field: "niche", value: "other", next: askVolume}
+      { label: 'Med Spa', field: 'type', value: 'med spa', next: askVolume },
+      { label: 'Cosmetic Dent.', field: 'type', value: 'cosmetic dentistry', next: askVolume },
+      { label: 'Plastic Surgery', field: 'type', value: 'plastic surgery', next: askVolume },
+      { label: 'Other', field: 'type', value: 'other', next: askVolume },
     ]);
   }
 
   function askVolume() {
-    addMsg("Patients per month?", "bot");
+    addMsg('Monthly new patients?', 'bot');
     addOptions([
-      {label: "Under 10", field: "volume", value: "under_10", next: askAdSpend},
-      {label: "10\u201330", field: "volume", value: "10_30", next: askAdSpend},
-      {label: "30\u201360", field: "volume", value: "30_60", next: askAdSpend},
-      {label: "60+", field: "volume", value: "60_plus", next: askAdSpend}
-    ]);
-  }
-
-  function askAdSpend() {
-    addMsg("Monthly marketing spend?", "bot");
-    addOptions([
-      {label: "$0 \u2013 organic only", field: "ad_spend", value: "0", next: askName},
-      {label: "$1K\u2013$3K", field: "ad_spend", value: "1k_3k", next: askName},
-      {label: "$3K\u2013$10K", field: "ad_spend", value: "3k_10k", next: askName},
-      {label: "$10K+", field: "ad_spend", value: "10k_plus", next: askName}
+      { label: 'Under 10', field: 'volume', value: 'under 10', next: askName },
+      { label: '10–30', field: 'volume', value: '10-30', next: askName },
+      { label: '30–60', field: 'volume', value: '30-60', next: askName },
+      { label: '60+', field: 'volume', value: '60+', next: askName },
     ]);
   }
 
   function askName() {
-    inputArea.style.display = "flex";
-    addMsg("What's your name?", "bot");
-    lead.step = 2;
+    _inputArea.style.display = 'flex';
+    addMsg("What's your first name?", 'bot');
+    _nextField = 'name';
   }
 
-  function askPhone() {
-    addMsg("Best phone number? We'll text you the audit.", "bot");
-    lead.step = 3;
+  function finishFallback() {
+    _inputArea.style.display = 'none';
+    _done = true;
+    if (!_leadData.submitted) {
+      _leadData.submitted = true;
+      submitLead(_leadData);
+    }
+    addMsg("Thanks! We'll text you within 24h. Any questions — hello@focusrunner.io", 'bot');
   }
 
-  function askPractice() {
-    addMsg("Practice name?", "bot");
-    lead.step = 4;
+  function handleInputFallback(text) {
+    if (!_leadData.name) {
+      _leadData.name = text;
+      addMsg('Practice / clinic name?', 'bot');
+      _nextField = 'practice';
+    } else if (!_leadData.practice) {
+      _leadData.practice = text;
+      addMsg('Best email?', 'bot');
+      _nextField = 'email';
+    } else if (!_leadData.email) {
+      _leadData.email = text;
+      addMsg('Mobile for SMS?', 'bot');
+      _nextField = 'phone';
+    } else if (!_leadData.phone) {
+      _leadData.phone = text;
+      finishFallback();
+    }
   }
 
-  function finish() {
-    inputArea.style.display = "none";
-    addMsg("Perfect. Analyzing your market position...", "bot");
-
-    // Score the lead
-    if (lead.volume === "under_10" || lead.volume === "10_30") lead.score += 30;
-    if (lead.ad_spend === "3k_10k" || lead.ad_spend === "10k_plus") lead.score += 25;
-    if (lead.niche === "med_spa") lead.score += 20;
-    lead.score = Math.min(100, lead.score);
-
-    // Submit with offline fallback
-    submitLead(lead);
-
-    setTimeout(function() {
-      addMsg("Based on your responses, you're spending real money on acquisition but losing leads to slow response times. That's fixable.", "bot");
-      addMsg("Here's what happens next:", "bot");
-      addMsg("1. We audit your market within 24h\n2. Text you a personalized Patient Acquisition Audit\n3. You see exactly how many patients you're missing \u2014 and what it costs to capture them.\n\nNo commitment. No pressure. Just data.", "bot");
-      addMsg("\u2192 Book your free audit call: https://focusrunner.com", "bot");
-    }, 1200);
+  // ─── Start ────────────────────────────────────────────────────
+  function startChat() {
+    _active = true;
+    _aiMode = true;
+    _done = false;
+    _leadData = {};
+    _conversation = [];
+    setBusy(true);
+    showTyping();
+    // Kick with a user hello so API returns greeting + first question
+    var kick = [{ role: 'user', content: 'Hi — I run a practice and want more patients.' }];
+    retryFetch(
+      AI_API,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: kick, collected: {} }),
+      },
+      2
+    )
+      .then(function (r) {
+        if (r.ok) return r.json();
+        throw new Error('Failed ' + r.status);
+      })
+      .then(function (data) {
+        hideTyping();
+        setBusy(false);
+        mergeCollected(data && data.collected);
+        var reply = (data && data.reply) || 'Hi — what type of practice do you run?';
+        _conversation = [
+          { role: 'user', content: kick[0].content },
+          { role: 'assistant', content: reply },
+        ];
+        typeMsg(reply, 'bot', function () {
+          _inputArea.style.display = 'flex';
+          try {
+            _input.focus();
+          } catch (e) {}
+        });
+      })
+      .catch(function () {
+        hideTyping();
+        setBusy(false);
+        runFallbackChat();
+      });
   }
 
-  function sendMsg() {
-    var text = input.value.trim();
-    if (!text) return;
-    addMsg(text, "user");
-    input.value = "";
-
-    if (lead.step === 2) { lead.name = text; askPhone(); }
-    else if (lead.step === 3) { lead.phone = text; askPractice(); }
-    else if (lead.step === 4) { lead.practice = text; finish(); }
+  function sendMessage() {
+    var text = _input.value.trim();
+    if (!text || _busy || _done) return;
+    addMsg(text, 'user');
+    _input.value = '';
+    if (_aiMode) {
+      _conversation.push({ role: 'user', content: text });
+      sendToAI();
+    } else {
+      handleInputFallback(text);
+    }
   }
 
-  document.body.appendChild(w);
-  document.body.appendChild(btn);
+  // ─── Events ───────────────────────────────────────────────────
+  _fab.onclick = function () {
+    var isOpen = _window.classList.contains('open');
+    if (isOpen) {
+      _window.classList.remove('open');
+    } else {
+      _window.classList.add('open');
+      if (!_active) setTimeout(startChat, 280);
+    }
+  };
+  _close.onclick = function () {
+    _window.classList.remove('open');
+  };
+  _send.onclick = sendMessage;
+  _input.onkeydown = function (e) {
+    if (e.key === 'Enter') sendMessage();
+  };
 })();

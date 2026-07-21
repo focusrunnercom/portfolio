@@ -1,380 +1,431 @@
 /**
  * Vercel Serverless Function: /api/chat
- * Lead qualification chat endpoint — Schwartz framework, server-side.
- * CJS for Vercel Node 18.x Hobby compat.
+ * Lead qualification chat — OpenRouter (gpt-4o-mini) + deterministic fallback.
  *
- * Features:
- *   4-question Schwartz state machine (name → volume → spend → aspiration)
- *   Stores leads to /tmp/leads.json (shared with /api/direct-qualify)
- *   Scores hot/warm/cold based on volume + spend
- *   Forwards to GHL via /api/webhook logic on completion
- *   Sends email notification for hot/warm leads
+ * Widget protocol (v3.x):
+ *   POST { messages: [{role,content}], collected: {name,phone,email,practice,type,volume} }
+ *   → { reply, collected, complete, mode }
  *
- * POST /api/chat  { message, state?, name?, practice?, volume?, spend?, email?, phone? }
- * GET  /api/chat  health check
+ * Also accepts legacy: { message, state } Schwartz machine.
+ * GET → health
+ *
+ * NEVER route chat through unsub.focusrunner.io
  */
-
-const { readFileSync, writeFileSync, existsSync } = require('fs');
+const { readFileSync, writeFileSync, existsSync, mkdirSync } = require('fs');
 const { randomUUID } = require('crypto');
 const { rateLimit, corsHeaders, parseBody } = require('./_middleware');
 
-// ─── Schwartz Framework Questions ──────────────────────────────────────────
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL = process.env.CHAT_MODEL || 'openai/gpt-4o-mini';
 
-const QUESTIONS = [
-  null,  // Q0: practice name — asked in initial render
-  {
-    text: "How many new patients are you bringing in per month?",
-    reason: "IDENTIFIED → Volume tells us the size of the leak.",
-  },
-  {
-    text: "What are you currently spending per month on ads or marketing?",
-    reason: "DESIRE → We compare their spend to our $41 CPA benchmark.",
-  },
-  {
-    text: "If you could double your new patients without increasing ad spend, what would that mean for your practice?",
-    reason: "CREDIBILITY → Tests readiness. Strong answers = hot lead.",
-  },
-];
+const SYSTEM_PROMPT = `You are FocusRunner's polite acquisition advisor on focusrunner.io.
+Brand: AI patient acquisition for med spas (qualify <2 min → SMS hold → show). Price: free audit, then $2,500 setup + $1,500/mo. We work WITH booking software (Zenoti, Boulevard, etc.) — we don't rip it out.
 
-const STEP_MESSAGES = {
-  hot: "You're qualified. Your free Patient Acquisition Audit is being prepared. A specialist will text you within 24 hours.",
-  warm: "You're a great prospect. One of our specialists will reach out with personalized case studies for your practice.",
-  cold: "Thanks for your interest. We've noted your details. When you're ready to scale, reach out anytime at hello@focusrunner.com.",
-};
+GOAL: qualify the visitor by collecting fields ONE AT A TIME, conversationally, short replies (1-3 sentences).
 
-// ─── Scoring Engine ────────────────────────────────────────────────────────
+Required order (do not skip ahead):
+1) type — practice type (med spa / aesthetics / other)
+2) volume — monthly new patients (number or range OK)
+3) name — first name
+4) practice — practice / clinic name
+5) email — work email
+6) phone — mobile for SMS
 
-const SCORE_THRESHOLDS = {
-  hot: { minVolume: 50 },
-  warm: { minVolume: 10 },
-};
+Rules:
+- Be warm, professional, concise. No walls of text. No "Sure!" / "Got it!" filler.
+- Ask only for the NEXT missing field from the order above.
+- If they give multiple fields in one message, extract all you can.
+- When ALL six fields are present and valid, set complete=true, thank them, say a specialist will text within 24h, offer free audit.
+- Never invent contact info. Never claim you booked anything.
+- Do not discuss competitors by bashing brands; complementary positioning only.
 
-function qualify(practice, volume, spend) {
-  const hasPractice = !!(practice || '').trim();
-  const vol = parseInt(String(volume || '0').replace(/[,\+]/g, ''), 10) || 0;
+You MUST respond with ONLY valid JSON (no markdown fences):
+{"reply":"string to show user","collected":{"type":"","volume":"","name":"","practice":"","email":"","phone":""},"complete":false}
 
-  if (hasPractice && vol >= SCORE_THRESHOLDS.hot.minVolume) {
-    return { score: 'hot', numericScore: 85, next_action: 'book_call' };
-  }
-  if (hasPractice && vol >= SCORE_THRESHOLDS.warm.minVolume) {
-    return { score: 'warm', numericScore: 45, next_action: 'send_info' };
-  }
-  return { score: 'cold', numericScore: 10, next_action: 'drip' };
+Merge newly extracted values into collected; keep previous non-empty values.`;
+
+function emptyCollected(c) {
+  c = c || {};
+  return {
+    type: String(c.type || c.niche || '').trim(),
+    volume: String(c.volume || c.q1_volume || '').trim(),
+    name: String(c.name || '').trim(),
+    practice: String(c.practice || '').trim(),
+    email: String(c.email || '').trim(),
+    phone: String(c.phone || '').trim(),
+  };
 }
 
-// ─── State Machine ─────────────────────────────────────────────────────────
+function isEmail(s) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s || '');
+}
+function isPhone(s) {
+  const d = String(s || '').replace(/\D/g, '');
+  return d.length >= 10;
+}
+function missingField(c) {
+  if (!c.type) return 'type';
+  if (!c.volume) return 'volume';
+  if (!c.name) return 'name';
+  if (!c.practice) return 'practice';
+  if (!c.email || !isEmail(c.email)) return 'email';
+  if (!c.phone || !isPhone(c.phone)) return 'phone';
+  return null;
+}
+function isComplete(c) {
+  return !missingField(c);
+}
 
-function processMessage(message, state) {
+function extractFromText(text, collected) {
+  const c = emptyCollected(collected);
+  const t = String(text || '').trim();
+  if (!t) return c;
+
+  const emailM = t.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+  if (emailM) c.email = emailM[0];
+
+  const phoneM = t.match(/(\+?1?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/);
+  if (phoneM) c.phone = phoneM[1].trim();
+
+  const low = t.toLowerCase();
+  if (!c.type) {
+    if (/med\s*spa|medical spa|aesthetics|botox|inject/.test(low)) c.type = 'med spa';
+    else if (/dentist|dental/.test(low)) c.type = 'cosmetic dentistry';
+    else if (/plastic/.test(low)) c.type = 'plastic surgery';
+  }
+
+  // volume-ish
+  if (!c.volume && /(\d+)\s*(\+|–|-|to)?\s*(\d+)?/.test(t) && /(patient|lead|month|mo\b|\/mo)/i.test(t)) {
+    c.volume = t;
+  } else if (!c.volume && /^(under\s*)?\d{1,3}(\s*[-–to]+\s*\d{1,3})?(\+)?$/i.test(t)) {
+    c.volume = t;
+  }
+
+  return c;
+}
+
+// ─── Deterministic fallback (no LLM) ───────────────────────────────────────
+function fallbackReply(messages, collected) {
+  const c = emptyCollected(collected);
+  const lastUser = [...(messages || [])].reverse().find((m) => m.role === 'user');
+  const text = (lastUser && lastUser.content) || '';
+
+  // merge extract
+  Object.assign(c, extractFromText(text, c));
+  // field assignment by next missing if still empty
+  const miss = missingField(c);
+  if (miss === 'type' && text && text.length < 40 && !isEmail(text) && !isPhone(text)) {
+    c.type = text;
+  } else if (miss === 'volume' && text) {
+    c.volume = text;
+  } else if (miss === 'name' && text && !isEmail(text) && !isPhone(text) && text.length < 40) {
+    c.name = text;
+  } else if (miss === 'practice' && text && !isEmail(text) && !isPhone(text)) {
+    c.practice = text;
+  } else if (miss === 'email' && isEmail(text)) {
+    c.email = text;
+  } else if (miss === 'phone' && (isPhone(text) || text.replace(/\D/g, '').length >= 7)) {
+    c.phone = text;
+  }
+
+  if (isComplete(c)) {
+    return {
+      reply:
+        'Thanks ' +
+        (c.name.split(' ')[0] || '') +
+        ' — you\'re set. A specialist will text within 24 hours about your free Patient Acquisition Audit. We work next to your booking software, not instead of it.',
+      collected: c,
+      complete: true,
+      mode: 'fallback',
+    };
+  }
+
+  const next = missingField(c);
+  const prompts = {
+    type: 'Quick start — what type of practice do you run? (e.g. med spa, aesthetics, other)',
+    volume: 'Roughly how many new patients per month are you bringing in right now?',
+    name: 'What\'s your first name?',
+    practice: 'What\'s the practice / clinic name?',
+    email: 'Best email to send the audit notes?',
+    phone: 'Mobile number for a quick text follow-up?',
+  };
+
+  // greeting if no real progress and first msg
+  if (!c.type && !c.volume && !c.name && (messages || []).length <= 1) {
+    return {
+      reply:
+        'Hi — I\'m the FocusRunner acquisition advisor. We help med spas fill the calendar after hours without ripping out booking software. What type of practice do you run?',
+      collected: c,
+      complete: false,
+      mode: 'fallback',
+    };
+  }
+
+  return {
+    reply: prompts[next] || 'Tell me a bit more about your practice.',
+    collected: c,
+    complete: false,
+    mode: 'fallback',
+  };
+}
+
+// ─── OpenRouter ────────────────────────────────────────────────────────────
+async function openRouterChat(messages, collected) {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) return null;
+
+  const c0 = emptyCollected(collected);
+  const userMessages = (messages || [])
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && m.content)
+    .slice(-16)
+    .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) }));
+
+  if (userMessages.length === 0) {
+    userMessages.push({ role: 'user', content: 'Hi' });
+  }
+
+  const body = {
+    model: MODEL,
+    temperature: 0.4,
+    max_tokens: 400,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      {
+        role: 'system',
+        content: 'Current collected JSON: ' + JSON.stringify(c0),
+      },
+      ...userMessages,
+    ],
+  };
+
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + key,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://focusrunner.io',
+        'X-Title': 'FocusRunner Chat Widget',
+      },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) {
+      const errTxt = await res.text().catch(() => '');
+      console.warn('[chat] openrouter', res.status, errTxt.slice(0, 200));
+      return null;
+    }
+    const data = await res.json();
+    const raw = (((data || {}).choices || [])[0] || {}).message?.content || '';
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      // try extract json object
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (!m) return null;
+      try {
+        parsed = JSON.parse(m[0]);
+      } catch (e2) {
+        return null;
+      }
+    }
+    const merged = emptyCollected({ ...c0, ...(parsed.collected || {}) });
+    // re-extract from last user msg as safety
+    const lastUser = [...userMessages].reverse().find((m) => m.role === 'user');
+    Object.assign(merged, extractFromText(lastUser && lastUser.content, merged));
+    // prefer non-empty from either side
+    for (const k of Object.keys(c0)) {
+      if (!merged[k] && c0[k]) merged[k] = c0[k];
+    }
+    const complete = parsed.complete === true && isComplete(merged);
+    let reply = String(parsed.reply || '').trim();
+    if (!reply) {
+      const fb = fallbackReply(messages, merged);
+      reply = fb.reply;
+    }
+    if (complete && !/24/.test(reply)) {
+      reply += ' A specialist will text within 24 hours.';
+    }
+    return {
+      reply: reply.slice(0, 1200),
+      collected: merged,
+      complete,
+      mode: 'openrouter',
+    };
+  } catch (e) {
+    clearTimeout(t);
+    console.warn('[chat] openrouter error', e.message);
+    return null;
+  }
+}
+
+// ─── Legacy Schwartz path ──────────────────────────────────────────────────
+function processLegacy(message, state) {
   state = state || {};
   const step = state.step || 0;
   const practice = state.practice || '';
   const q1_volume = state.q1_volume || '';
   const q2_spend = state.q2_spend || '';
-  const email = state.email || '';
-  const phone = state.phone || '';
 
   if (step === 0) {
-    // Received practice name
     return {
-      reply: QUESTIONS[1].text,
-      reason: QUESTIONS[1].reason,
+      reply: 'How many new patients are you bringing in per month?',
       state: { step: 1, practice: message, q1_volume: '', q2_spend: '', email: '', phone: '' },
-      next_field: 'volume',
-      requires_input: true,
-      step_complete: false,
+      collected: emptyCollected({ practice: message }),
+      complete: false,
+      mode: 'legacy',
     };
   }
-
   if (step === 1) {
     return {
-      reply: QUESTIONS[2].text,
-      reason: QUESTIONS[2].reason,
+      reply: 'What are you currently spending per month on ads or marketing?',
       state: { step: 2, practice, q1_volume: message, q2_spend: '', email: '', phone: '' },
-      next_field: 'spend',
-      requires_input: true,
-      step_complete: false,
+      collected: emptyCollected({ practice, volume: message }),
+      complete: false,
+      mode: 'legacy',
     };
   }
-
   if (step === 2) {
     return {
-      reply: QUESTIONS[3].text,
-      reason: QUESTIONS[3].reason,
+      reply: 'If you could double new patients without raising ad spend, what would that mean for the practice?',
       state: { step: 3, practice, q1_volume, q2_spend: message, email: '', phone: '' },
-      next_field: 'aspiration',
-      requires_input: true,
-      step_complete: false,
+      collected: emptyCollected({ practice, volume: q1_volume }),
+      complete: false,
+      mode: 'legacy',
     };
   }
-
   if (step === 3) {
-    // All questions answered; ask for contact info
     return {
-      reply: "One last thing — what's the best email and phone to reach you at?",
-      reason: null,
+      reply: "One last thing — what's the best email and phone to reach you?",
       state: { step: 4, practice, q1_volume, q2_spend, q3_aspiration: message, email: '', phone: '' },
-      next_field: 'contact',
-      requires_input: true,
-      step_complete: false,
+      collected: emptyCollected({ practice, volume: q1_volume }),
+      complete: false,
+      mode: 'legacy',
     };
   }
-
-  if (step === 4) {
-    // Received contact info — extract email + phone
-    const emailMatch = message.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-    const phoneMatch = message.match(/([\+\d][\d\s\-\(\)\.]{7,20})/);
-    const parsedEmail = emailMatch ? emailMatch[0] : email;
-    const parsedPhone = phoneMatch ? phoneMatch[0].replace(/[\s\-\(\)\.]/g, '') : phone;
-
-    // Score
-    const result = qualify(practice, q1_volume, q2_spend);
-
-    // Build lead
-    const lead = {
-      name: practice,
-      email: parsedEmail || 'no-email@submitted',
-      phone: parsedPhone || 'no-phone',
-      practice: practice,
-      practiceName: practice,
-      volume: q1_volume,
-      q1_volume: q1_volume,
-      ad_spend: q2_spend,
-      q2_spend: q2_spend,
-      aspiration: message,
-      q3_aspiration: message,
-      qualification: {
-        score: result.numericScore,
-        classification: result.score,
-        summary: `Practice: ${practice} · Volume: ${q1_volume}/mo · Spend: ${q2_spend} → ${result.score}`,
-      },
-      source: 'lead_capture_ai_chat',
-      qualified_by: 'ai_chat',
-      referral_source: '',
-      timestamp: new Date().toISOString(),
-    };
-
-    // Store lead
-    const leadId = storeLead(lead);
-
-    // Fire-and-forget: forward to webhook-like destinations
-    forwardToDestinations(lead, result.score);
-
-    // Fire-and-forget: email notification for hot/warm
-    if (result.score !== 'cold') {
-      notifyLeadEmail(lead, result);
-    }
-
-    return {
-      reply: STEP_MESSAGES[result.score],
-      reason: null,
-      state: { step: 'complete', practice, q1_volume, q2_spend, email: parsedEmail, phone: parsedPhone },
-      next_field: null,
-      requires_input: false,
-      step_complete: true,
-      qualification: lead.qualification,
-      lead_id: leadId,
-      // Include rendered completion data for the frontend
-      end_screen: {
-        title: result.score === 'hot'
-          ? "You Qualify — Here's What Happens Next"
-          : "Thanks — Here's What Happens Next",
-        message: result.score === 'hot'
-          ? "One of our patient acquisition specialists will review your responses and text your personalized ROI audit within 24 hours."
-          : "We'll send resources and case studies to your email. Our team may follow up if there's a good fit.",
-      },
-    };
-  }
-
-  // Complete or unknown step
-  return {
-    reply: "Already submitted! Our team will reach out.",
-    state: { step: 'complete' },
-    requires_input: false,
-    step_complete: true,
-  };
-}
-
-// ─── Lead Storage (shared /tmp/leads.json) ─────────────────────────────────
-
-const STORAGE_PATH = '/tmp/leads.json';
-const MAX_LEADS = 500;
-
-function readLeads() {
-  try {
-    if (!existsSync(STORAGE_PATH)) return [];
-    const raw = readFileSync(STORAGE_PATH, 'utf-8');
-    const data = JSON.parse(raw);
-    return Array.isArray(data.leads) ? data.leads : [];
-  } catch (_) {
-    return [];
-  }
-}
-
-function storeLead(leadData) {
-  try {
-    const lead = {
-      id: randomUUID(),
-      name: String(leadData.name || leadData.practiceName || '').slice(0, 200),
-      phone: String(leadData.phone || '').slice(0, 30),
-      email: String(leadData.email || '').slice(0, 254),
-      practice: String(leadData.practice || leadData.practiceName || '').slice(0, 200),
-      volume: String(leadData.volume || leadData.q1_volume || ''),
-      ad_spend: String(leadData.ad_spend || leadData.q2_spend || ''),
-      aspiration: String(leadData.aspiration || leadData.q3_aspiration || ''),
-      qualification: leadData.qualification || null,
-      source: leadData.source || 'lead_capture_ai_chat',
-      referral_source: String(leadData.referral_source || '').slice(0, 100),
-      timestamp: new Date().toISOString(),
-      notified: false,
-    };
-
-    let leads = readLeads();
-    leads.push(lead);
-    if (leads.length > MAX_LEADS) {
-      leads = leads.slice(-MAX_LEADS);
-    }
-    writeFileSync(STORAGE_PATH, JSON.stringify({ leads }, null, 2), 'utf-8');
-    console.log(`[chat] Lead stored: ${lead.id} - ${lead.name}`);
-    return lead.id;
-  } catch (err) {
-    console.error('[chat] Store failed:', err.message);
-    return null;
-  }
-}
-
-// ─── Forward to Destinations (fire-and-forget) ─────────────────────────────
-
-function forwardToDestinations(lead, classification) {
-  const ghlApiKey = process.env.GHL_API_KEY;
-  const ghlBase = 'https://rest.gohighlevel.com/v1';
-
-  // 1. GHL contact create
-  if (ghlApiKey) {
-    const ghlPayload = {
-      name: lead.name || 'Chat Lead',
-      phone: lead.phone || '',
-      email: lead.email || '',
-      companyName: lead.practice || '',
-      tags: ['focusrunner_chat', 'qualified_' + classification],
-      customField: {
-        patient_volume: lead.volume || '',
-        ad_spend: lead.ad_spend || '',
-        qualification: classification,
-        qualification_score: String(lead.qualification?.score || 0),
-      },
-    };
-
-    fetch(ghlBase + '/contacts/', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + ghlApiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(ghlPayload),
-    }).then(function(res) {
-      if (!res.ok) console.warn('[chat] GHL forward failed:', res.status);
-      else console.log('[chat] GHL contact created');
-    }).catch(function(err) {
-      console.warn('[chat] GHL network error:', err.message);
-    });
-  }
-
-  // 2. Telegram notification
-  notifyTelegram(lead, classification);
-}
-
-// ─── Email Notification (fire-and-forget) ──────────────────────────────────
-
-function notifyLeadEmail(lead, result) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn('[chat] RESEND_API_KEY not set — skipping notif');
-    return;
-  }
-
-  const recipient = process.env.NOTIFY_EMAIL || 'hello@focusrunner.com';
-  const badgeColor = { hot: '#dc2626', warm: '#ea580c', cold: '#2563eb' }[result.score] || '#6b7280';
-  const esc = function(s) {
-    if (typeof s !== 'string') return String(s || '');
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  };
-
-  const html = [
-    '<div style="font-family:sans-serif;max-width:560px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden">',
-    '<div style="background:#0f172a;color:#fff;padding:24px 32px">',
-    '<h1 style="margin:0;font-size:20px">New Chat Lead</h1>',
-    '<p style="opacity:.7;margin:4px 0 0">focusrunner.io · ' + new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</p>',
-    '<div style="display:inline-block;padding:4px 12px;border-radius:20px;color:#fff;background:' + badgeColor + ';font-weight:600;font-size:13px;margin-top:8px">' + result.score.toUpperCase() + ' · ' + result.numericScore + '/100</div>',
-    '</div>',
-    '<div style="padding:24px 32px">',
-    '<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Practice</div><div>' + esc(lead.name || lead.practice || '—') + '</div></div>',
-    '<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Phone</div><div>' + esc(lead.phone || '—') + '</div></div>',
-    '<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Email</div><div>' + esc(lead.email || '—') + '</div></div>',
-    (lead.volume ? '<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Monthly Volume</div><div>' + esc(lead.volume) + '</div></div>' : ''),
-    (lead.ad_spend ? '<div style="margin-bottom:12px"><div style="font-size:11px;color:#6b7280;font-weight:600">Ad Spend</div><div>' + esc(lead.ad_spend) + '</div></div>' : ''),
-    '</div>',
-    '<div style="padding:16px 32px 24px;font-size:11px;color:#9ca3af;text-align:center">FocusRunner AI · Patient acquisition for medical aesthetics</div>',
-    '</div>',
-  ].join('\n');
-
-  fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json', 'User-Agent': 'FocusRunner/1.0' },
-    body: JSON.stringify({
-      from: 'FocusRunner Leads <leads@focusrunner.io>',
-      to: recipient,
-      subject: 'New Chat Lead: ' + esc(lead.name || lead.practice || 'Anonymous') + ' — ' + result.score.toUpperCase(),
-      html: html,
-    }),
-  }).then(function(r) {
-    if (!r.ok) console.warn('[chat] Notif failed:', r.status);
-  }).catch(function(err) {
-    console.warn('[chat] Notif error:', err.message);
+  // contact parse
+  const emailM = String(message).match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+  const phoneM = String(message).match(/(\+?1?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/);
+  const email = (emailM && emailM[0]) || state.email || '';
+  const phone = (phoneM && phoneM[1]) || state.phone || '';
+  const collected = emptyCollected({
+    practice,
+    volume: q1_volume,
+    email,
+    phone,
+    name: practice,
+    type: 'med spa',
   });
+  const done = isComplete(collected) || (email && phone);
+  return {
+    reply: done
+      ? "You're set — a specialist will text within 24 hours about your free audit."
+      : 'Please share both email and phone so we can follow up.',
+    state: { step: done ? 'complete' : 4, practice, q1_volume, q2_spend, email, phone },
+    collected,
+    complete: !!done,
+    mode: 'legacy',
+  };
 }
 
-// ─── Telegram Notification (fire-and-forget) ────────────────────────────────
-
-function notifyTelegram(lead, classification) {
-  var botToken = process.env.TELEGRAM_BOT_TOKEN;
-  var chatId = process.env.TELEGRAM_CHAT_ID;
-  if (!botToken || !chatId) {
-    console.warn('[chat] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — skipping Telegram');
-    return;
+// ─── Persist + notify ──────────────────────────────────────────────────────
+function storeLead(lead) {
+  try {
+    const path = '/tmp/leads.json';
+    let arr = [];
+    if (existsSync(path)) {
+      try {
+        arr = JSON.parse(readFileSync(path, 'utf8'));
+      } catch (e) {
+        arr = [];
+      }
+    }
+    if (!Array.isArray(arr)) arr = [];
+    arr.push(lead);
+    writeFileSync(path, JSON.stringify(arr.slice(-500), null, 2));
+    console.log('[chat] stored', lead.id);
+  } catch (e) {
+    console.warn('[chat] store fail', e.message);
   }
+}
 
-  var badge = { hot: '[HOT]', warm: '[WARM]', cold: '[COLD]' }[classification] || '[LEAD]';
-
-  var text = badge + ' NEW LEAD: ' + classification.toUpperCase() + '\n\n' +
-    'Practice: ' + (lead.name || lead.practice || 'Unknown') + '\n' +
-    'Phone: ' + (lead.phone || '—') + '\n' +
+function notifyTelegram(lead) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID || '5926797455';
+  if (!botToken) return;
+  const text =
+    '💬 SITE CHAT LEAD\n' +
+    'Name: ' + (lead.name || '—') + '\n' +
+    'Practice: ' + (lead.practice || '—') + '\n' +
+    'Type: ' + (lead.type || '—') + '\n' +
+    'Volume: ' + (lead.volume || '—') + '\n' +
     'Email: ' + (lead.email || '—') + '\n' +
-    'Volume: ' + (lead.volume || '—') + ' patients/mo\n' +
-    'Ad Spend: ' + (lead.ad_spend || '—') + '\n' +
-    'Score: ' + (lead.qualification?.score || '—') + '/100\n\n' +
-    '— focusrunner.io chat widget';
-
+    'Phone: ' + (lead.phone || '—') + '\n' +
+    'Mode: ' + (lead.mode || '—') + '\n' +
+    '— focusrunner.io chat';
   fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text: text.slice(0, 3500), disable_web_page_preview: true }),
+  }).catch((e) => console.warn('[chat] tg', e.message));
+}
+
+function notifyEmail(lead, history) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return;
+  const to = process.env.LEAD_NOTIFY_EMAIL || 'hello@focusrunner.io';
+  const hist = (history || [])
+    .map((m) => '<div><b>' + (m.role || '') + ':</b> ' + String(m.content || '').replace(/</g, '&lt;') + '</div>')
+    .join('');
+  fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + apiKey,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
-      chat_id: chatId,
-      text: text,
-      disable_web_page_preview: true,
+      from: 'FocusRunner Leads <leads@focusrunner.io>',
+      to: [to],
+      subject: 'Site chat lead: ' + (lead.name || lead.practice || 'Unknown'),
+      html:
+        '<h2>New chat lead</h2>' +
+        '<p><b>Name:</b> ' + (lead.name || '') + '</p>' +
+        '<p><b>Practice:</b> ' + (lead.practice || '') + '</p>' +
+        '<p><b>Type:</b> ' + (lead.type || '') + '</p>' +
+        '<p><b>Volume:</b> ' + (lead.volume || '') + '</p>' +
+        '<p><b>Email:</b> ' + (lead.email || '') + '</p>' +
+        '<p><b>Phone:</b> ' + (lead.phone || '') + '</p>' +
+        '<hr/><h3>Transcript</h3>' +
+        hist,
     }),
-  }).then(function(r) {
-    if (!r.ok) console.warn('[chat] Telegram failed:', r.status);
-    else console.log('[chat] Telegram sent');
-  }).catch(function(err) {
-    console.warn('[chat] Telegram error:', err.message);
-  });
+  }).catch((e) => console.warn('[chat] email', e.message));
+}
+
+function finalizeLead(collected, messages, mode) {
+  const c = emptyCollected(collected);
+  if (!isComplete(c)) return;
+  const lead = {
+    id: randomUUID(),
+    ...c,
+    source: 'chat_widget',
+    mode: mode || 'unknown',
+    created_at: new Date().toISOString(),
+    history: (messages || []).slice(-30),
+  };
+  storeLead(lead);
+  notifyTelegram(lead);
+  notifyEmail(lead, messages);
 }
 
 // ─── Handler ───────────────────────────────────────────────────────────────
-
 module.exports = async function handler(req, res) {
   if (!rateLimit(req, res)) return;
-  var start = Date.now();
+  const start = Date.now();
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, corsHeaders());
@@ -383,13 +434,16 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'GET') {
     res.writeHead(200, corsHeaders());
-    return res.end(JSON.stringify({
-      status: 'ok',
-      endpoint: '/api/chat',
-      version: '1.0.0',
-      mode: 'schwartz-state-machine',
-      runtime_ms: Date.now() - start,
-    }));
+    return res.end(
+      JSON.stringify({
+        status: 'ok',
+        endpoint: '/api/chat',
+        version: '3.3.0',
+        mode: process.env.OPENROUTER_API_KEY ? 'openrouter+fallback' : 'fallback',
+        model: MODEL,
+        runtime_ms: Date.now() - start,
+      })
+    );
   }
 
   if (req.method !== 'POST') {
@@ -397,7 +451,7 @@ module.exports = async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'Method not allowed' }));
   }
 
-  var body;
+  let body;
   try {
     body = await parseBody(req);
   } catch (e) {
@@ -405,13 +459,47 @@ module.exports = async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'Invalid JSON body' }));
   }
 
-  var message = body.message || '';
-  var state = body.state || {};
+  // Widget protocol
+  if (Array.isArray(body.messages) || body.collected) {
+    const messages = body.messages || [];
+    const collected = emptyCollected(body.collected);
 
-  // Process through state machine
-  var result = processMessage(message, state);
+    let result = await openRouterChat(messages, collected);
+    if (!result) {
+      result = fallbackReply(messages, collected);
+    }
 
-  result.runtime_ms = Date.now() - start;
+    // force complete only when fields valid
+    if (result.complete && !isComplete(result.collected)) {
+      result.complete = false;
+    }
+    if (!result.complete && isComplete(result.collected)) {
+      // LLM forgot flag but we have everything
+      result.complete = true;
+      if (!/24/.test(result.reply || '')) {
+        result.reply =
+          (result.reply ? result.reply + ' ' : '') +
+          'You\'re all set — a specialist will text within 24 hours about your free audit.';
+      }
+    }
+
+    if (result.complete) {
+      finalizeLead(result.collected, messages, result.mode);
+    }
+
+    result.runtime_ms = Date.now() - start;
+    res.writeHead(200, corsHeaders());
+    return res.end(JSON.stringify(result));
+  }
+
+  // Legacy { message, state }
+  const message = body.message || '';
+  const state = body.state || {};
+  const legacy = processLegacy(message, state);
+  if (legacy.complete) {
+    finalizeLead(legacy.collected, [{ role: 'user', content: message }], 'legacy');
+  }
+  legacy.runtime_ms = Date.now() - start;
   res.writeHead(200, corsHeaders());
-  return res.end(JSON.stringify(result));
+  return res.end(JSON.stringify(legacy));
 };
