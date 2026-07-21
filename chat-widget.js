@@ -1,8 +1,7 @@
 /**
  * FocusRunner AI — Standalone Chatbot Widget
  *
- * v3.3.1 — same-origin /api/chat, proper opening greeting (no fake user kick),
- * OpenRouter + fallback, typing animation, lead only when complete=true.
+ * v3.3.2 — keep input focus after each bot reply (no disabled input).
  */
 (function () {
   'use strict';
@@ -20,7 +19,7 @@
     retryBaseDelay: 500,
     retryMaxDelay: 3000,
     storageKey: 'fr_lead_queue',
-    version: '3.3.1',
+    version: '3.3.2',
   };
 
   function getQueue() {
@@ -190,29 +189,54 @@
   var _nextField = null;
 
   function setBusy(b) {
-    _busy = b;
-    _send.disabled = !!b;
-    _input.disabled = !!b;
-  }
-
-  // ─── Typing effect ────────────────────────────────────────────
-  function typeMsg(text, cls, callback) {
-    var div = document.createElement('div');
-    div.className = 'fr-chat-msg ' + cls;
-    _msgs.appendChild(div);
-    var i = 0;
-    function type() {
-      if (i < text.length) {
-        div.textContent += text.charAt(i);
-        i++;
-        _msgs.scrollTop = _msgs.scrollHeight;
-        setTimeout(type, 12 + Math.random() * 18);
-      } else if (callback) {
-        callback();
+      _busy = b;
+      _send.disabled = !!b;
+      // Do NOT disable #fr-chat-input — disabling steals caret/focus on every reply.
+      // Guard double-send via _busy only.
+      if (b) {
+        _input.setAttribute('aria-busy', 'true');
+      } else {
+        _input.removeAttribute('aria-busy');
       }
     }
-    type();
-  }
+
+    function focusInput() {
+      if (_done) return;
+      try {
+        _inputArea.style.display = 'flex';
+        // rAF twice: after layout + after typeMsg paints
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            try {
+              _input.focus({ preventScroll: true });
+            } catch (e1) {
+              try {
+                _input.focus();
+              } catch (e2) {}
+            }
+          });
+        });
+      } catch (e) {}
+    }
+
+    // ─── Typing effect ────────────────────────────────────────────
+    function typeMsg(text, cls, callback) {
+      var div = document.createElement('div');
+      div.className = 'fr-chat-msg ' + cls;
+      _msgs.appendChild(div);
+      var i = 0;
+      function type() {
+        if (i < text.length) {
+          div.textContent += text.charAt(i);
+          i++;
+          _msgs.scrollTop = _msgs.scrollHeight;
+          setTimeout(type, 12 + Math.random() * 18);
+        } else if (callback) {
+          callback();
+        }
+      }
+      type();
+    }
 
   function addMsg(text, cls) {
     var div = document.createElement('div');
@@ -293,8 +317,12 @@
           }
         }
         typeMsg(reply, 'bot', function () {
-          if (!_done) _inputArea.style.display = 'flex';
-          else _inputArea.style.display = 'none';
+          if (!_done) {
+            _inputArea.style.display = 'flex';
+            focusInput();
+          } else {
+            _inputArea.style.display = 'none';
+          }
         });
       })
       .catch(function () {
@@ -345,6 +373,7 @@
     _inputArea.style.display = 'flex';
     addMsg("What's your first name?", 'bot');
     _nextField = 'name';
+    focusInput();
   }
 
   function finishFallback() {
@@ -362,14 +391,17 @@
       _leadData.name = text;
       addMsg('Practice / clinic name?', 'bot');
       _nextField = 'practice';
+      focusInput();
     } else if (!_leadData.practice) {
       _leadData.practice = text;
       addMsg('Best email?', 'bot');
       _nextField = 'email';
+      focusInput();
     } else if (!_leadData.email) {
       _leadData.email = text;
       addMsg('Mobile for SMS?', 'bot');
       _nextField = 'phone';
+      focusInput();
     } else if (!_leadData.phone) {
       _leadData.phone = text;
       finishFallback();
@@ -410,9 +442,7 @@
         _conversation = [{ role: 'assistant', content: reply }];
         typeMsg(reply, 'bot', function () {
           _inputArea.style.display = 'flex';
-          try {
-            _input.focus();
-          } catch (e) {}
+          focusInput();
         });
       })
       .catch(function () {
@@ -424,7 +454,8 @@
         _conversation = [{ role: 'assistant', content: localGreet }];
         typeMsg(localGreet, 'bot', function () {
           _inputArea.style.display = 'flex';
-          _aiMode = true; // still try API on next send; fallback options if that fails
+          _aiMode = true;
+          focusInput();
         });
       });
   }
