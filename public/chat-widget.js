@@ -1,8 +1,8 @@
 /**
  * FocusRunner AI — Standalone Chatbot Widget
  *
- * v3.3 — same-origin /api/chat (never unsub host), OpenRouter-backed API,
- * typing animation, lead only when complete=true, full transcript on complete.
+ * v3.3.1 — same-origin /api/chat, proper opening greeting (no fake user kick),
+ * OpenRouter + fallback, typing animation, lead only when complete=true.
  */
 (function () {
   'use strict';
@@ -20,7 +20,7 @@
     retryBaseDelay: 500,
     retryMaxDelay: 3000,
     storageKey: 'fr_lead_queue',
-    version: '3.3',
+    version: '3.3.1',
   };
 
   function getQueue() {
@@ -385,14 +385,13 @@
     _conversation = [];
     setBusy(true);
     showTyping();
-    // Kick with a user hello so API returns greeting + first question
-    var kick = [{ role: 'user', content: 'Hi — I run a practice and want more patients.' }];
+    // Open with start:true → server returns real greeting (no fake user message)
     retryFetch(
       AI_API,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: kick, collected: {} }),
+        body: JSON.stringify({ start: true, messages: [], collected: {} }),
       },
       2
     )
@@ -404,11 +403,11 @@
         hideTyping();
         setBusy(false);
         mergeCollected(data && data.collected);
-        var reply = (data && data.reply) || 'Hi — what type of practice do you run?';
-        _conversation = [
-          { role: 'user', content: kick[0].content },
-          { role: 'assistant', content: reply },
-        ];
+        var reply =
+          (data && data.reply) ||
+          "Hi — I'm FocusRunner's acquisition advisor. What type of practice do you run?";
+        // History starts with assistant greeting only — first real user msg is first user turn
+        _conversation = [{ role: 'assistant', content: reply }];
         typeMsg(reply, 'bot', function () {
           _inputArea.style.display = 'flex';
           try {
@@ -419,7 +418,14 @@
       .catch(function () {
         hideTyping();
         setBusy(false);
-        runFallbackChat();
+        // Local greeting if API down
+        var localGreet =
+          "Hi — I'm FocusRunner's acquisition advisor. We help med spas fill the calendar after hours. What type of practice do you run?";
+        _conversation = [{ role: 'assistant', content: localGreet }];
+        typeMsg(localGreet, 'bot', function () {
+          _inputArea.style.display = 'flex';
+          _aiMode = true; // still try API on next send; fallback options if that fails
+        });
       });
   }
 

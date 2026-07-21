@@ -460,9 +460,24 @@ module.exports = async function handler(req, res) {
   }
 
   // Widget protocol
-  if (Array.isArray(body.messages) || body.collected) {
+  if (Array.isArray(body.messages) || body.collected || body.start) {
     const messages = body.messages || [];
     const collected = emptyCollected(body.collected);
+
+    // Opening: pure greeting — no fake prior user turn
+    const userTurns = messages.filter((m) => m && m.role === 'user' && String(m.content || '').trim());
+    if (body.start === true || userTurns.length === 0) {
+      const greet = {
+        reply:
+          "Hi — I'm FocusRunner's acquisition advisor. We help med spas fill the calendar after hours (works with your booking software, doesn't replace it). What type of practice do you run — med spa, aesthetics, or something else?",
+        collected: emptyCollected(collected),
+        complete: false,
+        mode: 'greeting',
+      };
+      greet.runtime_ms = Date.now() - start;
+      res.writeHead(200, corsHeaders());
+      return res.end(JSON.stringify(greet));
+    }
 
     let result = await openRouterChat(messages, collected);
     if (!result) {
