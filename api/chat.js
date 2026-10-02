@@ -378,7 +378,7 @@ function notifyTelegram(lead) {
 function notifyEmail(lead, history) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return;
-  const to = process.env.LEAD_NOTIFY_EMAIL || 'hello@focusrunner.io';
+  const to = process.env.LEAD_NOTIFY_EMAIL || 'focusrunnerai@gmail.com';
   const hist = (history || [])
     .map((m) => '<div><b>' + (m.role || '') + ':</b> ' + String(m.content || '').replace(/</g, '&lt;') + '</div>')
     .join('');

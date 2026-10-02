@@ -111,7 +111,7 @@ function storeLead(data) {
 async function notifyLead(lead, classification, score) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) { console.warn('[direct-qualify] RESEND_API_KEY not set — skipping notif'); return; }
-  const recipient = process.env.NOTIFY_EMAIL || 'hello@focusrunner.io';
+  const recipient = process.env.NOTIFY_EMAIL || 'focusrunnerai@gmail.com';
   const badgeColor = { hot: '#dc2626', warm: '#ea580c', cold: '#2563eb' }[classification] || '#6b7280';
   const name = lead.name || '\u2014';
   const phone = lead.phone || '\u2014';
