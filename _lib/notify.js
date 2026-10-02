@@ -6,10 +6,10 @@
  *
  * Env vars:
  *   RESEND_API_KEY  — required, Resend API key
- *   NOTIFY_EMAIL    — optional, recipient override (default: hello@focusrunner.com)
+ *   NOTIFY_EMAIL    — optional, recipient override (default: hello@focusrunner.io)
  */
 
-const DEFAULT_RECIPIENT = 'hello@focusrunner.com';
+const DEFAULT_RECIPIENT = 'hello@focusrunner.io';
 const FROM_EMAIL = 'FocusRunner Leads <leads@focusrunner.io>';
 
 /**

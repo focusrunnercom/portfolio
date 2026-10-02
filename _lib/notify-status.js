@@ -9,10 +9,10 @@
  *
  * Env vars:
  *   RESEND_API_KEY  — required for POST (test send)
- *   NOTIFY_EMAIL    — optional test recipient (default: hello@focusrunner.com)
+ *   NOTIFY_EMAIL    — optional test recipient (default: hello@focusrunner.io)
  */
 
-const DEFAULT_RECIPIENT = 'hello@focusrunner.com';
+const DEFAULT_RECIPIENT = 'hello@focusrunner.io';
 const FROM_EMAIL = 'FocusRunner Leads <leads@focusrunner.io>';
 
 function corsHeaders() {
