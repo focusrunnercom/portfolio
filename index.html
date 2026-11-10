@@ -51,16 +51,25 @@
   /* Scroll progress bar (phosphor) */
   .scroll-progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 200; background: transparent; pointer-events: none; }
   .scroll-progress__bar { display: block; height: 100%; width: 0; background: var(--phos); box-shadow: 0 0 10px rgba(110,255,138,0.55); }
-  /* Section reveal — fade-up on enter */
-  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .7s ease, transform .7s ease; }
+  /* Section reveal — fade-up on enter.
+     PATTERN: base state is ALWAYS VISIBLE. The `.reveal` class (added by JS before
+     reveal detection) opts an element INTO the hidden state via `.reveal:not(.in)`.
+     If JS reveal detection ever fails (throttled rAF, hidden tab, IO edge case), the
+     element simply stays visible — content is never stuck blank. */
+  .reveal { transition: opacity .7s ease, transform .7s ease; }
+  .reveal:not(.in) { opacity: 0; transform: translateY(16px); }
   .reveal.in { opacity: 1; transform: none; }
   /* Word-level fade-up for headings (msft "words-fade-up") */
   .word-mask { display: inline-block; overflow: hidden; vertical-align: bottom; }
-  .word-mask > span { display: inline-block; transform: translateY(105%); transition: transform .7s cubic-bezier(.19,1,.22,1); }
+  .word-mask > span { display: inline-block; transition: transform .7s cubic-bezier(.19,1,.22,1); }
+  .word-mask:not(.in) > span { transform: translateY(105%); }
   .word-mask.in > span { transform: translateY(0); }
   /* Terminal line-by-line reveal (inview fade-up per line) */
-  .terminal-body .line { opacity: 0; transform: translateY(8px); transition: opacity .45s ease, transform .45s ease; }
-  .terminal-body.in .line { opacity: 1; transform: none; }
+  /* Base = visible. `.reveal-term` opts a terminal INTO the hidden state.
+     If reveal never fires, lines stay visible — never a blank terminal. */
+  .terminal-body .line { transition: opacity .45s ease, transform .45s ease; }
+  .terminal-body.reveal-term:not(.in) .line { opacity: 0; transform: translateY(8px); }
+  .terminal-body.reveal-term.in .line { opacity: 1; transform: none; }
   .terminal-body .line:nth-child(1) { transition-delay: .05s; }
   .terminal-body .line:nth-child(2) { transition-delay: .18s; }
   .terminal-body .line:nth-child(3) { transition-delay: .31s; }
@@ -71,14 +80,28 @@
   .terminal-body .line:nth-child(8) { transition-delay: .96s; }
   .terminal-body .line:nth-child(9) { transition-delay: 1.09s; }
   .terminal-body .line:nth-child(10) { transition-delay: 1.22s; }
-  /* Grid card stagger (bento reveal-image pattern) */
+  /* Grid card stagger (bento reveal-image pattern).
+     Same progressive-enhancement pattern: `.reveal-host` opts a grid INTO the
+     hidden state; `.reveal-host:not(.in)` hides cards. Base (no class) = visible.
+     If reveal never fires, cards stay visible — never a blank section. */
   .features-grid .feature, .manifesto-grid .manifesto-item, .agent-grid .agent-card,
   .niche-grid .niche-item, .stack-grid .stack-card, .case-grid .case-card {
-    opacity: 0; transform: translateY(14px) scale(.992);
     transition: opacity .6s ease, transform .6s ease, border-color .2s ease;
   }
-  .features-grid.in .feature, .manifesto-grid.in .manifesto-item, .agent-grid.in .agent-card,
-  .niche-grid.in .niche-item, .stack-grid.in .stack-card, .case-grid.in .case-card { opacity: 1; transform: none; }
+  .features-grid.reveal-host:not(.in) .feature,
+  .manifesto-grid.reveal-host:not(.in) .manifesto-item,
+  .agent-grid.reveal-host:not(.in) .agent-card,
+  .niche-grid.reveal-host:not(.in) .niche-item,
+  .stack-grid.reveal-host:not(.in) .stack-card,
+  .case-grid.reveal-host:not(.in) .case-card {
+    opacity: 0; transform: translateY(14px) scale(.992);
+  }
+  .features-grid.reveal-host.in .feature,
+  .manifesto-grid.reveal-host.in .manifesto-item,
+  .agent-grid.reveal-host.in .agent-card,
+  .niche-grid.reveal-host.in .niche-item,
+  .stack-grid.reveal-host.in .stack-card,
+  .case-grid.reveal-host.in .case-card { opacity: 1; transform: none; }
   .features-grid .feature:nth-child(1), .manifesto-grid .manifesto-item:nth-child(1), .agent-grid .agent-card:nth-child(1), .stack-grid .stack-card:nth-child(1) { transition-delay: .0s; }
   .features-grid .feature:nth-child(2), .manifesto-grid .manifesto-item:nth-child(2), .agent-grid .agent-card:nth-child(2), .stack-grid .stack-card:nth-child(2) { transition-delay: .1s; }
   .features-grid .feature:nth-child(3), .manifesto-grid .manifesto-item:nth-child(3), .agent-grid .agent-card:nth-child(3), .stack-grid .stack-card:nth-child(3) { transition-delay: .2s; }
@@ -1150,6 +1173,7 @@ function closeMenu() {
   var intro = document.querySelectorAll('.section-intro');
   intro.forEach(function(el) { el.classList.add('reveal'); });
   var terms = document.querySelectorAll('.terminal-body');
+  terms.forEach(function(t) { t.classList.add('reveal-term'); });
 
   var targets = [];
   intro.forEach(function(el) { targets.push(el); });
@@ -1197,12 +1221,26 @@ function closeMenu() {
     function onResize() { checkReveals(); }
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('wheel', onScroll, { passive: true });
+    window.addEventListener('touchmove', onScroll, { passive: true });
+    window.addEventListener('keydown', onScroll, { passive: true });
     // rAF loop: covers Lenis-driven scroll (which may not fire native scroll events
     // on every frame) and the initial paint
     (function rafLoop() {
       checkReveals();
       requestAnimationFrame(rafLoop);
     })();
+    // HARD FALLBACK — content must never stay invisible. If any reveal is still
+    // pending after 4s (scroll signal lost, rAF throttled, tab hidden, IO edge case),
+    // force everything visible. The stagger transition still plays; no blank sections.
+    setTimeout(function() {
+      targets.forEach(function(el) {
+        if (!el.classList.contains('in')) {
+          el.classList.add('in');
+          el.querySelectorAll('.word-mask').forEach(function(wm) { wm.classList.add('in'); });
+        }
+      });
+    }, 4000);
   }
 })();
 </script>
