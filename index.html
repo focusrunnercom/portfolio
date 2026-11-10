@@ -1165,29 +1165,44 @@ function closeMenu() {
       document.head.appendChild(st);
     }
   } else {
-    // rAF-based reveal check (same loop as Lenis). getBoundingClientRect reads the
-    // real layout position, so reveals fire on ANY scroll path — Lenis smooth scroll,
-    // native scroll, programmatic scrollTo — unlike IntersectionObserver, which is
-    // viewport-rooted and can miss elements when Lenis drives the scroll.
-    var vh = window.innerHeight;
-    var margin = vh * 0.08; // trigger 8% before entering viewport (msft-style pre-reveal)
+    // Reveal check via getBoundingClientRect — works on ANY scroll path
+    // (Lenis smooth, native, programmatic) unlike viewport-rooted IntersectionObserver.
+    // Multi-signal trigger: rAF + scroll + resize, so it fires reliably even when
+    // the tab is backgrounded/throttled (rAF alone can stall).
+    var pending = false;
     function checkReveals() {
       var vh = window.innerHeight, m = vh * 0.08;
+      var remaining = 0;
       for (var i = 0; i < targets.length; i++) {
         var el = targets[i];
         if (el.classList.contains('in')) continue;
+        remaining++;
         var r = el.getBoundingClientRect();
         if (r.bottom > m && r.top < vh) {
           el.classList.add('in');
           el.querySelectorAll('.word-mask').forEach(function(wm) { wm.classList.add('in'); });
         }
       }
+      // All revealed — stop listening (zero overhead after last section)
+      if (remaining === 0) {
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
+      }
     }
-    function rafLoop(t) {
+    function onScroll() {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function() { pending = false; checkReveals(); });
+    }
+    function onResize() { checkReveals(); }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize, { passive: true });
+    // rAF loop: covers Lenis-driven scroll (which may not fire native scroll events
+    // on every frame) and the initial paint
+    (function rafLoop() {
       checkReveals();
       requestAnimationFrame(rafLoop);
-    }
-    requestAnimationFrame(rafLoop);
+    })();
   }
 })();
 </script>
