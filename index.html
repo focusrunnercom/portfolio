@@ -41,6 +41,62 @@
   html { scroll-behavior: smooth; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg-panel); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+  /* ===== SCROLL FX (adapted from msft/rtx-spark — terminal style preserved) ===== */
+  /* Lenis smooth scroll */
+  html.lenis, html.lenis body { height: auto; }
+  .lenis.lenis-smooth { scroll-behavior: auto !important; }
+  .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+  .lenis.lenis-stopped { overflow: hidden; }
+  /* Scroll progress bar (phosphor) */
+  .scroll-progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 200; background: transparent; pointer-events: none; }
+  .scroll-progress__bar { display: block; height: 100%; width: 0; background: var(--phos); box-shadow: 0 0 10px rgba(110,255,138,0.55); }
+  /* Section reveal — fade-up on enter */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  /* Word-level fade-up for headings (msft "words-fade-up") */
+  .word-mask { display: inline-block; overflow: hidden; vertical-align: bottom; }
+  .word-mask > span { display: inline-block; transform: translateY(105%); transition: transform .7s cubic-bezier(.19,1,.22,1); }
+  .word-mask.in > span { transform: translateY(0); }
+  /* Terminal line-by-line reveal (inview fade-up per line) */
+  .terminal-body .line { opacity: 0; transform: translateY(8px); transition: opacity .45s ease, transform .45s ease; }
+  .terminal-body.in .line { opacity: 1; transform: none; }
+  .terminal-body .line:nth-child(1) { transition-delay: .05s; }
+  .terminal-body .line:nth-child(2) { transition-delay: .18s; }
+  .terminal-body .line:nth-child(3) { transition-delay: .31s; }
+  .terminal-body .line:nth-child(4) { transition-delay: .44s; }
+  .terminal-body .line:nth-child(5) { transition-delay: .57s; }
+  .terminal-body .line:nth-child(6) { transition-delay: .70s; }
+  .terminal-body .line:nth-child(7) { transition-delay: .83s; }
+  .terminal-body .line:nth-child(8) { transition-delay: .96s; }
+  .terminal-body .line:nth-child(9) { transition-delay: 1.09s; }
+  .terminal-body .line:nth-child(10) { transition-delay: 1.22s; }
+  /* Grid card stagger (bento reveal-image pattern) */
+  .features-grid .feature, .manifesto-grid .manifesto-item, .agent-grid .agent-card,
+  .niche-grid .niche-item, .stack-grid .stack-card, .case-grid .case-card {
+    opacity: 0; transform: translateY(14px) scale(.992);
+    transition: opacity .6s ease, transform .6s ease, border-color .2s ease;
+  }
+  .features-grid.in .feature, .manifesto-grid.in .manifesto-item, .agent-grid.in .agent-card,
+  .niche-grid.in .niche-item, .stack-grid.in .stack-card, .case-grid.in .case-card { opacity: 1; transform: none; }
+  .features-grid .feature:nth-child(1), .manifesto-grid .manifesto-item:nth-child(1), .agent-grid .agent-card:nth-child(1), .stack-grid .stack-card:nth-child(1) { transition-delay: .0s; }
+  .features-grid .feature:nth-child(2), .manifesto-grid .manifesto-item:nth-child(2), .agent-grid .agent-card:nth-child(2), .stack-grid .stack-card:nth-child(2) { transition-delay: .1s; }
+  .features-grid .feature:nth-child(3), .manifesto-grid .manifesto-item:nth-child(3), .agent-grid .agent-card:nth-child(3), .stack-grid .stack-card:nth-child(3) { transition-delay: .2s; }
+  .features-grid .feature:nth-child(4), .manifesto-grid .manifesto-item:nth-child(4), .agent-grid .agent-card:nth-child(4), .stack-grid .stack-card:nth-child(4) { transition-delay: .3s; }
+  .features-grid .feature:nth-child(5), .manifesto-grid .manifesto-item:nth-child(5), .agent-grid .agent-card:nth-child(5) { transition-delay: .4s; }
+  .features-grid .feature:nth-child(6), .manifesto-grid .manifesto-item:nth-child(6), .agent-grid .agent-card:nth-child(6) { transition-delay: .5s; }
+  /* Case-card border glow on hover (phosphor, subtle) */
+  .case-card:hover { border-color: var(--phos-dim); box-shadow: 0 0 18px rgba(110,255,138,0.07); }
+  /* Reduced motion — everything static, no animation */
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-progress { display: none; }
+    .reveal, .word-mask > span, .terminal-body .line,
+    .features-grid .feature, .manifesto-grid .manifesto-item, .agent-grid .agent-card,
+    .niche-grid .niche-item, .stack-grid .stack-card {
+      opacity: 1 !important; transform: none !important; transition: none !important;
+    }
+    html { scroll-behavior: auto !important; }
+  }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
   .wrap-narrow { max-width: 800px; margin: 0 auto; padding: 0 32px; }
 
@@ -270,8 +326,7 @@
   .agent-card .desc { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
 
   /* ===== CASE STUDIES — EXPANDABLE CARDS ===== */
-  .case-card { background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; transition: border-color .2s; cursor: pointer; }
-  .case-card:hover { border-color: var(--line-bright); }
+  .case-card { background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; transition: border-color .2s, box-shadow .25s; cursor: pointer; }
   .case-header { display: flex; align-items: flex-start; gap: 24px; padding: 28px; }
   .case-img { width: 64px; height: 64px; flex-shrink: 0; background: var(--line); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--ink-faint); }
   .case-info { flex: 1; min-width: 0; }
@@ -525,6 +580,9 @@
 </head>
 <body>
 
+<!-- ===== SCROLL PROGRESS ===== -->
+<div class="scroll-progress" aria-hidden="true"><span class="scroll-progress__bar" id="scrollBar"></span></div>
+
 <!-- ===== NAV ===== -->
 <nav>
   <div class="nav-inner">
@@ -569,7 +627,7 @@
         <div class="terminal-title">~/focusrunner — hermes agent</div>
         <div style="width:48px"></div>
       </div>
-      <div class="terminal-body">
+      <div class="terminal-body" id="terminalBody">
         <span class="line"><span class="prompt">$</span> <span class="cmd">focusrunner deploy --niche med-spa --market miami</span></span>
         <span class="line"><span class="out">→ Analyzing 47 competing med spas in Miami-Dade</span></span>
         <span class="line"><span class="out">→ Building AI chatbot: 7-stage lead qualification flow</span></span>
@@ -788,6 +846,7 @@
   <div class="wrap">
     <div class="section-intro"><h2>Case Studies</h2><p>Real results from AI systems we've deployed. Every metric verified.</p></div>
 
+    <div class="case-grid" style="display:flex;flex-direction:column;gap:16px;">
     <div class="case-card" id="case-card-techstyle" onclick="toggleCase('case-card-techstyle')">
       <div class="case-header">
         <div class="case-img">🎧</div>
@@ -959,6 +1018,7 @@
         </div>
       </div>
     </div>
+    </div><!-- /.case-grid -->
 
     <div class="case-card" style="opacity:0.4; pointer-events:none;">
       <div class="case-header">
@@ -1015,6 +1075,101 @@ function toggleMenu() {
 function closeMenu() {
   document.getElementById('navLinks').classList.remove('mobile-open');
 }
+
+// ===== SCROLL FX — adapted from msft/rtx-spark (Lenis + scroll-progress + inview reveals) =====
+(function() {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 1. Lenis smooth scroll (msft uses the same library; CDN, no build step)
+  if (!reduced) {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/lenis@1.3.10/dist/lenis.min.js';
+    s.onload = function() {
+      try {
+        var lenis = new Lenis({ duration: 1.15, smoothWheel: true });
+        window.__lenis = lenis;
+        function raf(t) { lenis.raf(t); requestAnimationFrame(raf); }
+        requestAnimationFrame(raf);
+        // Anchor links — let Lenis handle the glide
+        document.addEventListener('click', function(e) {
+          var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+          if (!a) return;
+          var id = a.getAttribute('href');
+          if (id.length < 2) return;
+          var el = document.querySelector(id);
+          if (!el) return;
+          e.preventDefault();
+          lenis.scrollTo(el, { offset: -70 });
+          history.replaceState(null, '', id);
+        });
+      } catch (err) { /* keep native smooth scroll */ }
+    };
+    document.head.appendChild(s);
+  }
+
+  // 2. Scroll progress bar (phosphor, top of viewport)
+  var bar = document.getElementById('scrollBar');
+  if (bar && !reduced) {
+    var ticking = false;
+    function updateBar() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      var pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
+      bar.style.width = pct + '%';
+      ticking = false;
+    }
+    window.addEventListener('scroll', function() {
+      if (!ticking) { ticking = true; requestAnimationFrame(updateBar); }
+    }, { passive: true });
+    updateBar();
+  }
+
+  // 3. Word-mask headings (msft "words-fade-up") — split h2s in .section-intro
+  function splitWords(el) {
+    var text = el.textContent;
+    el.textContent = '';
+    var words = text.split(/(\s+)/);
+    words.forEach(function(w) {
+      if (/^\s+$/.test(w) || w === '') { el.appendChild(document.createTextNode(' ')); return; }
+      var mask = document.createElement('span');
+      mask.className = 'word-mask';
+      var inner = document.createElement('span');
+      inner.textContent = w;
+      mask.appendChild(inner);
+      el.appendChild(mask);
+    });
+  }
+  var h2s = document.querySelectorAll('.section-intro h2');
+  if (!reduced) { h2s.forEach(splitWords); }
+
+  // 4. Inview reveals: section-intro, grids, terminal body
+  var grids = document.querySelectorAll('.features-grid, .manifesto-grid, .agent-grid, .niche-grid, .stack-grid, .case-grid');
+  grids.forEach(function(g) { g.classList.add('reveal-host'); });
+  var intro = document.querySelectorAll('.section-intro');
+  intro.forEach(function(el) { el.classList.add('reveal'); });
+  var term = document.getElementById('terminalBody');
+
+  var targets = [];
+  intro.forEach(function(el) { targets.push(el); });
+  grids.forEach(function(el) { targets.push(el); });
+  if (term) targets.push(term);
+
+  if (reduced || !('IntersectionObserver' in window)) {
+    targets.forEach(function(el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(en) {
+        if (en.isIntersecting) {
+          en.target.classList.add('in');
+          // Word masks inside revealed intros
+          en.target.querySelectorAll('.word-mask').forEach(function(m) { m.classList.add('in'); });
+          io.unobserve(en.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    targets.forEach(function(el) { io.observe(el); });
+  }
+})();
 </script>
 
 <!-- ===== TESTIMONIALS ===== -->
