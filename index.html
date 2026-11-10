@@ -1098,151 +1098,6 @@ function toggleMenu() {
 function closeMenu() {
   document.getElementById('navLinks').classList.remove('mobile-open');
 }
-
-// ===== SCROLL FX — adapted from msft/rtx-spark (Lenis + scroll-progress + inview reveals) =====
-(function() {
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // 1. Lenis smooth scroll (msft uses the same library; CDN, no build step)
-  if (!reduced) {
-    var s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/lenis@1.3.10/dist/lenis.min.js';
-    s.onload = function() {
-      try {
-        var lenis = new Lenis({ duration: 1.15, smoothWheel: true });
-        window.__lenis = lenis;
-        function raf(t) { lenis.raf(t); requestAnimationFrame(raf); }
-        requestAnimationFrame(raf);
-        // Anchor links — let Lenis handle the glide
-        document.addEventListener('click', function(e) {
-          var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
-          if (!a) return;
-          var id = a.getAttribute('href');
-          if (id.length < 2) return;
-          var el = document.querySelector(id);
-          if (!el) return;
-          e.preventDefault();
-          lenis.scrollTo(el, { offset: -70 });
-          history.replaceState(null, '', id);
-        });
-      } catch (err) { /* keep native smooth scroll */ }
-    };
-    document.head.appendChild(s);
-  }
-
-  // 2. Scroll progress bar (phosphor, top of viewport)
-  var bar = document.getElementById('scrollBar');
-  if (bar && !reduced) {
-    var ticking = false;
-    function updateBar() {
-      var h = document.documentElement;
-      var max = h.scrollHeight - h.clientHeight;
-      var pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
-      bar.style.width = pct + '%';
-      ticking = false;
-    }
-    window.addEventListener('scroll', function() {
-      if (!ticking) { ticking = true; requestAnimationFrame(updateBar); }
-    }, { passive: true });
-    updateBar();
-  }
-
-  // 3. Word-mask headings (msft "words-fade-up") — split h2s in .section-intro
-  function splitWords(el) {
-    var text = el.textContent;
-    el.textContent = '';
-    var words = text.split(/(\s+)/);
-    words.forEach(function(w) {
-      if (/^\s+$/.test(w) || w === '') { el.appendChild(document.createTextNode(' ')); return; }
-      var mask = document.createElement('span');
-      mask.className = 'word-mask';
-      var inner = document.createElement('span');
-      inner.textContent = w;
-      mask.appendChild(inner);
-      el.appendChild(mask);
-    });
-  }
-  var h2s = document.querySelectorAll('.section-intro h2');
-  if (!reduced) { h2s.forEach(splitWords); }
-
-  // 4. Inview reveals: section-intro, ALL grids, ALL terminal bodies
-  // (observe every element the reveal CSS can hide — never hardcode a subset,
-  //  or un-observed sections stay at opacity:0 forever)
-  var grids = document.querySelectorAll('.features-grid, .manifesto-grid, .agent-grid, .niche-grid, .stack-grid, .case-grid');
-  grids.forEach(function(g) { g.classList.add('reveal-host'); });
-  var intro = document.querySelectorAll('.section-intro');
-  intro.forEach(function(el) { el.classList.add('reveal'); });
-  var terms = document.querySelectorAll('.terminal-body');
-  terms.forEach(function(t) { t.classList.add('reveal-term'); });
-
-  var targets = [];
-  intro.forEach(function(el) { targets.push(el); });
-  grids.forEach(function(el) { targets.push(el); });
-  terms.forEach(function(el) { targets.push(el); });
-
-  if (reduced || !('IntersectionObserver' in window)) {
-    targets.forEach(function(el) { el.classList.add('in'); });
-    // Reduced motion: reveal CSS must not hide anything — force terminal lines visible
-    if (reduced) {
-      var st = document.createElement('style');
-      st.textContent = '.terminal-body .line{opacity:1 !important;transform:none !important;}';
-      document.head.appendChild(st);
-    }
-  } else {
-    // Reveal check via getBoundingClientRect — works on ANY scroll path
-    // (Lenis smooth, native, programmatic) unlike viewport-rooted IntersectionObserver.
-    // Multi-signal trigger: rAF + scroll + resize, so it fires reliably even when
-    // the tab is backgrounded/throttled (rAF alone can stall).
-    var pending = false;
-    function checkReveals() {
-      var vh = window.innerHeight, m = vh * 0.08;
-      var remaining = 0;
-      for (var i = 0; i < targets.length; i++) {
-        var el = targets[i];
-        if (el.classList.contains('in')) continue;
-        remaining++;
-        var r = el.getBoundingClientRect();
-        if (r.bottom > m && r.top < vh) {
-          el.classList.add('in');
-          el.querySelectorAll('.word-mask').forEach(function(wm) { wm.classList.add('in'); });
-        }
-      }
-      // All revealed — stop listening (zero overhead after last section)
-      if (remaining === 0) {
-        window.removeEventListener('scroll', onScroll);
-        window.removeEventListener('resize', onResize);
-      }
-    }
-    function onScroll() {
-      if (pending) return;
-      pending = true;
-      requestAnimationFrame(function() { pending = false; checkReveals(); });
-    }
-    function onResize() { checkReveals(); }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize, { passive: true });
-    window.addEventListener('wheel', onScroll, { passive: true });
-    window.addEventListener('touchmove', onScroll, { passive: true });
-    window.addEventListener('keydown', onScroll, { passive: true });
-    // rAF loop: covers Lenis-driven scroll (which may not fire native scroll events
-    // on every frame) and the initial paint
-    (function rafLoop() {
-      checkReveals();
-      requestAnimationFrame(rafLoop);
-    })();
-    // HARD FALLBACK — content must never stay invisible. If any reveal is still
-    // pending after 4s (scroll signal lost, rAF throttled, tab hidden, IO edge case),
-    // force everything visible. The stagger transition still plays; no blank sections.
-    setTimeout(function() {
-      targets.forEach(function(el) {
-        if (!el.classList.contains('in')) {
-          el.classList.add('in');
-          el.querySelectorAll('.word-mask').forEach(function(wm) { wm.classList.add('in'); });
-        }
-      });
-    }, 4000);
-  }
-})();
 </script>
 
 <!-- ===== TESTIMONIALS ===== -->
@@ -1606,6 +1461,145 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
 
 <!-- ===== CHAT WIDGET ===== -->
 <script src="/chat-widget.js?v=3.3.2"></script>
+
+<!-- ===== SCROLL FX — adapted from msft/rtx-spark (Lenis + scroll-progress + inview reveals) =====
+     Placed at the END of <body> so querySelectorAll sees EVERY section (testimonials,
+     blog, email-marketing all come after the mid-page scripts). If this script ran mid-page,
+     it would only find elements parsed up to that point and leave later sections un-observed. -->
+<script>
+(function() {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 1. Lenis smooth scroll (msft uses the same library; CDN, no build step)
+  if (!reduced) {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/lenis@1.3.10/dist/lenis.min.js';
+    s.onload = function() {
+      try {
+        var lenis = new Lenis({ duration: 1.15, smoothWheel: true });
+        window.__lenis = lenis;
+        function raf(t) { lenis.raf(t); requestAnimationFrame(raf); }
+        requestAnimationFrame(raf);
+        // Anchor links — let Lenis handle the glide
+        document.addEventListener('click', function(e) {
+          var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+          if (!a) return;
+          var id = a.getAttribute('href');
+          if (id.length < 2) return;
+          var el = document.querySelector(id);
+          if (!el) return;
+          e.preventDefault();
+          lenis.scrollTo(el, { offset: -70 });
+          history.replaceState(null, '', id);
+        });
+      } catch (err) { /* keep native smooth scroll */ }
+    };
+    document.head.appendChild(s);
+  }
+
+  // 2. Scroll progress bar (phosphor, top of viewport)
+  var bar = document.getElementById('scrollBar');
+  if (bar && !reduced) {
+    var ticking = false;
+    function updateBar() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      var pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
+      bar.style.width = pct + '%';
+      ticking = false;
+    }
+    window.addEventListener('scroll', function() {
+      if (!ticking) { ticking = true; requestAnimationFrame(updateBar); }
+    }, { passive: true });
+    updateBar();
+  }
+
+  // 3. Word-mask headings (msft "words-fade-up") — split h2s in .section-intro
+  function splitWords(el) {
+    var text = el.textContent;
+    el.textContent = '';
+    var words = text.split(/(\s+)/);
+    words.forEach(function(w) {
+      if (/^\s+$/.test(w) || w === '') { el.appendChild(document.createTextNode(' ')); return; }
+      var mask = document.createElement('span');
+      mask.className = 'word-mask';
+      var inner = document.createElement('span');
+      inner.textContent = w;
+      mask.appendChild(inner);
+      el.appendChild(mask);
+    });
+  }
+  var h2s = document.querySelectorAll('.section-intro h2');
+  if (!reduced) { h2s.forEach(splitWords); }
+
+  // 4. Inview reveals: section-intro, ALL grids, ALL terminal bodies
+  var grids = document.querySelectorAll('.features-grid, .manifesto-grid, .agent-grid, .niche-grid, .stack-grid, .case-grid');
+  grids.forEach(function(g) { g.classList.add('reveal-host'); });
+  var intro = document.querySelectorAll('.section-intro');
+  intro.forEach(function(el) { el.classList.add('reveal'); });
+  var terms = document.querySelectorAll('.terminal-body');
+  terms.forEach(function(t) { t.classList.add('reveal-term'); });
+
+  var targets = [];
+  intro.forEach(function(el) { targets.push(el); });
+  grids.forEach(function(el) { targets.push(el); });
+  terms.forEach(function(el) { targets.push(el); });
+
+  if (reduced || !('IntersectionObserver' in window)) {
+    targets.forEach(function(el) { el.classList.add('in'); });
+    if (reduced) {
+      var st = document.createElement('style');
+      st.textContent = '.terminal-body .line{opacity:1 !important;transform:none !important;}';
+      document.head.appendChild(st);
+    }
+  } else {
+    // Reveal check via getBoundingClientRect — works on ANY scroll path
+    var pending = false;
+    function checkReveals() {
+      var vh = window.innerHeight, m = vh * 0.08;
+      var remaining = 0;
+      for (var i = 0; i < targets.length; i++) {
+        var el = targets[i];
+        if (el.classList.contains('in')) continue;
+        remaining++;
+        var r = el.getBoundingClientRect();
+        if (r.bottom > m && r.top < vh) {
+          el.classList.add('in');
+          el.querySelectorAll('.word-mask').forEach(function(wm) { wm.classList.add('in'); });
+        }
+      }
+      if (remaining === 0) {
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
+      }
+    }
+    function onScroll() {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function() { pending = false; checkReveals(); });
+    }
+    function onResize() { checkReveals(); }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('wheel', onScroll, { passive: true });
+    window.addEventListener('touchmove', onScroll, { passive: true });
+    window.addEventListener('keydown', onScroll, { passive: true });
+    (function rafLoop() {
+      checkReveals();
+      requestAnimationFrame(rafLoop);
+    })();
+    // HARD FALLBACK — content must never stay invisible
+    setTimeout(function() {
+      targets.forEach(function(el) {
+        if (!el.classList.contains('in')) {
+          el.classList.add('in');
+          el.querySelectorAll('.word-mask').forEach(function(wm) { wm.classList.add('in'); });
+        }
+      });
+    }, 4000);
+  }
+})();
+</script>
 
 </body>
 </html>
