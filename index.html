@@ -1142,20 +1142,28 @@ function closeMenu() {
   var h2s = document.querySelectorAll('.section-intro h2');
   if (!reduced) { h2s.forEach(splitWords); }
 
-  // 4. Inview reveals: section-intro, grids, terminal body
+  // 4. Inview reveals: section-intro, ALL grids, ALL terminal bodies
+  // (observe every element the reveal CSS can hide — never hardcode a subset,
+  //  or un-observed sections stay at opacity:0 forever)
   var grids = document.querySelectorAll('.features-grid, .manifesto-grid, .agent-grid, .niche-grid, .stack-grid, .case-grid');
   grids.forEach(function(g) { g.classList.add('reveal-host'); });
   var intro = document.querySelectorAll('.section-intro');
   intro.forEach(function(el) { el.classList.add('reveal'); });
-  var term = document.getElementById('terminalBody');
+  var terms = document.querySelectorAll('.terminal-body');
 
   var targets = [];
   intro.forEach(function(el) { targets.push(el); });
   grids.forEach(function(el) { targets.push(el); });
-  if (term) targets.push(term);
+  terms.forEach(function(el) { targets.push(el); });
 
   if (reduced || !('IntersectionObserver' in window)) {
     targets.forEach(function(el) { el.classList.add('in'); });
+    // Reduced motion: reveal CSS must not hide anything — force terminal lines visible
+    if (reduced) {
+      var st = document.createElement('style');
+      st.textContent = '.terminal-body .line{opacity:1 !important;transform:none !important;}';
+      document.head.appendChild(st);
+    }
   } else {
     var io = new IntersectionObserver(function(entries) {
       entries.forEach(function(en) {
