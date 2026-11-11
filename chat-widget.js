@@ -168,7 +168,7 @@
     '    <button id="fr-chat-send" type="button">&rarr;</button>',
     '  </div>',
     '</div>',
-    '<button id="fr-chat-fab" type="button" aria-label="Open FocusRunner chat">&#128172;<span class="fr-dot"></span></button>',
+    '<button id="fr-chat-fab" type="button" aria-label="Open FocusRunner chat"><img src="/icons/chat.png" alt="Chat" style="width:32px;height:32px;border:none;border-radius:0;"><span class="fr-dot"></span></button>',
   ].join('\n');
   document.body.appendChild(container);
 
