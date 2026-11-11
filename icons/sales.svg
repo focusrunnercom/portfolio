@@ -1,33 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-  <defs>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="0.8" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <g filter="url(#glow)">
-    <!-- Head -->
-    <circle cx="24" cy="13" r="7"/>
-    <!-- Hair (confident, professional) -->
-    <path d="M17 11 C17 7, 20 5, 24 5 C28 5, 31 7, 31 11" stroke-width="1.2" opacity="0.5"/>
-    <!-- Neck -->
-    <line x1="20" y1="20" x2="20" y2="23"/>
-    <line x1="28" y1="20" x2="28" y2="23"/>
-    <!-- Shoulders (suit) -->
-    <path d="M10 40 L10 32 C10 26, 16 23, 20 23 L28 23 C32 23, 38 26, 38 32 L38 40"/>
-    <!-- Suit lapel -->
-    <path d="M20 23 L24 32 L28 23" stroke-width="1.2" opacity="0.5"/>
-    <!-- Tie -->
-    <path d="M23 23 L22 29 L24 31 L26 29 L25 23" stroke-width="1" opacity="0.6"/>
-    <!-- Dollar sign (floating, top-right) -->
-    <text x="37" y="12" fill="#6eff8a" stroke="none" font-size="10" font-family="monospace" opacity="0.6">$</text>
-    <!-- Coins (scattered) -->
-    <circle cx="40" cy="18" r="2.5" stroke-width="1.2"/>
-    <circle cx="40" cy="18" r="0.8" fill="#6eff8a" stroke="none" opacity="0.4"/>
-    <circle cx="43" cy="24" r="2" stroke-width="1" opacity="0.6"/>
-    <circle cx="37" cy="24" r="1.8" stroke-width="1" opacity="0.5"/>
-    <!-- Upward arrow (sales growth) -->
-    <line x1="4" y1="38" x2="10" y2="30" stroke-width="1.4"/>
-    <polyline points="8,30 10,30 10,32" stroke-width="1" opacity="0.6"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Dollar sign — bold, centered -->
+  <text x="24" y="34" text-anchor="middle" fill="#6eff8a" stroke="none" font-size="36" font-weight="bold" font-family="system-ui, sans-serif">$</text>
+  <!-- Coins -->
+  <circle cx="40" cy="10" r="5" stroke-width="2.5"/>
+  <circle cx="40" cy="10" r="1.5" fill="#6eff8a" stroke="none" opacity="0.5"/>
+  <circle cx="8" cy="12" r="4" stroke-width="2"/>
+  <circle cx="8" cy="12" r="1.2" fill="#6eff8a" stroke="none" opacity="0.5"/>
 </svg>
