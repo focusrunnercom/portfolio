@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Dollar sign — bold, centered -->
-  <text x="24" y="34" text-anchor="middle" fill="#6eff8a" stroke="none" font-size="36" font-weight="bold" font-family="system-ui, sans-serif">$</text>
-  <!-- Coins -->
-  <circle cx="40" cy="10" r="5" stroke-width="2.5"/>
-  <circle cx="40" cy="10" r="1.5" fill="#6eff8a" stroke="none" opacity="0.5"/>
-  <circle cx="8" cy="12" r="4" stroke-width="2"/>
-  <circle cx="8" cy="12" r="1.2" fill="#6eff8a" stroke="none" opacity="0.5"/>
-</svg>

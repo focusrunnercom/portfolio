@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Dropper — bold teardrop -->
-  <path d="M24 4 C24 4, 12 18, 12 28 C12 36, 17 42, 24 42 C31 42, 36 36, 36 28 C36 18, 24 4, 24 4 Z"/>
-  <!-- Liquid inside -->
-  <path d="M24 16 C24 16, 18 22, 18 26 C18 31, 20 34, 24 34 C28 34, 30 31, 30 26 C30 22, 24 16, 24 16 Z" opacity="0.4"/>
-  <!-- Drop falling -->
-  <circle cx="24" cy="45" r="1.5" fill="#6eff8a" stroke="none" opacity="0.5"/>
-</svg>

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Tooth shape — bold, recognizable -->
-  <path d="M16 6 C16 6, 8 12, 8 20 C8 26, 11 30, 13 35 L13 38 C13 41, 15 43, 17 43 L20 43 C21 43, 23 41, 23 38 L23 34 L25 34 L25 38 C25 41, 27 43, 28 43 L31 43 C33 43, 35 41, 35 38 L35 35 C37 30, 40 26, 40 20 C40 12, 32 6, 32 6 C32 6, 27 9, 24 9 C21 9, 16 6, 16 6 Z"/>
-  <!-- Shine -->
-  <path d="M14 16 C15 13, 18 10, 21 10" stroke-width="2" opacity="0.5"/>
-</svg>

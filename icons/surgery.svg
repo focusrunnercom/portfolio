@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Scalpel blade -->
-  <path d="M4 38 L26 16 L30 20 L8 42 Z"/>
-  <!-- Handle -->
-  <line x1="28" y1="14" x2="40" y2="2" stroke-width="4"/>
-  <!-- Cross accent -->
-  <line x1="38" y1="36" x2="38" y2="44" stroke-width="3.5"/>
-  <line x1="34" y1="40" x2="42" y2="40" stroke-width="3.5"/>
-</svg>

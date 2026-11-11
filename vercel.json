@@ -11,6 +11,7 @@
     { "src": "*.ico", "use": "@vercel/static" },
     { "src": "*.png", "use": "@vercel/static" },
     { "src": "icons/*.svg", "use": "@vercel/static" },
+    { "src": "icons/*.png", "use": "@vercel/static" },
     { "src": "public/**", "use": "@vercel/static" },
     { "src": "api/*.js", "use": "@vercel/node" }
   ],
