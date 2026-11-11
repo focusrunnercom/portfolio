@@ -1533,6 +1533,9 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
   if (!reduced) { h2s.forEach(splitWords); }
 
   // 4. Inview reveals: section-intro, ALL grids, ALL terminal bodies
+  //    TIMING FIX: Only reveal on actual user scroll. No rAF loop, no hard-fallback timer.
+  //    Elements in the first viewport get revealed once on load; everything else waits
+  //    until the user scrolls to it — so animations play DURING scroll, not before.
   var grids = document.querySelectorAll('.features-grid, .manifesto-grid, .agent-grid, .niche-grid, .stack-grid, .case-grid');
   grids.forEach(function(g) { g.classList.add('reveal-host'); });
   var intro = document.querySelectorAll('.section-intro');
@@ -1546,57 +1549,66 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
   terms.forEach(function(el) { targets.push(el); });
 
   if (reduced || !('IntersectionObserver' in window)) {
-    targets.forEach(function(el) { el.classList.add('in'); });
+    // No JS motion support — reveal everything immediately
+    targets.forEach(function(el) {
+      el.classList.add('in');
+      el.querySelectorAll('.word-mask').forEach(function(wm) { wm.classList.add('in'); });
+    });
     if (reduced) {
       var st = document.createElement('style');
       st.textContent = '.terminal-body .line{opacity:1 !important;transform:none !important;}';
       document.head.appendChild(st);
     }
   } else {
-    // Reveal check via getBoundingClientRect — works on ANY scroll path
-    var pending = false;
+    // Reveal strictly on user scroll / viewport entry.
+    // No rAF polling, no timer fallback — animations only fire when the
+    // user actually scrolls the element into view.
+    var revealed = false;
+
     function checkReveals() {
-      var vh = window.innerHeight, m = vh * 0.08;
-      var remaining = 0;
+      if (revealed) return;
+      var vh = window.innerHeight;
+      // Reveal threshold: element top enters bottom 92% of viewport.
+      // Generous enough to not feel late, tight enough that below-the-fold
+      // content stays hidden until you scroll to it.
+      var threshold = vh * 0.92;
       for (var i = 0; i < targets.length; i++) {
         var el = targets[i];
         if (el.classList.contains('in')) continue;
-        remaining++;
         var r = el.getBoundingClientRect();
-        if (r.bottom > m && r.top < vh) {
+        if (r.top < threshold) {
           el.classList.add('in');
           el.querySelectorAll('.word-mask').forEach(function(wm) { wm.classList.add('in'); });
         }
       }
-      if (remaining === 0) {
-        window.removeEventListener('scroll', onScroll);
-        window.removeEventListener('resize', onResize);
+      // Stop listening once everything is revealed
+      for (var j = 0; j < targets.length; j++) {
+        if (!targets[j].classList.contains('in')) return;
       }
+      revealed = true;
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('wheel', onScroll);
+      window.removeEventListener('touchmove', onScroll);
     }
+
+    var pending = false;
     function onScroll() {
       if (pending) return;
       pending = true;
       requestAnimationFrame(function() { pending = false; checkReveals(); });
     }
     function onResize() { checkReveals(); }
+
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onResize, { passive: true });
     window.addEventListener('wheel', onScroll, { passive: true });
     window.addEventListener('touchmove', onScroll, { passive: true });
     window.addEventListener('keydown', onScroll, { passive: true });
-    (function rafLoop() {
-      checkReveals();
-      requestAnimationFrame(rafLoop);
-    })();
-    // HARD FALLBACK — content must never stay invisible
-    setTimeout(function() {
-      targets.forEach(function(el) {
-        if (!el.classList.contains('in')) {
-          el.classList.add('in');
-          el.querySelectorAll('.word-mask').forEach(function(wm) { wm.classList.add('in'); });
-        }
-      });
-    }, 4000);
+
+    // Initial pass: reveal only what's already in the first viewport on load.
+    // Below-the-fold elements stay hidden until the user scrolls to them.
+    checkReveals();
   }
 })();
 </script>
