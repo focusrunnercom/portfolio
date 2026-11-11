@@ -1,12 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Head -->
-  <circle cx="24" cy="14" r="8"/>
-  <!-- Hair swoosh -->
-  <path d="M16 10 C16 5, 22 3, 24 3 C26 3, 32 5, 32 10"/>
-  <!-- Shoulders -->
-  <path d="M10 42 L10 34 C10 28, 16 26, 20 26 L28 26 C32 26, 38 28, 38 34 L38 42"/>
-  <!-- Hair strand (flowing) -->
-  <path d="M14 20 C18 14, 24 12, 34 16" stroke-width="2.5" opacity="0.6"/>
-  <!-- Growth arrow -->
-  <path d="M40 8 L40 16 M37 13 L40 16 L43 13" stroke-width="2.5"/>
+  <!-- Scissors — bold, unmistakable haircut symbol -->
+  <!-- Blade 1 -->
+  <line x1="10" y1="38" x2="30" y2="10" stroke-width="3.5"/>
+  <!-- Blade 2 -->
+  <line x1="30" y1="38" x2="10" y2="10" stroke-width="3.5"/>
+  <!-- Pivot -->
+  <circle cx="20" cy="24" r="3"/>
+  <!-- Handle loop 1 -->
+  <path d="M10 38 C7 41, 4 42, 2 40"/>
+  <!-- Handle loop 2 -->
+  <path d="M30 38 C33 41, 36 42, 38 40"/>
 </svg>
