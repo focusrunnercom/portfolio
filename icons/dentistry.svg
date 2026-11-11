@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Tooth crown -->
+  <path d="M16 10 C16 10, 12 14, 12 20 C12 26, 14 30, 16 34 L16 38 C16 40, 17 42, 18 42 L20 42 C21 42, 22 40, 22 38 L22 34 L26 34 L26 38 C26 40, 27 42, 28 42 L30 42 C31 42, 32 40, 32 38 L32 34 C34 30, 36 26, 36 20 C36 14, 32 10, 32 10 C32 10, 28 12, 24 12 C20 12, 16 10, 16 10 Z"/>
+  <!-- Shine line -->
+  <line x1="18" y1="16" x2="18" y2="22" opacity="0.5"/>
+</svg>

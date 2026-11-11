@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Droplet / serum bottle -->
+  <path d="M24 6 C24 6, 14 18, 14 26 C14 32, 18 38, 24 38 C30 38, 34 32, 34 26 C34 18, 24 6, 24 6 Z"/>
+  <!-- Inner drop -->
+  <path d="M24 14 C24 14, 20 20, 20 24 C20 27, 22 30, 24 30 C26 30, 28 27, 28 24 C28 20, 24 14, 24 14 Z" opacity="0.5"/>
+  <!-- Ripples (skin layers) -->
+  <path d="M10 36 C14 34, 18 38, 22 36" stroke-width="1" opacity="0.4"/>
+  <path d="M26 36 C30 34, 34 38, 38 36" stroke-width="1" opacity="0.4"/>
+</svg>

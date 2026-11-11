@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Terminal window -->
+  <rect x="6" y="10" width="36" height="28" rx="2"/>
+  <!-- Title bar dots -->
+  <circle cx="11" cy="15" r="1.2" fill="#ff5c4d" stroke="none"/>
+  <circle cx="15" cy="15" r="1.2" fill="#ffb547" stroke="none"/>
+  <circle cx="19" cy="15" r="1.2" fill="#6eff8a" stroke="none"/>
+  <!-- Prompt -->
+  <polyline points="10,22 14,26 10,30" stroke-width="1.5"/>
+  <!-- Cursor -->
+  <rect x="17" y="28" width="4" height="2" fill="#6eff8a" stroke="none" opacity="0.8"/>
+</svg>

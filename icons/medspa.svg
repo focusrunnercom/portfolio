@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Syringe body -->
+  <rect x="8" y="18" width="24" height="12" rx="2"/>
+  <!-- Plunger -->
+  <line x1="8" y1="24" x2="4" y2="24"/>
+  <line x1="4" y1="20" x2="4" y2="28"/>
+  <!-- Needle -->
+  <line x1="32" y1="24" x2="42" y2="24"/>
+  <!-- Fluid lines -->
+  <line x1="12" y1="21" x2="12" y2="27"/>
+  <line x1="16" y1="21" x2="16" y2="27"/>
+  <line x1="20" y1="21" x2="20" y2="27"/>
+  <line x1="24" y1="21" x2="24" y2="27"/>
+  <!-- Cross mark (medical) -->
+  <line x1="36" y1="14" x2="36" y2="10"/>
+  <line x1="33" y1="12" x2="39" y2="12"/>
+</svg>

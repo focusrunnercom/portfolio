@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Headphone band -->
+  <path d="M10 28 C10 16, 38 16, 38 28"/>
+  <!-- Left ear cup -->
+  <rect x="6" y="26" width="8" height="12" rx="2"/>
+  <!-- Right ear cup -->
+  <rect x="34" y="26" width="8" height="12" rx="2"/>
+  <!-- Mic boom -->
+  <path d="M14 38 C14 42, 18 44, 24 44"/>
+  <circle cx="26" cy="44" r="2" fill="#6eff8a" stroke="none" opacity="0.6"/>
+  <!-- Sound waves -->
+  <path d="M20 30 C22 28, 26 28, 28 30" stroke-width="1" opacity="0.4"/>
+  <path d="M18 34 C22 31, 26 31, 30 34" stroke-width="1" opacity="0.3"/>
+</svg>

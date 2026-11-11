@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Eye outline -->
+  <path d="M6 24 C6 24, 14 14, 24 14 C34 14, 42 24, 42 24 C42 24, 34 34, 24 34 C14 34, 6 24, 6 24 Z"/>
+  <!-- Iris -->
+  <circle cx="24" cy="24" r="7"/>
+  <!-- Pupil -->
+  <circle cx="24" cy="24" r="3" fill="#6eff8a" stroke="none" opacity="0.8"/>
+  <!-- Laser beam -->
+  <line x1="38" y1="10" x2="28" y2="20" stroke-width="1.2" opacity="0.6"/>
+  <line x1="42" y1="8" x2="30" y2="18" stroke-width="0.8" opacity="0.3" stroke-dasharray="2 2"/>
+  <!-- Sparkle -->
+  <line x1="38" y1="10" x2="40" y2="8"/>
+  <line x1="40" y1="10" x2="42" y2="12"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#6eff8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Wrench -->
+  <path d="M18 10 C14 10, 10 14, 10 18 L10 20 C10 22, 12 24, 14 24 L16 24 C18 24, 20 22, 20 20 L20 18 C20 14, 22 10, 26 10 C30 10, 32 12, 32 16 C32 20, 30 22, 26 22 L24 22"/>
+  <path d="M26 22 L26 38 C26 40, 28 42, 30 42 L32 42 C34 42, 36 40, 36 38 L36 22"/>
+  <!-- Gear teeth (simplified) -->
+  <circle cx="30" cy="32" r="3" opacity="0.4"/>
+  <!-- Circuit lines -->
+  <line x1="14" y1="28" x2="14" y2="38" stroke-width="1" opacity="0.4"/>
+  <line x1="14" y1="33" x2="20" y2="33" stroke-width="1" opacity="0.4"/>
+  <circle cx="20" cy="33" r="1" fill="#6eff8a" stroke="none" opacity="0.4"/>
+</svg>
