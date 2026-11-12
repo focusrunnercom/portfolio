@@ -120,6 +120,139 @@
   /* Case-card border glow on hover (phosphor, subtle) */
   .case-card { transition: border-color var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-spring); }
   .case-card:hover { border-color: var(--phos-dim); box-shadow: 0 0 18px rgba(110,255,138,0.07); transform: translateY(-2px); }
+  
+  /* ===== MODERN MOTION EFFECTS ===== */
+  /* Hero entrance animations */
+  .hero-title, .hero-subtitle, .hero-sub, .hero-ctas, .hero-topline {
+    animation: fade-up 0.6s var(--ease-snap) both;
+  }
+  .hero-topline { animation-delay: 0.1s; }
+  .hero-title { animation-delay: 0.2s; }
+  .hero-subtitle { animation-delay: 0.3s; }
+  .hero-sub { animation-delay: 0.4s; }
+  .hero-ctas { animation-delay: 0.5s; }
+  
+  /* Nav entrance */
+  nav { animation: slide-down 0.5s var(--ease-snap) both; }
+  
+  /* Section intro stagger */
+  .section-intro h2 { animation: fade-up 0.5s var(--ease-snap) both; }
+  .section-intro p { animation: fade-up 0.5s var(--ease-snap) 0.15s both; }
+  
+  /* Card hover enhancements */
+  .feature:hover, .manifesto-item:hover, .stack-card:hover, .niche-item:hover, .agent-card:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  .feature:hover .feature-num, .manifesto-item:hover .manifesto-num {
+    text-shadow: 0 0 8px rgba(110,255,138,0.5);
+  }
+  
+  /* Icon bounce on hover */
+  .niche-item:hover .icon img, .agent-card:hover .icon img {
+    animation: float 0.6s ease-in-out;
+  }
+  
+  /* Button glow pulse */
+  .btn-primary:hover {
+    animation: pulse-glow 1.5s ease-in-out infinite;
+  }
+  
+  /* Terminal cursor pulse */
+  .cursor {
+    animation: blink 1s step-end infinite, pulse-glow 2s ease-in-out infinite;
+  }
+  
+  /* Metric box hover */
+  .metric-box {
+    transition: transform var(--dur-med) var(--ease-spring), box-shadow var(--dur-med) var(--ease-out);
+  }
+  .metric-box:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+  .metric-box .val {
+    transition: text-shadow var(--dur-med) var(--ease-out);
+  }
+  .metric-box:hover .val {
+    text-shadow: 0 0 12px rgba(110,255,138,0.6);
+  }
+  
+  /* Phase list hover */
+  .phase {
+    transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-snap);
+  }
+  .phase:hover {
+    border-color: var(--phos-dim);
+    transform: translateX(4px);
+  }
+  
+  /* FAQ item hover */
+  .faq-item {
+    transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  }
+  .faq-item:hover {
+    border-color: var(--line-bright);
+  }
+  .faq-q:hover {
+    background: var(--bg-2);
+  }
+  
+  /* Form input focus glow */
+  #email-lead-form input {
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+  #email-lead-form input:focus {
+    border-color: var(--phos) !important;
+    box-shadow: 0 0 0 3px rgba(110,255,138,0.1);
+  }
+  
+  /* Submit button hover */
+  #email-lead-form button[type="submit"] {
+    transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-out);
+  }
+  #email-lead-form button[type="submit"]:hover {
+    background-color: #8affa0 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(110,255,138,0.3);
+  }
+  #email-lead-form button[type="submit"]:active {
+    transform: scale(0.97);
+  }
+  
+  /* Link underline animation */
+  a[style*="color:var(--phos)"] {
+    position: relative;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  a[style*="color:var(--phos)"]::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--phos);
+    transition: width var(--dur-med) var(--ease-out);
+  }
+  a[style*="color:var(--phos)"]:hover::after {
+    width: 100%;
+  }
+  
+  /* Shimmer effect for featured card */
+  .stack-card.featured {
+    position: relative;
+    overflow: hidden;
+  }
+  .stack-card.featured::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(110,255,138,0.05), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+  }
   /* Reduced motion — everything static, no animation */
   @media (prefers-reduced-motion: reduce) {
     .scroll-progress { display: none; }
@@ -127,7 +260,12 @@
     .features-grid .feature, .manifesto-grid .manifesto-item, .agent-grid .agent-card,
     .niche-grid .niche-item, .stack-grid .stack-card,
     .case-card, .niche-item, .agent-card, .stack-card,
-    .nav-links a, .nav-cta, .btn, .btn-primary, .btn-secondary, .btn-link {
+    .nav-links a, .nav-cta, .btn, .btn-primary, .btn-secondary, .btn-link,
+    .hero-title, .hero-subtitle, .hero-sub, .hero-ctas, .hero-topline,
+    nav, .section-intro h2, .section-intro p,
+    .metric-box, .phase, .faq-item, .faq-q,
+    #email-lead-form input, #email-lead-form button[type="submit"],
+    .cursor, .stack-card.featured::before {
       opacity: 1 !important; transform: none !important; transition: none !important; animation: none !important;
     }
     html { scroll-behavior: auto !important; }
@@ -214,6 +352,30 @@
   @keyframes fade-slide {
     from { opacity: 0; transform: translateX(-12px); }
     to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes slide-down {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(110,255,138,0.4); }
+    50% { box-shadow: 0 0 20px 8px rgba(110,255,138,0.15); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 
   /* ===== FEATURES ===== */
@@ -1527,7 +1689,23 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
     document.head.appendChild(s);
   }
 
-  // 2. Scroll progress bar (phosphor, top of viewport)
+  // 2. Parallax effect for hero (subtle background movement)
+  var hero = document.querySelector('.hero');
+  if (hero && !reduced) {
+    var heroContent = hero.querySelector('.wrap');
+    window.addEventListener('scroll', function() {
+      if (!heroContent) return;
+      var scrolled = window.scrollY;
+      var heroHeight = hero.offsetHeight;
+      if (scrolled < heroHeight) {
+        var offset = scrolled * 0.3;
+        heroContent.style.transform = 'translateY(' + offset + 'px)';
+        heroContent.style.opacity = 1 - (scrolled / heroHeight) * 0.5;
+      }
+    }, { passive: true });
+  }
+  
+  // 3. Scroll progress bar (phosphor, top of viewport)
   var bar = document.getElementById('scrollBar');
   if (bar && !reduced) {
     var ticking = false;
@@ -1544,7 +1722,7 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
     updateBar();
   }
 
-  // 3. Word-mask headings (msft "words-fade-up") — split h2s in .section-intro
+  // 4. Word-mask headings (msft "words-fade-up") — split h2s in .section-intro
   function splitWords(el) {
     var text = el.textContent;
     el.textContent = '';
@@ -1562,7 +1740,7 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
   var h2s = document.querySelectorAll('.section-intro h2');
   if (!reduced) { h2s.forEach(splitWords); }
 
-  // 4. Inview reveals: section-intro, ALL grids, ALL terminal bodies
+  // 5. Inview reveals: section-intro, ALL grids, ALL terminal bodies
   //    TIMING FIX: Only reveal on actual user scroll. No rAF loop, no hard-fallback timer.
   //    Elements in the first viewport get revealed once on load; everything else waits
   //    until the user scrolls to it — so animations play DURING scroll, not before.
@@ -1639,6 +1817,60 @@ document.getElementById('email-lead-form').addEventListener('submit', async func
     // Initial pass: reveal only what's already in the first viewport on load.
     // Below-the-fold elements stay hidden until the user scrolls to them.
     checkReveals();
+  }
+  
+  // 5. Counter animation for metric values (e.g., "287%", "78%", "20-50")
+  function animateCounter(el, target, suffix, duration) {
+    if (reduced) {
+      el.textContent = target + suffix;
+      return;
+    }
+    var start = 0;
+    var startTime = null;
+    function step(timestamp) {
+      if (!startTime) startTime = timestamp;
+      var progress = Math.min((timestamp - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      var current = Math.floor(eased * target);
+      el.textContent = current + suffix;
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        el.textContent = target + suffix;
+      }
+    }
+    requestAnimationFrame(step);
+  }
+  
+  // Observe metric boxes and animate their values
+  var metricBoxes = document.querySelectorAll('.metric-box .val');
+  if (!reduced && metricBoxes.length > 0) {
+    var metricObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          var text = el.textContent.trim();
+          // Extract number and suffix
+          var match = text.match(/^([\d.,]+)(.*)$/);
+          if (match) {
+            var numStr = match[1].replace(/,/g, '');
+            var num = parseFloat(numStr);
+            if (!isNaN(num) && num > 0) {
+              var suffix = match[2];
+              // Format: preserve decimal places if present
+              var decimals = numStr.includes('.') ? numStr.split('.')[1].length : 0;
+              var formattedNum = decimals > 0 ? num.toFixed(decimals) : Math.floor(num);
+              animateCounter(el, parseFloat(formattedNum), suffix, 1000);
+            }
+          }
+          metricObserver.unobserve(el);
+        }
+      });
+    }, { threshold: 0.5 });
+    
+    metricBoxes.forEach(function(box) {
+      metricObserver.observe(box);
+    });
   }
 })();
 </script>
