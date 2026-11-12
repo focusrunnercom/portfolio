@@ -168,7 +168,7 @@
     '    <button id="fr-chat-send" type="button">&rarr;</button>',
     '  </div>',
     '</div>',
-    '<button id="fr-chat-fab" type="button" aria-label="Open FocusRunner chat"><img src="/icons/chat.png" alt="Chat" style="width:100%;height:100%;object-fit:cover;border:none;border-radius:0;"><span class="fr-dot"></span></button>',
+    '<button id="fr-chat-fab" type="button" aria-label="Open FocusRunner chat"><img src="/icons/chat.png" alt="Chat" style="position:absolute;width:100%;height:100%;object-fit:cover;border:none;border-radius:0;"><span class="fr-dot"></span></button>',
   ].join('\n');
   document.body.appendChild(container);
 
