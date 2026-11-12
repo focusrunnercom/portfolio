@@ -134,24 +134,23 @@
     position: relative;
     transition: border-color var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-spring);
   }
-  .case-card::before {
+  .case-card::after {
     content: '';
     position: absolute;
     inset: -1px;
-    background: conic-gradient(from var(--border-angle), var(--phos), transparent 40%, var(--phos) 80%, transparent);
+    background: conic-gradient(from 0deg, var(--phos), transparent 40%, var(--phos) 80%, transparent);
     opacity: 0;
     transition: opacity var(--dur-med) var(--ease-out);
     z-index: -1;
-    border-radius: inherit;
+    pointer-events: none;
   }
   .case-card:hover { 
     border-color: var(--phos-dim); 
-    box-shadow: 0 0 24px rgba(110,255,138,0.1); 
+    box-shadow: 0 0 24px rgba(110,255,138,0.1), inset 0 0 12px rgba(110,255,138,0.05); 
     transform: translateY(-2px);
   }
-  .case-card:hover::before {
-    opacity: 1;
-    animation: border-spin 3s linear infinite;
+  .case-card:hover::after {
+    opacity: 0.4;
   }
   
   /* ===== MODERN MOTION EFFECTS ===== */
@@ -690,7 +689,7 @@
   .agent-card .desc { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
 
   /* ===== CASE STUDIES — EXPANDABLE CARDS ===== */
-  .case-card { background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; transition: border-color .2s, box-shadow .25s; cursor: pointer; }
+  .case-card { background: var(--bg-2); border: 1px solid var(--line); cursor: pointer; }
   .case-header { display: flex; align-items: flex-start; gap: 24px; padding: 28px; }
   .case-img { width: 72px; height: 72px; flex-shrink: 0; background: var(--line); display: flex; align-items: center; justify-content: center; }
   .case-img img { width: 54px; height: 54px; border: 2px solid #6eff8a; border-radius: 10px; }
@@ -702,7 +701,7 @@
   .case-toggle:hover { color: #8affa0; }
   .case-toggle .chevron { display: inline-block; transition: transform .3s ease; font-size: 10px; }
   .case-card.open .chevron { transform: rotate(180deg); }
-  .case-body { max-height: 0; overflow: hidden; transition: max-height .4s ease, padding .4s ease; }
+  .case-body { max-height: 0; overflow: hidden; transition: max-height .4s var(--ease-snap), padding .4s var(--ease-snap); }
   .case-card.open .case-body { max-height: 3000px; }
   .case-body-inner { padding: 0 28px 28px; }
   .case-metrics { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
