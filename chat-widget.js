@@ -128,7 +128,7 @@
   // ─── Smooth CSS ──────────────────────────────────────────────
   var style = document.createElement('style');
   style.textContent = [
-    '#fr-chat-fab { position: fixed; bottom: 24px; right: 24px; z-index: 2147483647; width: 56px; height: 56px; border-radius: 0; border: 1px solid #6eff8a; background: #0d120f; color: #6eff8a; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease, box-shadow 0.2s ease; font-family: "JetBrains Mono", monospace; overflow: hidden; }',
+    '#fr-chat-fab { position: fixed; bottom: 24px; right: 24px; z-index: 2147483647; width: 56px; height: 56px; border-radius: 0; border: 1px solid #6eff8a; background: #0d120f; color: #6eff8a; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94); font-family: "JetBrains Mono", monospace; overflow: hidden; }',
     '#fr-chat-fab:hover { transform: scale(1.08); box-shadow: 0 0 24px rgba(110,255,138,0.25); }',
     '#fr-chat-fab .fr-dot { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #6eff8a; animation: fr-pulse 2s infinite; }',
     '@keyframes fr-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }',
