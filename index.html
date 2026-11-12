@@ -33,6 +33,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  /* ===== @property registrations (CSSnippets technique) ===== */
+  @property --glow-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+  }
+  @property --border-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+  }
+  
   :root {
     --phos: #6eff8a; --phos-dim: #2a6b38; --ink: #d4e5d8; --ink-dim: #7a8c7e;
     --ink-faint: #3f4a43; --bg-panel: #0d120f; --bg-2: #0f1412;
@@ -117,9 +129,30 @@
   .features-grid .feature:nth-child(4), .manifesto-grid .manifesto-item:nth-child(4), .agent-grid .agent-card:nth-child(4), .stack-grid .stack-card:nth-child(4) { transition-delay: .3s; }
   .features-grid .feature:nth-child(5), .manifesto-grid .manifesto-item:nth-child(5), .agent-grid .agent-card:nth-child(5) { transition-delay: .4s; }
   .features-grid .feature:nth-child(6), .manifesto-grid .manifesto-item:nth-child(6), .agent-grid .agent-card:nth-child(6) { transition-delay: .5s; }
-  /* Case-card border glow on hover (phosphor, subtle) */
-  .case-card { transition: border-color var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-spring); }
-  .case-card:hover { border-color: var(--phos-dim); box-shadow: 0 0 18px rgba(110,255,138,0.07); transform: translateY(-2px); }
+  /* Case-card border glow on hover (conic-gradient rotating border — CSSnippets) */
+  .case-card { 
+    position: relative;
+    transition: border-color var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-spring);
+  }
+  .case-card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: conic-gradient(from var(--border-angle), var(--phos), transparent 40%, var(--phos) 80%, transparent);
+    opacity: 0;
+    transition: opacity var(--dur-med) var(--ease-out);
+    z-index: -1;
+    border-radius: inherit;
+  }
+  .case-card:hover { 
+    border-color: var(--phos-dim); 
+    box-shadow: 0 0 24px rgba(110,255,138,0.1); 
+    transform: translateY(-2px);
+  }
+  .case-card:hover::before {
+    opacity: 1;
+    animation: border-spin 3s linear infinite;
+  }
   
   /* ===== MODERN MOTION EFFECTS ===== */
   /* Hero entrance animations */
@@ -139,9 +172,14 @@
   .section-intro h2 { animation: fade-up 0.5s var(--ease-snap) both; }
   .section-intro p { animation: fade-up 0.5s var(--ease-snap) 0.15s both; }
   
-  /* Card hover enhancements */
+  /* Card hover enhancements — 3D perspective (CSSnippets) */
+  .feature, .manifesto-item, .stack-card, .niche-item, .agent-card {
+    transform-style: preserve-3d;
+    transition: transform var(--dur-med) var(--ease-spring), box-shadow var(--dur-med) var(--ease-out);
+  }
   .feature:hover, .manifesto-item:hover, .stack-card:hover, .niche-item:hover, .agent-card:hover {
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    transform: perspective(800px) rotateY(2deg) rotateX(1deg) translateZ(8px);
   }
   .feature:hover .feature-num, .manifesto-item:hover .manifesto-num {
     text-shadow: 0 0 8px rgba(110,255,138,0.5);
@@ -152,7 +190,23 @@
     animation: float 0.6s ease-in-out;
   }
   
-  /* Button glow pulse */
+  /* Button glow pulse — conic gradient (CSSnippets) */
+  .btn-primary {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    background: conic-gradient(from var(--glow-angle), transparent, var(--phos), transparent 30%);
+    animation: glow-pulse 2s linear infinite;
+    opacity: 0;
+    transition: opacity var(--dur-med) var(--ease-out);
+  }
+  .btn-primary:hover::before {
+    opacity: 0.3;
+  }
   .btn-primary:hover {
     animation: pulse-glow 1.5s ease-in-out infinite;
   }
@@ -265,7 +319,12 @@
     nav, .section-intro h2, .section-intro p,
     .metric-box, .phase, .faq-item, .faq-q,
     #email-lead-form input, #email-lead-form button[type="submit"],
-    .cursor, .stack-card.featured::before {
+    .cursor, .stack-card.featured::before,
+    .case-card::before, .btn-primary::before,
+    .features-grid .feature, .manifesto-grid .manifesto-item,
+    .agent-grid .agent-card, .niche-grid .niche-item,
+    .stack-grid .stack-card, .case-grid .case-card,
+    .section-intro h2, .section-intro p, .metric-box {
       opacity: 1 !important; transform: none !important; transition: none !important; animation: none !important;
     }
     html { scroll-behavior: auto !important; }
@@ -326,6 +385,11 @@
 
   /* ===== TERMINAL ===== */
   .terminal { max-width: 700px; margin: 0 auto; border: 1px solid var(--line-bright); background: #080b09; }
+  .terminal svg.draw {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: draw-line 1.5s ease forwards 0.5s;
+  }
   .terminal-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 12px; }
   .terminal-dots { display: flex; gap: 6px; }
   .terminal-dots span { width: 10px; height: 10px; display: block; }
@@ -376,6 +440,92 @@
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
+  }
+  @keyframes border-spin {
+    to { --border-angle: 360deg; }
+  }
+  @keyframes glow-pulse {
+    0%, 100% { --glow-angle: 0deg; opacity: 0.6; }
+    50% { --glow-angle: 180deg; opacity: 1; }
+  }
+  @keyframes draw-line {
+    from { stroke-dashoffset: 1000; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes fade-in-up-view {
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes slide-in-left-view {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes zoom-in-view {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  /* ===== @starting-style: page load animations (no JS) ===== */
+  .hero-topline, .hero-title, .hero-subtitle, .hero-sub, .hero-ctas {
+    @starting-style {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  }
+  nav {
+    @starting-style {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+  }
+  .terminal {
+    @starting-style {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+  
+  /* ===== animation-timeline: view() — scroll-driven reveals (no JS) ===== */
+  @supports (animation-timeline: view()) {
+    .features-grid .feature,
+    .manifesto-grid .manifesto-item,
+    .agent-grid .agent-card,
+    .niche-grid .niche-item,
+    .stack-grid .stack-card,
+    .case-grid .case-card,
+    .case-card {
+      animation: fade-in-up-view linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 80%;
+    }
+    .section-intro h2, .section-intro p {
+      animation: slide-in-left-view linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+    .metric-box {
+      animation: zoom-in-view linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
   }
 
   /* ===== FEATURES ===== */
