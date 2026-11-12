@@ -41,9 +41,11 @@
     --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
     --ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
     --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* spring overshoot */
     --dur-fast: 150ms;
     --dur-med: 200ms;
     --dur-slow: 300ms;
+    --stagger: 80ms;
   }
   html { scroll-behavior: smooth; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -63,7 +65,7 @@
      reveal detection) opts an element INTO the hidden state via `.reveal:not(.in)`.
      If JS reveal detection ever fails (throttled rAF, hidden tab, IO edge case), the
      element simply stays visible — content is never stuck blank. */
-  .reveal { transition: opacity .5s var(--ease-out), transform .5s var(--ease-out); }
+  .reveal { transition: opacity .5s var(--ease-snap), transform .5s var(--ease-spring); }
   .reveal:not(.in) { opacity: 0; transform: translateY(16px); }
   .reveal.in { opacity: 1; transform: none; }
   /* Word-level fade-up for headings (msft "words-fade-up") */
@@ -74,7 +76,7 @@
   /* Terminal line-by-line reveal (inview fade-up per line) */
   /* Base = visible. `.reveal-term` opts a terminal INTO the hidden state.
      If reveal never fires, lines stay visible — never a blank terminal. */
-  .terminal-body .line { transition: opacity .35s var(--ease-out), transform .35s var(--ease-out); }
+  .terminal-body .line { transition: opacity .35s var(--ease-snap), transform .35s var(--ease-spring); }
   .terminal-body.reveal-term:not(.in) .line { opacity: 0; transform: translateY(8px); }
   .terminal-body.reveal-term.in .line { opacity: 1; transform: none; }
   .terminal-body .line:nth-child(1) { transition-delay: .05s; }
@@ -93,7 +95,7 @@
      If reveal never fires, cards stay visible — never a blank section. */
   .features-grid .feature, .manifesto-grid .manifesto-item, .agent-grid .agent-card,
   .niche-grid .niche-item, .stack-grid .stack-card, .case-grid .case-card {
-    transition: opacity .45s var(--ease-out), transform .45s var(--ease-out), border-color .15s var(--ease-out);
+    transition: opacity .45s var(--ease-snap), transform .45s var(--ease-spring), border-color .15s var(--ease-out);
   }
   .features-grid.reveal-host:not(.in) .feature,
   .manifesto-grid.reveal-host:not(.in) .manifesto-item,
@@ -116,7 +118,7 @@
   .features-grid .feature:nth-child(5), .manifesto-grid .manifesto-item:nth-child(5), .agent-grid .agent-card:nth-child(5) { transition-delay: .4s; }
   .features-grid .feature:nth-child(6), .manifesto-grid .manifesto-item:nth-child(6), .agent-grid .agent-card:nth-child(6) { transition-delay: .5s; }
   /* Case-card border glow on hover (phosphor, subtle) */
-  .case-card { transition: border-color var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-out); }
+  .case-card { transition: border-color var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-spring); }
   .case-card:hover { border-color: var(--phos-dim); box-shadow: 0 0 18px rgba(110,255,138,0.07); transform: translateY(-2px); }
   /* Reduced motion — everything static, no animation */
   @media (prefers-reduced-motion: reduce) {
@@ -126,7 +128,7 @@
     .niche-grid .niche-item, .stack-grid .stack-card,
     .case-card, .niche-item, .agent-card, .stack-card,
     .nav-links a, .nav-cta, .btn, .btn-primary, .btn-secondary, .btn-link {
-      opacity: 1 !important; transform: none !important; transition: none !important;
+      opacity: 1 !important; transform: none !important; transition: none !important; animation: none !important;
     }
     html { scroll-behavior: auto !important; }
   }
@@ -203,6 +205,16 @@
   .warn { color: var(--amber); }
   .cursor { display: inline-block; width: 8px; height: 16px; background: var(--phos); animation: blink 1s step-end infinite; vertical-align: text-bottom; }
   @keyframes blink { 50% { opacity: 0; } }
+  @keyframes spring-in {
+    0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+    60% { opacity: 1; transform: translateY(-4px) scale(1.02); }
+    80% { transform: translateY(2px) scale(0.99); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes fade-slide {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
 
   /* ===== FEATURES ===== */
   .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
@@ -213,8 +225,8 @@
 
   /* ===== STACK ===== */
   .stack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
-  .stack-card { background: var(--bg-panel); padding: 32px 24px; transition: transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out); }
-  .stack-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+  .stack-card { background: var(--bg-panel); padding: 32px 24px; transition: transform var(--dur-med) var(--ease-spring), box-shadow var(--dur-med) var(--ease-out); }
+  .stack-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
   .stack-card.featured { background: #0a140d; border: 1px solid var(--phos-dim); margin: -1px; }
   .stack-card .tag { display: inline-block; padding: 2px 8px; background: var(--phos); color: #000; font-size: 10px; font-weight: 700; margin-bottom: 12px; }
   .stack-card h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
@@ -340,8 +352,8 @@
 
   /* ===== NICHES ===== */
   .niche-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
-  .niche-item { background: var(--bg-panel); padding: 24px 20px; text-align: center; transition: transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out); }
-  .niche-item:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+  .niche-item { background: var(--bg-panel); padding: 24px 20px; text-align: center; transition: transform var(--dur-med) var(--ease-spring), box-shadow var(--dur-med) var(--ease-out); }
+  .niche-item:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
   .niche-item .icon { margin-bottom: 10px; }
   .niche-item .icon img { width: 48px; height: 48px; border: 2px solid #6eff8a; border-radius: 10px; }
   .niche-item h4 { font-size: 14px; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
@@ -357,8 +369,8 @@
   .org-tree .td { color: var(--amber); font-weight: 600; }
   .org-tree .label { color: var(--ink-faint); font-size: 11px; margin-left: 8px; }
   .agent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
-  .agent-card { background: var(--bg-panel); padding: 28px 20px; transition: transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out); }
-  .agent-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+  .agent-card { background: var(--bg-panel); padding: 28px 20px; transition: transform var(--dur-med) var(--ease-spring), box-shadow var(--dur-med) var(--ease-out); }
+  .agent-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
   .agent-card .icon { margin-bottom: 10px; }
   .agent-card .icon img { width: 48px; height: 48px; border: 2px solid #6eff8a; border-radius: 10px; }
   .agent-card h3 { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
